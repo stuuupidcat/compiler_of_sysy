@@ -18,6 +18,10 @@ inline void OutputToFile(const char *path) {
   freopen(path, "w", stdout);
 }
 
+inline void OutputToConsole {
+  freopen("CON", "w", stdout);
+}
+
 int main(int argc, const char *argv[]) {
   assert(argc == 5);
   auto mode = argv[1];
@@ -50,6 +54,6 @@ int main(int argc, const char *argv[]) {
     KoopaStrToProgram("./temp/temp_koopa", output);
   }
     
-  freopen("CON", "w", stdout);
+  OutputToConsole();
   return 0;
 }

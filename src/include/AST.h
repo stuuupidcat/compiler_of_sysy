@@ -2,17 +2,33 @@
 #include <iostream>
 #include <memory>
 
-
 /*
+    lv3:
+
     CompUnit  ::= FuncDef;
 
     FuncDef   ::= FuncType IDENT "(" ")" Block;
     FuncType  ::= "int";
 
     Block     ::= "{" Stmt "}";
-    Stmt      ::= "return" Number ";";
-    Number    ::= INT_CONST;
+    未实现：Stmt        ::= "return" Exp ";";  
+
+
+    未实现：Exp         ::= LOrExp;
+    未实现：PrimaryExp  ::= "(" Exp ")" | Number;
+    未实现：Number      ::= INT_CONST;
+    未实现：UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
+    未实现：UnaryOp     ::= "+" | "-" | "!";
+    未实现：MulExp      ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
+    未实现：AddExp      ::= MulExp | AddExp ("+" | "-") MulExp;
+    未实现：RelExp      ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp;
+    未实现：EqExp       ::= RelExp | EqExp ("==" | "!=") RelExp;
+    未实现：LAndExp     ::= EqExp | LAndExp "&&" EqExp;
+    未实现：LOrExp      ::= LAndExp | LOrExp "||" LAndExp;
+
 */
+
+
 
 // 所有 AST 的基类
 class BaseAST {

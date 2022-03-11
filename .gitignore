@@ -1,6 +1,5 @@
 *.DS_Store
 /build
 /debug
-/.vscode
 /log
 /temp
