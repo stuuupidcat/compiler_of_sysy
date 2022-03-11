@@ -8,6 +8,7 @@
 
 #include "koopa.h"
 
+
 // 函数声明
 void Visit     (const koopa_raw_program_t&);
 void Visit       (const koopa_raw_slice_t&);
@@ -16,7 +17,6 @@ void Visit (const koopa_raw_basic_block_t&);
 void Visit       (const koopa_raw_value_t&);
 void Visit      (const koopa_raw_return_t&);
 void Visit     (const koopa_raw_integer_t&);
-
 
 // 访问 raw program
 void Visit(const koopa_raw_program_t &program) {

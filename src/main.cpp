@@ -18,7 +18,7 @@ inline void OutputToFile(const char *path) {
   freopen(path, "w", stdout);
 }
 
-inline void OutputToConsole {
+inline void OutputToConsole() {
   freopen("CON", "w", stdout);
 }
 

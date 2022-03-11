@@ -98,7 +98,7 @@ Stmt
     // 该number一直输出261, 这里的Number应该是? ->应该是INT_CONST的值。
     // -> 示例程序中将Number写成了int_val
     // 我们将其变为BaseAST
-    ast -> number = unique_ptr<BaseAST>($2);
+    ast -> exp = unique_ptr<BaseAST>($2);
     $$ = ast;
   }
   ;
