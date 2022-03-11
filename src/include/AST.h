@@ -1,35 +1,11 @@
+#pragma once
 #include <memory>
 #include <iostream>
+#include <string>
 #include <stddef.h>
 #include <stdint.h>
 
-/*
-    lv3:
-
-    CompUnit  ::= FuncDef;
-
-    FuncDef   ::= FuncType IDENT "(" ")" Block;
-    FuncType  ::= "int";
-
-    Block     ::= "{" Stmt "}";
-    Stmt      ::= "return" Exp ";";  
-
-
-    Exp         ::= LOrExp;
-    PrimaryExp  ::= "(" Exp ")" | Number;
-    Number      ::= INT_CONST;
-    UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
-    UnaryOp     ::= "+" | "-" | "!";
-    MulExp      ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
-    AddExp      ::= MulExp | AddExp ("+" | "-") MulExp;
-    RelExp      ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp;
-    EqExp       ::= RelExp | EqExp ("==" | "!=") RelExp;
-    LAndExp     ::= EqExp | LAndExp "&&" EqExp;
-    LOrExp      ::= LAndExp | LOrExp "||" LAndExp;
-
-*/
-
-// 所有 AST 的基类
+ 
 class BaseAST {
 public:
     virtual ~BaseAST() = default;
@@ -43,17 +19,10 @@ public:
   // 用智能指针管理对象
     std::unique_ptr<BaseAST> func_def;
     
-    void Dump() const override {
-        std::cout << "CompUnitAST { ";
-        func_def->Dump();
-        std::cout << " }" << std::endl;
-    }
-
-    void DumpKoopa() const override {
-        std::cout << "fun ";
-        func_def -> DumpKoopa();
-    }
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;
 };
+
 
 // FuncDef 也是 BaseAST
 class FuncDefAST : public BaseAST {
@@ -62,52 +31,24 @@ public:
     std::string ident;
     std::unique_ptr<BaseAST> block;
     
-    void Dump() const override {
-        std::cout << "FuncDefAST { ";
-        func_type->Dump();
-        std::cout << ", " << ident << ", ";
-        block->Dump();
-        std::cout << " }";
-    }
-
-    void DumpKoopa() const override {
-        std::cout << "@" << ident << "(): ";
-        func_type -> DumpKoopa();
-        block -> DumpKoopa();
-    }
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;
 };
 
 class FuncTypeAST : public BaseAST {   
 public:
     std:: string s_int = "int";
     
-    void Dump() const override {
-        std::cout << "FuncTypeAST { ";
-        std::cout <<  s_int ;
-        std::cout << " }";
-    }
-
-    void DumpKoopa() const override {
-        std::cout << "i32 ";
-    }
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;
 };
 
 class BlockAST : public BaseAST {   
 public:
     std::unique_ptr<BaseAST> stmt;
     
-    void Dump() const override {
-        std::cout << "BlockAST { ";
-        stmt->Dump();
-        std::cout << " }";
-    }
-
-    void DumpKoopa() const override {
-        std::cout << "{" << std::endl;
-        std::cout << "%entry:" << std::endl;
-        stmt->DumpKoopa();
-        std::cout << '}' << std::endl;
-    }
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;
 };
 
 class StmtAST : public BaseAST {   
@@ -116,29 +57,16 @@ public:
     std::unique_ptr<BaseAST> exp;
     std::string semicolon = ";";
     
-    void Dump() const override {
-        std::cout << "StmtAST { ";
-        exp -> Dump();
-        std::cout << " }";
-    }
-
-    void DumpKoopa() const override {
-        std::cout << "    ret ";
-        exp->DumpKoopa();
-    }
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;
 };
 
 class NumberAST : public BaseAST {   
 public:
     int num;
     
-    void Dump() const override {
-        std::cout << num;
-    }
-
-    void DumpKoopa() const override {
-        std::cout << num << std::endl;
-    }
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;
 };
 
 //Exp         ::= UnaryExp;
@@ -146,13 +74,8 @@ class ExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> unaryexp;
 
-    void Dump() const override {
-        unaryexp -> Dump();
-    }
-
-    void DumpKoopa() const override {
-        unaryexp -> DumpKoopa();
-    }
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;
 };
 
 //UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
@@ -166,29 +89,12 @@ public:
     //mode == 1 -> UnaryOp UnaryExp
     int mode; 
 
-    void Dump() const override {
-        if (mode == 0) {
-            primaryexp->Dump();
-        }
-        else if (mode == 1) {
-            unaryop->Dump();
-            unaryexp->Dump();
-        }
-    }
-
-    void DumpKoopa() const override {
-        if (mode == 0) {
-            primaryexp->DumpKoopa();
-        }
-        else if (mode == 1) {
-            unaryop->DumpKoopa();
-            unaryexp->DumpKoopa();
-        }
-    }            
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;           
 };
 
 //PrimaryExp  ::= "(" Exp ")" | Number;
-class PrimaryExp : public BaseAST {
+class PrimaryExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> exp;
     std::unique_ptr<BaseAST> number;
@@ -197,51 +103,13 @@ public:
     //mode == 1 -> Number
     int mode;
 
-    void Dump() const override {
-        if (mode == 0) {
-            std::cout << "( ";
-            exp->Dump();
-            std::cout << " )" << std::endl;
-        }
-        else if (mode == 1) {
-            number->Dump();
-        }
-    }
-
-    void DumpKoopa() const override {
-        if (mode == 0) {
-            exp->DumpKoopa();
-        }
-        else if (mode == 1) {
-            number->DumpKoopa();
-        }
-    }
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;
 };
 
 //UnaryOp     ::= "+" | "-" | "!";
 class UnaryOpAST : public BaseAST {
     int mode;
-    void Dump() const override {
-        if (mode == 0) {
-            std::cout << "+";
-        }
-        else if (mode == 1) {
-            std::cout << "-";
-        }
-        else if (mode == 2) {
-            std::cout << "!";
-        }
-    }
-    void DumpKoopa() const override {
-        //pass
-        if (mode == 0) {
-            std::cout << "+";
-        }
-        else if (mode == 1) {
-            std::cout << "-";
-        }
-        else if (mode == 2) {
-            std::cout << "!";
-        }
-    }
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;
 };
