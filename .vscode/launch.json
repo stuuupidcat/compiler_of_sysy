@@ -1,26 +1,32 @@
 {
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
   "configurations": [
-    {
-      "MIMode": "gdb",
-      "args": [],
-      "cwd": "${fileDirname}",
-      "environment": [],
-      "externalConsole": false,
-      "internalConsoleOptions": "neverOpen",
-      "miDebuggerPath": "D:\\Software\\Mingw\\mingw64\\bin\\gdb.exe",
-      "name": "gcc single file debug",
-      "preLaunchTask": "gcc single file build",
-      "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
-      "request": "launch",
-      "setupCommands": [
-        {
-          "ignoreFailures": true,
-          "text": "-enable-pretty-printing"
-        }
-      ],
-      "stopAtEntry": false,
-      "type": "cppdbg"
-    }
-  ],
-  "version": "0.2.0"
+      {
+          "name": "(gdb) Launch",
+          "type": "cppdbg",
+          "request": "launch",
+          "program": "/root/compiler/build/compiler",
+          "args": ["-koopa",
+                   "./debug/hello.c",
+                   "-o",
+                   "./debug/output"
+                  ],
+          "stopAtEntry": false,
+          "cwd": "/root/compiler/",
+          "environment": [],
+          "externalConsole": false,
+          "MIMode": "gdb",
+          "MIDebuggerPath": "/usr/local/bin/gdb",
+          "setupCommands": [
+              {
+                  "description": "Enable pretty-printing for gdb",
+                  "text": "-enable-pretty-printing",
+                  "ignoreFailures": true
+              }
+          ]
+      }
+  ]
 }

@@ -6,16 +6,19 @@
 #include <string.h>
 
 #include "AST.h"
+#include "KoopaStr2Program.h"
 
 using namespace std;
-
 //#define DEBUG_MODE 0
 
 extern FILE *yyin;
 extern int yyparse(unique_ptr<BaseAST> &ast);
 
+inline void OutputToFile(const char *path) {
+  freopen(path, "w", stdout);
+}
+
 int main(int argc, const char *argv[]) {
-  
   assert(argc == 5);
   auto mode = argv[1];
   auto input = argv[2];
@@ -28,20 +31,25 @@ int main(int argc, const char *argv[]) {
   auto ret = yyparse(ast);
   assert(!ret);
 
-  // dump AST
-  // ast->Dump();
-  
-  //dump Koopa IR
-  //cd ./compiler;  make clean; make; ./build/compiler -koopa ./debug/hello.c -o ./debug/output
-
 #ifdef DEBUG_MODE
-
 #else
-  freopen(output, "w", stdout);
 #endif
 
-  if (strcmp(mode, "-koopa") == 0)
+  if (strcmp(mode, "-koopa") == 0) {
+    OutputToFile(output);
+    //cd ./compiler;  make clean; make; ./build/compiler -koopa ./debug/hello.c -o ./debug/koopa_output
+    ast->DumpKoopa();
+  }
+  else if (strcmp(mode, "-riscv") == 0) {
+    //cd ./compiler;  make clean; make; ./build/compiler -riscv ./debug/koopa_output -o ./debug/riscv_output
+    
+    OutputToFile("./temp/temp_koopa");
     ast->DumpKoopa();
 
+    OutputToFile(output);
+    KoopaStrToProgram("./temp/temp_koopa", output);
+  }
+    
+  freopen("CON", "w", stdout);
   return 0;
 }
