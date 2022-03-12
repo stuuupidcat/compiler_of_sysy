@@ -1,5 +1,7 @@
 #include "AST.h"
 
+std::string BaseAST::temp_sign = "";
+
 void CompUnitAST::Dump() const  {
     std::cout << 1;
 }
@@ -53,8 +55,8 @@ void StmtAST::Dump() const  {
 }
 
 void StmtAST::DumpKoopa() const  {
-    std::cout << "    ret ";
     exp->DumpKoopa();
+    std::cout << "    ret " << temp_sign << std::endl;   
 }
 
 void NumberAST::Dump() const  {
@@ -62,7 +64,7 @@ void NumberAST::Dump() const  {
 }
 
 void NumberAST::DumpKoopa() const  {
-    std::cout << num << std::endl;
+    //std::cout << num;
 }
 
 void ExpAST::Dump() const  {
@@ -88,16 +90,17 @@ void UnaryExpAST::DumpKoopa() const{
         primaryexp->DumpKoopa();
     }
     else if (mode == 1) {
-        unaryop->DumpKoopa();
+        //优先级问题？
         unaryexp->DumpKoopa();
+        unaryop->DumpKoopa();        
     }
 }
 
 void PrimaryExpAST::Dump() const  {
         if (mode == 0) {
-            std::cout << "( ";
+            std::cout << "(";
             exp->Dump();
-            std::cout << " )" << std::endl;
+            std::cout << ")" << std::endl;
         }
         else if (mode == 1) {
             number->Dump();
@@ -128,13 +131,34 @@ void UnaryOpAST::Dump() const {
 void UnaryOpAST::DumpKoopa() const {
     //pass
     if (mode == 0) {
-        std::cout << "+";
+        //std::cout << "+";
     }
     else if (mode == 1) {
-        std::cout << "-";
+        //std::cout << "-";
+        //增加temp_sign的标号，并进行操作。
+        std::string prev_sign;
+        if (temp_sign[0] != '%') {
+            prev_sign = temp_sign;
+            temp_sign = "%0";
+        }
+        else {
+            prev_sign = temp_sign;
+            temp_sign[1]++;
+        }
+        std::cout << "    " << temp_sign << " = sub 0, " << prev_sign << std::endl;
     }
     else if (mode == 2) {
-        std::cout << "!";
+        //std::cout << "!";
+        std::string prev_sign;
+        if (temp_sign[0] != '%') {
+            prev_sign = temp_sign;
+            temp_sign = "%0";
+        }
+        else {
+            prev_sign = temp_sign;
+            temp_sign[1]++;
+        }
+        std::cout << "    " << temp_sign << " = eq " << prev_sign << ", 0" << std::endl;
     }
 }
 

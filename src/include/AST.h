@@ -11,6 +11,8 @@ public:
     virtual ~BaseAST() = default;
     virtual void Dump() const = 0;
     virtual void DumpKoopa() const = 0;
+
+    static std::string temp_sign;
 };  
 
 // CompUnit 是 BaseAST

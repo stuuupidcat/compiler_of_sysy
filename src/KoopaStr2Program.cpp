@@ -4,8 +4,8 @@
 void Visit(const koopa_raw_program_t &program) {
    
   std::cout << "  .text" << std::endl;
-  // 访问所有全局变量
   
+  // 访问所有全局变量
   Visit(program.values);
   // 访问所有函数
   Visit(program.funcs);
