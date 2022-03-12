@@ -110,6 +110,7 @@ Number
 
     //将integer_sign初始化为数字。
     ast->integer_sign = to_string($1);
+    ast->integer_sign_used = false;
     $$ = ast;
   }
   ;
@@ -117,7 +118,7 @@ Number
 Exp
   : UnaryExp {
     auto ast = new ExpAST();
-    ast -> unaryexp = unique_ptr<BaseAST>($1);
+    ast -> addexp = unique_ptr<BaseAST>($1);
     $$ = ast;
   }
   ;

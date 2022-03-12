@@ -3,10 +3,12 @@
 std::string BaseAST::temp_sign = "%0";
 std::string BaseAST::integer_sign = "";
 int BaseAST::temp_sign_num = 0;
+bool BaseAST::integer_sign_used = false;
 
 std::string BaseAST::AllocTempSign() {
     std::string prev_sign;
-    if (temp_sign_num == 0) {
+    if (integer_sign_used == false) { //如果没有使用过数字
+        integer_sign_used = true;
         prev_sign = integer_sign;
         temp_sign_num++;
     }
@@ -87,11 +89,11 @@ void NumberAST::DumpKoopa() const  {
 }
 
 void ExpAST::Dump() const  {
-    unaryexp -> Dump();
+    addexp -> Dump();
 }
 
 void ExpAST::DumpKoopa() const  {
-    unaryexp -> DumpKoopa();
+    addexp -> DumpKoopa();
 }
 
 void UnaryExpAST::Dump() const {

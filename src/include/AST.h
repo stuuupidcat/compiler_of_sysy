@@ -18,6 +18,7 @@ public:
     static int temp_sign_num;
     //表达式中的数字
     static std::string integer_sign;
+    static bool   integer_sign_used;
 
     //分配temp_sign
     static std::string  AllocTempSign();
@@ -79,10 +80,10 @@ public:
     virtual void DumpKoopa() const override;
 };
 
-//Exp         ::= UnaryExp;
+//Exp         ::= AddExp;
 class ExpAST : public BaseAST {
 public:
-    std::unique_ptr<BaseAST> unaryexp;
+    std::unique_ptr<BaseAST> addexp;
 
     virtual void Dump() const override;
     virtual void DumpKoopa() const override;
@@ -121,6 +122,35 @@ public:
 class UnaryOpAST : public BaseAST {
 public:
     int mode;
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;
+};
+
+//MulExp      ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
+class MulExpAST : public BaseAST {
+public:
+    //mode == 0 -> UnaryExp
+    //mode == 1 -> MulExp * UnaryExp
+    //mode == 2 -> MulExp / UnaryExp
+    //mode == 3 -> MulExp % UnaryExp
+    std::unique_ptr<BaseAST> unaryexp;
+    std::unique_ptr<BaseAST> mulexp;
+    int mode;
+    
+    virtual void Dump() const override;
+    virtual void DumpKoopa() const override;
+};
+
+//AddExp      ::= MulExp | AddExp ("+" | "-") MulExp;
+class AddExpAST : public BaseAST {
+public:
+    //mode == 0 -> MulExp
+    //mode == 1 -> AddExp + MulExp
+    //mode == 2 -> AddExp - MulExp
+    std::unique_ptr<BaseAST> addexp;
+    std::unique_ptr<BaseAST> mulexp;
+    int mode;
+    
     virtual void Dump() const override;
     virtual void DumpKoopa() const override;
 };
