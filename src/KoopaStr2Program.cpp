@@ -1,5 +1,15 @@
 #include "KoopaStr2Program.h"
 
+int a_reg_num = 0;
+int t_reg_num = 0; 
+std::vector<BinaryInsResult*> ins_result_vec;
+
+BinaryInsResult::BinaryInsResult(const koopa_raw_binary_t* ins_pointer_, int reg_num_) {
+  ins_pointer = ins_pointer_;
+  reg_num = reg_num_;
+  reg_name = 't' + std::to_string(reg_num_);                                                
+} 
+
 // 访问 raw program
 void Visit(const koopa_raw_program_t &program) {
    
@@ -65,6 +75,10 @@ void Visit(const koopa_raw_value_t &value) {
       // 访问 integer 指令
       Visit(kind.data.integer); //koopa_raw_integer_t;
       break;
+    case KOOPA_RVT_BINARY:
+      // 访问二元运算符指令
+      Visit(kind.data.binary);
+      break;
     default:
       // 其他类型暂时遇不到
       assert(false);
@@ -83,9 +97,26 @@ void Visit(const koopa_raw_integer_t &integer) {
   std::cout << value << std::endl;
 }
 
-// 访问对应类型指令的函数定义略
-// 视需求自行实现
-// ...
+//访问二元运算指令的简陋的实现。
+//只能通过样例程序，没有讨论指令是一个立即数还是一个寄存器。
+void Visit (const koopa_raw_binary_t& bi) {
+  BinaryInsResult* ins_res_pt = StoreInsToVec(&bi);
+  switch (bi.op)
+  {
+  case KOOPA_RBO_EQ: //%0 = eq 6, 0
+    //li    t0, 6
+    //xor   t0, t0, x0
+    //seqz  t0, t0
+    std::cout << "    li    " << ins_res_pt->reg_name << ", " << std::endl;
+    std::cout << "    xor   " << ins_res_pt->reg_name << ", " << ins_res_pt->reg_name << ", " << "x0" << std::endl;
+    std::cout << "    seqz  " << ins_res_pt->reg_name << ", " << ins_res_pt->reg_name << std::endl;
+    break;
+  case KOOPA_RBO_SUB: //%1 = sub 0, %0
+    std::cout << "    sub   " << ins_res_pt->reg_name << ", x0, " << std::endl;
+  default:
+    break;
+  }
+}
 
 
 
@@ -111,4 +142,17 @@ void KoopaStrToProgram(const char *input, const char *output) {
     // 注意, raw program 中所有的指针指向的内存均为 raw program builder 的内存
     // 所以不要在 raw program builder 处理完毕之前释放 builder
     koopa_delete_raw_program_builder(builder);
+    delete_ins_result_vec();
+}
+
+BinaryInsResult* StoreInsToVec(const koopa_raw_binary_t* ins_pt) {
+  BinaryInsResult* ins_res_pt =new BinaryInsResult(ins_pt, t_reg_num);
+  t_reg_num++;
+  ins_result_vec.push_back(ins_res_pt);
+  return ins_res_pt;
+}
+
+void delete_ins_result_vec() {
+  for (auto vec_pt: ins_result_vec) 
+    delete vec_pt;
 }

@@ -11,3 +11,6 @@
 ### level 3.1
 
 - 考虑各个表达式的优先级，谨慎调整dumpkoopa位置；```void UnaryExpAST::DumpKoopa()```
+- 2022.3.12 要修改的地方：
+    * AST中对number和temp_sign的处理；
+    * KoopaStr2Program中对二元运算符lhs和rhs的讨论。

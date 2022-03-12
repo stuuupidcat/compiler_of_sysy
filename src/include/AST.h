@@ -12,7 +12,7 @@ public:
     virtual void Dump() const = 0;
     virtual void DumpKoopa() const = 0;
 
-    static std::string temp_sign;
+    static std::string temp_sign; //改掉。
 };  
 
 // CompUnit 是 BaseAST
