@@ -46,7 +46,7 @@ using namespace std;
 %token <int_val> INT_CONST
 
 // 非终结符的类型定义
-%type <ast_val> FuncDef FuncType Block Stmt Number
+%type <ast_val> FuncDef FuncType Block Stmt Number Exp Unary PrimaryExp UnaryOp
 
 %%
 
@@ -92,7 +92,7 @@ Block
   ;
 
 Stmt
-  : RETURN Number ';' {
+  : RETURN Exp ';' {
     auto ast = new StmtAST();
     // auto number = $2; 
     // 该number一直输出261, 这里的Number应该是? ->应该是INT_CONST的值。
@@ -111,6 +111,62 @@ Number
   }
   ;
 
+Exp
+  : UnaryExp {
+    auto ast = new ExpAST();
+    ast -> unaryaxp = ($1);
+    $$ = ast;
+  }
+  ;
+
+UnaryExp
+  : PrimaryExp {
+    auto ast = new UnaryAST();
+    ast -> primaryaxp = ($1);
+    ast -> mode = 0;
+    $$ = ast;
+  }
+  | UnaryOp UnaryExp {
+    auto ast = new UnaryAST();
+    ast -> unaryop = ($1);
+    ast -> unaryexp = ($2);
+    ast -> mode = 1;
+    $$ = ast
+  }
+  ;
+
+PrimaryExp
+  : '(' Exp ')' {
+    auto ast = new PrimaryExpAST();
+    ast -> primaryaxp = ($2);
+    ast -> mode = 0;
+    $$ = ast;
+  }
+  | Number {
+    auto ast = new PrimaryExpAST();
+    ast -> number = ($1);
+    ast -> mode = 1;
+    $$ = ast;
+  }
+  ;
+
+UnaryOp
+  : '+' {
+    auto ast = new UnaryOpAST();
+    ast -> mode = 0;
+    $$ = ast;
+  }
+  : '-' {
+    auto ast = new UnaryOpAST();
+    ast -> mode = 1;
+    $$ = ast;
+  }
+  : '!' {
+    auto ast = new UnaryOpAST();
+    ast -> mode = 2;
+    $$ = ast;
+  }
+  ;
 %%
 
 // 定义错误处理函数, 其中第二个参数是错误信息

@@ -19,7 +19,8 @@ inline void OutputToFile(const char *path) {
 }
 
 inline void OutputToConsole() {
-  freopen("CON", "w", stdout);
+  freopen("/dev/tty", "w", stdout); 
+  //freopen("/dev/tty", "r", stdin);
 }
 
 int main(int argc, const char *argv[]) {
