@@ -46,7 +46,7 @@ using namespace std;
 %token <int_val> INT_CONST
 
 // 非终结符的类型定义
-%type <ast_val> FuncDef FuncType Block Stmt Number Exp Unary PrimaryExp UnaryOp
+%type <ast_val> FuncDef FuncType Block Stmt Number Exp UnaryExp PrimaryExp UnaryOp
 
 %%
 
@@ -114,37 +114,37 @@ Number
 Exp
   : UnaryExp {
     auto ast = new ExpAST();
-    ast -> unaryaxp = ($1);
+    ast -> unaryexp = unique_ptr<BaseAST>($1);
     $$ = ast;
   }
   ;
 
 UnaryExp
   : PrimaryExp {
-    auto ast = new UnaryAST();
-    ast -> primaryaxp = ($1);
+    auto ast = new UnaryExpAST();
+    ast -> primaryexp = unique_ptr<BaseAST>($1);
     ast -> mode = 0;
     $$ = ast;
   }
   | UnaryOp UnaryExp {
-    auto ast = new UnaryAST();
-    ast -> unaryop = ($1);
-    ast -> unaryexp = ($2);
+    auto ast = new UnaryExpAST();
+    ast -> unaryop = unique_ptr<BaseAST>($1);
+    ast -> unaryexp = unique_ptr<BaseAST>($2);
     ast -> mode = 1;
-    $$ = ast
+    $$ = ast;
   }
   ;
 
 PrimaryExp
   : '(' Exp ')' {
     auto ast = new PrimaryExpAST();
-    ast -> primaryaxp = ($2);
+    ast -> exp = unique_ptr<BaseAST>($2);
     ast -> mode = 0;
     $$ = ast;
   }
   | Number {
     auto ast = new PrimaryExpAST();
-    ast -> number = ($1);
+    ast -> number = unique_ptr<BaseAST>($1);
     ast -> mode = 1;
     $$ = ast;
   }
@@ -156,12 +156,12 @@ UnaryOp
     ast -> mode = 0;
     $$ = ast;
   }
-  : '-' {
+  | '-' {
     auto ast = new UnaryOpAST();
     ast -> mode = 1;
     $$ = ast;
   }
-  : '!' {
+  | '!' {
     auto ast = new UnaryOpAST();
     ast -> mode = 2;
     $$ = ast;

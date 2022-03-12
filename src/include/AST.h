@@ -109,6 +109,7 @@ public:
 
 //UnaryOp     ::= "+" | "-" | "!";
 class UnaryOpAST : public BaseAST {
+public:
     int mode;
     virtual void Dump() const override;
     virtual void DumpKoopa() const override;
