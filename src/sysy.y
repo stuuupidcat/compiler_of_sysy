@@ -108,8 +108,8 @@ Number
     auto ast = new NumberAST();
     ast->num = ($1);
 
-    //将temp_sign初始化为数字。
-    ast->temp_sign = to_string($1);
+    //将integer_sign初始化为数字。
+    ast->integer_sign = to_string($1);
     $$ = ast;
   }
   ;

@@ -1,9 +1,27 @@
 #include "AST.h"
 
-std::string BaseAST::temp_sign = "";
+std::string BaseAST::temp_sign = "%0";
+std::string BaseAST::integer_sign = "";
+int BaseAST::temp_sign_num = 0;
+
+std::string BaseAST::AllocTempSign() {
+    std::string prev_sign;
+    if (temp_sign_num == 0) {
+        prev_sign = integer_sign;
+        temp_sign_num++;
+    }
+    else {
+        prev_sign = temp_sign;
+        temp_sign = "%" + std::to_string(temp_sign_num);
+        temp_sign_num++;
+    }
+    return prev_sign;
+}
 
 void CompUnitAST::Dump() const  {
-    std::cout << 1;
+    std::cout << "CompUnitAST { ";
+    func_def->Dump();
+    std::cout << " }";
 }
 
 void CompUnitAST::DumpKoopa() const {
@@ -56,7 +74,8 @@ void StmtAST::Dump() const  {
 
 void StmtAST::DumpKoopa() const  {
     exp->DumpKoopa();
-    std::cout << "    ret " << temp_sign << std::endl;   
+    std::string prev_sign = AllocTempSign();
+    std::cout << "    ret " << prev_sign << std::endl;   
 }
 
 void NumberAST::Dump() const  {
@@ -136,28 +155,12 @@ void UnaryOpAST::DumpKoopa() const {
     else if (mode == 1) {
         //std::cout << "-";
         //增加temp_sign的标号，并进行操作。
-        std::string prev_sign;
-        if (temp_sign[0] != '%') {
-            prev_sign = temp_sign;
-            temp_sign = "%0";
-        }
-        else {
-            prev_sign = temp_sign;
-            temp_sign[1]++;
-        }
+        std::string prev_sign = AllocTempSign();
         std::cout << "    " << temp_sign << " = sub 0, " << prev_sign << std::endl;
     }
     else if (mode == 2) {
         //std::cout << "!";
-        std::string prev_sign;
-        if (temp_sign[0] != '%') {
-            prev_sign = temp_sign;
-            temp_sign = "%0";
-        }
-        else {
-            prev_sign = temp_sign;
-            temp_sign[1]++;
-        }
+        std::string prev_sign = AllocTempSign();
         std::cout << "    " << temp_sign << " = eq " << prev_sign << ", 0" << std::endl;
     }
 }

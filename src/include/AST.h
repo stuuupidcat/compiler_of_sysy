@@ -12,7 +12,15 @@ public:
     virtual void Dump() const = 0;
     virtual void DumpKoopa() const = 0;
 
-    static std::string temp_sign; //改掉。
+    //暂时使用的以百分号为开头的标号。
+    static std::string temp_sign; 
+    //暂时使用的以百分号为开头的标号[1:]。
+    static int temp_sign_num;
+    //表达式中的数字
+    static std::string integer_sign;
+
+    //分配temp_sign
+    static std::string  AllocTempSign();
 };  
 
 // CompUnit 是 BaseAST

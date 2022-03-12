@@ -23,16 +23,18 @@ public:
 
 
 // 函数声明
-void Visit     (const koopa_raw_program_t&);
-void Visit       (const koopa_raw_slice_t&);
-void Visit    (const koopa_raw_function_t&);
-void Visit (const koopa_raw_basic_block_t&);
-void Visit       (const koopa_raw_value_t&);
-void Visit      (const koopa_raw_return_t&);
-void Visit     (const koopa_raw_integer_t&);
-void Visit      (const koopa_raw_binary_t&);
+void Visit     (const koopa_raw_program_t&, int);
+void Visit       (const koopa_raw_slice_t&, int);
+void Visit    (const koopa_raw_function_t&, int);
+void Visit (const koopa_raw_basic_block_t&, int);
+void Visit       (const koopa_raw_value_t&, int);
+void Visit      (const koopa_raw_return_t&, int);
+void Visit     (const koopa_raw_integer_t&, int);
+void Visit      (const koopa_raw_binary_t&, int);
 
 void KoopaStrToProgram(const char *, const char *);
 
+BinaryInsResult* IsExecuted(const koopa_raw_binary_t*);
 BinaryInsResult* StoreInsToVec(const koopa_raw_binary_t*);
-void delete_ins_result_vec();
+void delete_ins_result_vec(); 
+
