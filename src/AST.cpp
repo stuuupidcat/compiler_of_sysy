@@ -197,7 +197,7 @@ void MulExpAST::DumpKoopa() const {
         unaryexp -> DumpKoopa();
     }
     else {
-        std::string ops[4] = {"", "mul", "div", "rem"};
+        std::string ops[4] = {"", "mul", "div", "mod"};
         if (mulexp->mode == 0) {
             mulexp -> DumpKoopa();
             unaryexp -> DumpKoopa();
