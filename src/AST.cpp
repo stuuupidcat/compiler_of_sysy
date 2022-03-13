@@ -17,10 +17,11 @@ ExpSign BaseAST::AllocSign() {
     std::string res, lhs, rhs;
 
     if (sign_stack.size() == 1) {
-        res = sign_stack.top();
-        sign_stack.pop();
         lhs = "0";
-        rhs = res;
+        rhs = sign_stack.top();
+        sign_stack.pop();
+        res = "%"+std::to_string(temp_sign_num);
+        temp_sign_num++;
         sign_stack.push(res);
     }
     else {
@@ -98,7 +99,11 @@ void StmtAST::Dump() const  {
 void StmtAST::DumpKoopa() const  {
     exp->DumpKoopa();
     ExpSign exp_sign = AllocSign();
-    std::cout << "    ret " << exp_sign.result_sign << std::endl;   
+    std::cout << "    ret "; 
+    if (exp_sign.result_sign[0] == '%') 
+        std::cout << exp_sign.rhs_sign << std::endl;   
+    else 
+        std::cout << exp_sign.result_sign << std::endl;   
 }
 
 void NumberAST::Dump() const  {
@@ -198,13 +203,14 @@ void MulExpAST::DumpKoopa() const {
     }
     else {
         std::string ops[4] = {"", "mul", "div", "mod"};
-        if (mulexp->mode == 0) {
-            mulexp -> DumpKoopa();
+        //这个运算的前半句是为了处理单目运算符 (!1, -1)
+        if ((mulexp->mode == 0 && mulexp->unaryexp->mode == 1) || mulexp->mode == 1) {
             unaryexp -> DumpKoopa();
+            mulexp -> DumpKoopa();
         }
         else {
-            unaryexp -> DumpKoopa();
             mulexp -> DumpKoopa();
+            unaryexp -> DumpKoopa();
         }
         ExpSign exp_sign = AllocSign();
         PrintInstruction(exp_sign, ops[mode]);

@@ -10,7 +10,7 @@
           "request": "launch",
           "program": "/root/compiler/build/compiler",
           "args": ["-koopa",
-                   "./debug/input/hello.c",
+                   "./debug/testcases/lv3/10_sub_neg.c",
                    "-o",
                    "./debug/output/lv3.2_koopa_output"
                   ],
