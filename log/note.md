@@ -12,5 +12,7 @@
 
 - 考虑各个表达式的优先级，谨慎调整dumpkoopa位置；```void UnaryExpAST::DumpKoopa()```
 - 2022.3.12 要修改的地方：
-    * AST中对number和temp_sign的处理；
+    * AST中对number和temp_sign的处理；**用栈啊淦**
     * KoopaStr2Program中对二元运算符lhs和rhs的讨论。
+### level 3.2
+    * 利用if-else分支查看表达式的mode并确定优先级。

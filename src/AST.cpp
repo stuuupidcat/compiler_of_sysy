@@ -1,24 +1,45 @@
 #include "AST.h"
 
-std::string BaseAST::temp_sign = "%0";
-std::string BaseAST::integer_sign = "";
-int BaseAST::temp_sign_num = 0;
-bool BaseAST::integer_sign_used = false;
 
-std::string BaseAST::AllocTempSign() {
-    std::string prev_sign;
-    if (integer_sign_used == false) { //如果没有使用过数字
-        integer_sign_used = true;
-        prev_sign = integer_sign;
-        temp_sign_num++;
+ExpSign::ExpSign(std::string res_, std::string lhs_, std::string rhs_) {
+    result_sign = res_;
+    lhs_sign = lhs_;
+    rhs_sign = rhs_;
+};
+
+int BaseAST::temp_sign_num = 0;
+std::stack<std::string> BaseAST::sign_stack = {};
+
+ExpSign BaseAST::AllocSign() {
+    //分配临时标号
+    //res = sub lhs, rhs .....
+    assert(sign_stack.size() >= 1);
+    std::string res, lhs, rhs;
+
+    if (sign_stack.size() == 1) {
+        res = sign_stack.top();
+        sign_stack.pop();
+        lhs = "0";
+        rhs = res;
+        sign_stack.push(res);
     }
     else {
-        prev_sign = temp_sign;
-        temp_sign = "%" + std::to_string(temp_sign_num);
+        rhs = sign_stack.top();
+        sign_stack.pop();
+        lhs = sign_stack.top();
+        sign_stack.pop();
+        res = "%"+std::to_string(temp_sign_num);
         temp_sign_num++;
+        sign_stack.push(res);
     }
-    return prev_sign;
+    return ExpSign(res, lhs, rhs);
 }
+
+void BaseAST::PrintInstruction(ExpSign& exp_sign, std::string op) {
+    std::cout << "    " << exp_sign.result_sign << " = "<< op << " ";
+    std::cout << exp_sign.lhs_sign << ", " << exp_sign.rhs_sign << std::endl;
+    return;
+} 
 
 void CompUnitAST::Dump() const  {
     std::cout << "CompUnitAST { ";
@@ -76,8 +97,8 @@ void StmtAST::Dump() const  {
 
 void StmtAST::DumpKoopa() const  {
     exp->DumpKoopa();
-    std::string prev_sign = AllocTempSign();
-    std::cout << "    ret " << prev_sign << std::endl;   
+    ExpSign exp_sign = AllocSign();
+    std::cout << "    ret " << exp_sign.result_sign << std::endl;   
 }
 
 void NumberAST::Dump() const  {
@@ -85,7 +106,7 @@ void NumberAST::Dump() const  {
 }
 
 void NumberAST::DumpKoopa() const  {
-    //std::cout << num;
+    sign_stack.push(std::to_string(num));
 }
 
 void ExpAST::Dump() const  {
@@ -101,8 +122,8 @@ void UnaryExpAST::Dump() const {
             primaryexp->Dump();
         }
         else if (mode == 1) {
-            unaryop->Dump();
             unaryexp->Dump();
+            unaryop->Dump();
         }
     }
 
@@ -152,19 +173,67 @@ void UnaryOpAST::Dump() const {
 void UnaryOpAST::DumpKoopa() const {
     //pass
     if (mode == 0) {
-        //std::cout << "+";
+        ExpSign exp_sign = AllocSign();
+        PrintInstruction(exp_sign, "add");
     }
     else if (mode == 1) {
         //std::cout << "-";
-        //增加temp_sign的标号，并进行操作。
-        std::string prev_sign = AllocTempSign();
-        std::cout << "    " << temp_sign << " = sub 0, " << prev_sign << std::endl;
+        ExpSign exp_sign = AllocSign();
+        PrintInstruction(exp_sign, "sub");
     }
     else if (mode == 2) {
         //std::cout << "!";
-        std::string prev_sign = AllocTempSign();
-        std::cout << "    " << temp_sign << " = eq " << prev_sign << ", 0" << std::endl;
+        ExpSign exp_sign = AllocSign();
+        PrintInstruction(exp_sign, "eq");
     }
+}
+
+void MulExpAST::Dump() const{
+    return;
+}
+
+void MulExpAST::DumpKoopa() const {
+    if (mode == 0) {
+        unaryexp -> DumpKoopa();
+    }
+    else {
+        std::string ops[4] = {"", "mul", "div", "rem"};
+        if (mulexp->mode == 0) {
+            mulexp -> DumpKoopa();
+            unaryexp -> DumpKoopa();
+        }
+        else {
+            unaryexp -> DumpKoopa();
+            mulexp -> DumpKoopa();
+        }
+        ExpSign exp_sign = AllocSign();
+        PrintInstruction(exp_sign, ops[mode]);
+    }
+    return;
+}
+
+void AddExpAST::Dump() const{
+    return;
+}
+
+void AddExpAST::DumpKoopa() const {
+    if (mode == 0) {
+        mulexp -> DumpKoopa();
+    }
+    else {
+        std::string ops[4] = {"", "add", "sub"};
+        if (mulexp->mode == 0) {
+            addexp -> DumpKoopa();
+            mulexp -> DumpKoopa();
+        }
+        else {
+            mulexp -> DumpKoopa();
+            addexp -> DumpKoopa();
+        }
+        ExpSign exp_sign = AllocSign();
+        PrintInstruction(exp_sign, ops[mode]);
+    }
+    return;
 }
 
 

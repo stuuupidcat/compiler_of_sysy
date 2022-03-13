@@ -4,24 +4,33 @@
 #include <string>
 #include <stddef.h>
 #include <stdint.h>
+#include <stack>
+#include <cassert>
 
- 
+//表达式要用的标号。
+class ExpSign {
+public:
+    std::string result_sign;
+    std::string lhs_sign;
+    std::string rhs_sign;
+
+    ExpSign(std::string, std::string, std::string); 
+};
+
 class BaseAST {
 public:
     virtual ~BaseAST() = default;
     virtual void Dump() const = 0;
     virtual void DumpKoopa() const = 0;
 
+    int mode = 0;
     //暂时使用的以百分号为开头的标号。
-    static std::string temp_sign; 
-    //暂时使用的以百分号为开头的标号[1:]。
     static int temp_sign_num;
-    //表达式中的数字
-    static std::string integer_sign;
-    static bool   integer_sign_used;
+    static std::stack <std::string> sign_stack;
 
     //分配temp_sign
-    static std::string  AllocTempSign();
+    static ExpSign AllocSign();
+    static void PrintInstruction(ExpSign&, std::string);
 };  
 
 // CompUnit 是 BaseAST
@@ -90,66 +99,66 @@ public:
 };
 
 //UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
+//mode == 0 -> PrimaryExp
+//mode == 1 -> UnaryOp UnaryExp
 class UnaryExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> primaryexp;
     std::unique_ptr<BaseAST> unaryop;
     std::unique_ptr<BaseAST> unaryexp;
 
-    //mode == 0 -> PrimaryExp
-    //mode == 1 -> UnaryOp UnaryExp
-    int mode; 
 
     virtual void Dump() const override;
     virtual void DumpKoopa() const override;           
 };
 
 //PrimaryExp  ::= "(" Exp ")" | Number;
+//mode == 0 -> "(" Exp ")"
+//mode == 1 -> Number
 class PrimaryExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> exp;
     std::unique_ptr<BaseAST> number;
 
-    //mode == 0 -> "(" Exp ")"
-    //mode == 1 -> Number
-    int mode;
 
     virtual void Dump() const override;
     virtual void DumpKoopa() const override;
 };
 
 //UnaryOp     ::= "+" | "-" | "!";
+//mode == 0 -> +
+//mode == 1 -> -
+//mode == 2 -> !
 class UnaryOpAST : public BaseAST {
 public:
-    int mode;
     virtual void Dump() const override;
     virtual void DumpKoopa() const override;
 };
 
 //MulExp      ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
+//mode == 0 -> UnaryExp
+//mode == 1 -> MulExp * UnaryExp
+//mode == 2 -> MulExp / UnaryExp
+//mode == 3 -> MulExp % UnaryExp
 class MulExpAST : public BaseAST {
 public:
-    //mode == 0 -> UnaryExp
-    //mode == 1 -> MulExp * UnaryExp
-    //mode == 2 -> MulExp / UnaryExp
-    //mode == 3 -> MulExp % UnaryExp
     std::unique_ptr<BaseAST> unaryexp;
     std::unique_ptr<BaseAST> mulexp;
-    int mode;
+    
     
     virtual void Dump() const override;
     virtual void DumpKoopa() const override;
 };
 
 //AddExp      ::= MulExp | AddExp ("+" | "-") MulExp;
+//mode == 0 -> MulExp
+//mode == 1 -> AddExp + MulExp
+//mode == 2 -> AddExp - MulExp
 class AddExpAST : public BaseAST {
 public:
-    //mode == 0 -> MulExp
-    //mode == 1 -> AddExp + MulExp
-    //mode == 2 -> AddExp - MulExp
     std::unique_ptr<BaseAST> addexp;
     std::unique_ptr<BaseAST> mulexp;
-    int mode;
+    
     
     virtual void Dump() const override;
     virtual void DumpKoopa() const override;

@@ -9,10 +9,10 @@
           "type": "cppdbg",
           "request": "launch",
           "program": "/root/compiler/build/compiler",
-          "args": ["-riscv",
-                   "./debug/hello.c",
+          "args": ["-koopa",
+                   "./debug/input/hello.c",
                    "-o",
-                   "./debug/lv3_riscv_output"
+                   "./debug/output/lv3.2_koopa_output"
                   ],
           "stopAtEntry": false,
           "cwd": "/root/compiler/",

@@ -118,7 +118,6 @@ void Visit(const koopa_raw_integer_t &integer, int mode) {
 }
 
 //访问二元运算指令的简陋的实现。
-//只能通过样例程序，没有讨论指令是一个立即数还是一个寄存器。
 void Visit (const koopa_raw_binary_t& bi, int mode) {
   BinaryInsResult* executed = IsExecuted(&bi);
   //执行过。

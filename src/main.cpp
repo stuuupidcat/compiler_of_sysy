@@ -42,11 +42,9 @@ int main(int argc, const char *argv[]) {
 
   if (strcmp(mode, "-koopa") == 0) {
     OutputToFile(output);
-    //cd ./compiler;  make clean; make; ./build/compiler -koopa ./debug/hello.c -o ./debug/lv3_koopa_output
     ast->DumpKoopa();
   }
   else if (strcmp(mode, "-riscv") == 0) {
-    //cd ./compiler;  make clean; make; ./build/compiler -riscv ./debug/hello.c -o ./debug/lv3_riscv_output
     
     OutputToFile("./temp/temp_koopa");
     ast->DumpKoopa();
