@@ -16,3 +16,4 @@
     * KoopaStr2Program中对二元运算符lhs和rhs的讨论。
 ### level 3.2
     * 利用if-else分支查看表达式的mode并确定优先级。
+    * dumpkoopa时将这个表达式的值压入栈中？

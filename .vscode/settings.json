@@ -1,7 +1,5 @@
 {
     "files.associations": {
-        "*.l": "cpp",
-        "*.y": "cpp",
         "cstring": "cpp",
         "bitset": "cpp",
         "iostream": "cpp",

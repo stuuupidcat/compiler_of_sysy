@@ -24,6 +24,7 @@ public:
     virtual void DumpKoopa() const = 0;
 
     int mode = 0;
+    int child_mode[10] = {};
     //暂时使用的以百分号为开头的标号。
     static int temp_sign_num;
     static std::stack <std::string> sign_stack;

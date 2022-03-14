@@ -25,10 +25,15 @@ ExpSign BaseAST::AllocSign() {
         sign_stack.push(res);
     }
     else {
+        //1 - -2的优先级问题？
         rhs = sign_stack.top();
         sign_stack.pop();
+        
         lhs = sign_stack.top();
         sign_stack.pop();
+        
+        
+        
         res = "%"+std::to_string(temp_sign_num);
         temp_sign_num++;
         sign_stack.push(res);
@@ -48,11 +53,6 @@ void CompUnitAST::Dump() const  {
     std::cout << " }";
 }
 
-void CompUnitAST::DumpKoopa() const {
-    std::cout << "fun ";
-    func_def -> DumpKoopa();
-}
-
 void FuncDefAST::Dump() const  {
     std::cout << "FuncDefAST { ";
     func_type->Dump();
@@ -61,20 +61,10 @@ void FuncDefAST::Dump() const  {
     std::cout << " }";
 }
 
-void FuncDefAST::DumpKoopa() const  {
-    std::cout << "@" << ident << "(): ";
-    func_type -> DumpKoopa();
-    block -> DumpKoopa();
-}
-
 void FuncTypeAST::Dump() const  {
     std::cout << "FuncTypeAST { ";
     std::cout <<  s_int ;
     std::cout << " }";;
-}
-
-void FuncTypeAST::DumpKoopa() const  {
-    std::cout << "i32 ";
 }
 
 void BlockAST::Dump() const  {
@@ -83,17 +73,73 @@ void BlockAST::Dump() const  {
     std::cout << " }";
 }
 
+void StmtAST::Dump() const  {
+    std::cout << "StmtAST { ";
+    exp -> Dump();
+    std::cout << " }";
+}
+
+void NumberAST::Dump() const  {
+    std::cout << num;
+}
+
+void ExpAST::Dump() const  {
+    addexp -> Dump();
+}
+
+void CompUnitAST::DumpKoopa() const {
+    std::cout << "fun ";
+    func_def -> DumpKoopa();
+}
+
+void UnaryExpAST::Dump() const {
+    if (mode == 0) {
+        primaryexp->Dump();
+    }
+    else if (mode == 1) {
+        unaryexp->Dump();
+        unaryop->Dump();
+    }
+}
+
+void PrimaryExpAST::Dump() const  {
+    if (mode == 0) {
+        std::cout << "(";
+        exp->Dump();
+        std::cout << ")" << std::endl;
+    }
+    else if (mode == 1) {
+        number->Dump();
+    }
+}
+
+void UnaryOpAST::Dump() const {
+    if (mode == 0) {
+        std::cout << "+";
+    }
+    else if (mode == 1) {
+        std::cout << "-";
+    }
+    else if (mode == 2) {
+        std::cout << "!";
+    }
+}
+
+void FuncDefAST::DumpKoopa() const  {
+    std::cout << "@" << ident << "(): ";
+    func_type -> DumpKoopa();
+    block -> DumpKoopa();
+}
+
+void FuncTypeAST::DumpKoopa() const  {
+    std::cout << "i32 ";
+}
+
 void BlockAST::DumpKoopa() const  {
     std::cout << "{" << std::endl;
     std::cout << "%entry:" << std::endl;
     stmt->DumpKoopa();
     std::cout << '}' << std::endl;
-}
-
-void StmtAST::Dump() const  {
-    std::cout << "StmtAST { ";
-    exp -> Dump();
-    std::cout << " }";
 }
 
 void StmtAST::DumpKoopa() const  {
@@ -106,31 +152,17 @@ void StmtAST::DumpKoopa() const  {
         std::cout << exp_sign.result_sign << std::endl;   
 }
 
-void NumberAST::Dump() const  {
-    std::cout << num;
-}
 
 void NumberAST::DumpKoopa() const  {
     sign_stack.push(std::to_string(num));
 }
 
-void ExpAST::Dump() const  {
-    addexp -> Dump();
-}
 
 void ExpAST::DumpKoopa() const  {
     addexp -> DumpKoopa();
 }
 
-void UnaryExpAST::Dump() const {
-        if (mode == 0) {
-            primaryexp->Dump();
-        }
-        else if (mode == 1) {
-            unaryexp->Dump();
-            unaryop->Dump();
-        }
-    }
+
 
 void UnaryExpAST::DumpKoopa() const{
     if (mode == 0) {
@@ -143,16 +175,7 @@ void UnaryExpAST::DumpKoopa() const{
     }
 }
 
-void PrimaryExpAST::Dump() const  {
-        if (mode == 0) {
-            std::cout << "(";
-            exp->Dump();
-            std::cout << ")" << std::endl;
-        }
-        else if (mode == 1) {
-            number->Dump();
-        }
-    }
+
 
 void PrimaryExpAST::DumpKoopa() const {
     if (mode == 0) {
@@ -163,38 +186,21 @@ void PrimaryExpAST::DumpKoopa() const {
     }
 }
 
-void UnaryOpAST::Dump() const {
-        if (mode == 0) {
-            std::cout << "+";
-        }
-        else if (mode == 1) {
-            std::cout << "-";
-        }
-        else if (mode == 2) {
-            std::cout << "!";
-        }
-    }
-
 void UnaryOpAST::DumpKoopa() const {
     //pass
+    ExpSign exp_sign = AllocSign();
     if (mode == 0) {
-        ExpSign exp_sign = AllocSign();
         PrintInstruction(exp_sign, "add");
     }
     else if (mode == 1) {
         //std::cout << "-";
-        ExpSign exp_sign = AllocSign();
         PrintInstruction(exp_sign, "sub");
     }
     else if (mode == 2) {
         //std::cout << "!";
-        ExpSign exp_sign = AllocSign();
         PrintInstruction(exp_sign, "eq");
     }
-}
-
-void MulExpAST::Dump() const{
-    return;
+    //sign_stack.push(exp_sign.result_sign);
 }
 
 void MulExpAST::DumpKoopa() const {
@@ -203,14 +209,14 @@ void MulExpAST::DumpKoopa() const {
     }
     else {
         std::string ops[4] = {"", "mul", "div", "mod"};
-        //这个运算的前半句是为了处理单目运算符 (!1, -1)
-        if ((mulexp->mode == 0 && mulexp->unaryexp->mode == 1) || mulexp->mode == 1) {
-            unaryexp -> DumpKoopa();
-            mulexp -> DumpKoopa();
+        //这个运算的前半句是为了处理单目运算符 (!1, -1) ?
+        if (unaryexp->mode == 1) {
+            unaryexp->DumpKoopa();
+            mulexp->DumpKoopa();
         }
         else {
-            mulexp -> DumpKoopa();
-            unaryexp -> DumpKoopa();
+            mulexp->DumpKoopa();
+            unaryexp->DumpKoopa();
         }
         ExpSign exp_sign = AllocSign();
         PrintInstruction(exp_sign, ops[mode]);
@@ -218,9 +224,6 @@ void MulExpAST::DumpKoopa() const {
     return;
 }
 
-void AddExpAST::Dump() const{
-    return;
-}
 
 void AddExpAST::DumpKoopa() const {
     if (mode == 0) {
@@ -228,13 +231,14 @@ void AddExpAST::DumpKoopa() const {
     }
     else {
         std::string ops[4] = {"", "add", "sub"};
-        if (mulexp->mode == 0) {
-            addexp -> DumpKoopa();
+        //这个运算的前半句是为了处理单目运算符 (!1, -1)
+        if ((mulexp->mode == 0 && mulexp->child_mode[0] == 1) || mulexp->mode != 0) {
             mulexp -> DumpKoopa();
+            addexp -> DumpKoopa();
         }
         else {
-            mulexp -> DumpKoopa();
             addexp -> DumpKoopa();
+            mulexp -> DumpKoopa();
         }
         ExpSign exp_sign = AllocSign();
         PrintInstruction(exp_sign, ops[mode]);
