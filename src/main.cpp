@@ -42,12 +42,12 @@ int main(int argc, const char *argv[]) {
 
   if (strcmp(mode, "-koopa") == 0) {
     OutputToFile(output);
-    ast->DumpKoopa();
+    ast->DumpKoopa(nullptr);
   }
   else if (strcmp(mode, "-riscv") == 0) {
     
     OutputToFile("./temp/temp_koopa");
-    ast->DumpKoopa();
+    ast->DumpKoopa(nullptr);
 
     OutputToFile(output);
     KoopaStrToProgram("./temp/temp_koopa", output);

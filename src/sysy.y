@@ -175,7 +175,6 @@ MulExp
     auto ast = new MulExpAST();
     ast -> unaryexp = unique_ptr<BaseAST>($1);
     ast -> mode = 0;
-    ast->child_mode[0] = ast -> unaryexp -> mode;
     $$ = ast;
   }
   | MulExp '*' UnaryExp {

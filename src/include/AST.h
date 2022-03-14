@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <vector>
 #include <iostream>
 #include <string>
 #include <stddef.h>
@@ -7,32 +8,35 @@
 #include <stack>
 #include <cassert>
 
-//表达式要用的标号。
-class ExpSign {
-public:
-    std::string result_sign;
-    std::string lhs_sign;
-    std::string rhs_sign;
-
-    ExpSign(std::string, std::string, std::string); 
-};
+class ASTResult;
 
 class BaseAST {
 public:
     virtual ~BaseAST() = default;
-    virtual void Dump() const = 0;
-    virtual void DumpKoopa() const = 0;
+    virtual void Dump()  = 0;
+    virtual void DumpKoopa(ASTResult*)  = 0;
+
 
     int mode = 0;
-    int child_mode[10] = {};
-    //暂时使用的以百分号为开头的标号。
-    static int temp_sign_num;
-    static std::stack <std::string> sign_stack;
-
-    //分配temp_sign
-    static ExpSign AllocSign();
-    static void PrintInstruction(ExpSign&, std::string);
 };  
+
+//利用指针查找表达式的结果储存在哪个以百分号开头的临时变量存储器中
+class ASTResult {
+public:
+    std::unique_ptr<BaseAST>* ast_pointer = nullptr;
+    int sign_num = 0;
+    std::string sign_name; 
+
+    ASTResult(std::unique_ptr<BaseAST>*, int);
+
+};
+
+
+//这个函数要对类中的每一个智能指针的指针调用。
+ASTResult* IsASTAllocated(std::unique_ptr<BaseAST>*);
+ASTResult* Allocate(std::unique_ptr<BaseAST> *);
+ASTResult* StoreASTToVec(std::unique_ptr<BaseAST>*);
+void delete_ast_res_vec();
 
 // CompUnit 是 BaseAST
 class CompUnitAST : public BaseAST {
@@ -40,8 +44,8 @@ public:
   // 用智能指针管理对象
     std::unique_ptr<BaseAST> func_def;
     
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;
 };
 
 
@@ -52,24 +56,24 @@ public:
     std::string ident;
     std::unique_ptr<BaseAST> block;
     
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;
 };
 
 class FuncTypeAST : public BaseAST {   
 public:
     std:: string s_int = "int";
     
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;
 };
 
 class BlockAST : public BaseAST {   
 public:
     std::unique_ptr<BaseAST> stmt;
     
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;
 };
 
 class StmtAST : public BaseAST {   
@@ -78,16 +82,16 @@ public:
     std::unique_ptr<BaseAST> exp;
     std::string semicolon = ";";
     
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;
 };
 
 class NumberAST : public BaseAST {   
 public:
     int num;
     
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;
 };
 
 //Exp         ::= AddExp;
@@ -95,8 +99,8 @@ class ExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> addexp;
 
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;
 };
 
 //UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
@@ -109,8 +113,8 @@ public:
     std::unique_ptr<BaseAST> unaryexp;
 
 
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;           
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;           
 };
 
 //PrimaryExp  ::= "(" Exp ")" | Number;
@@ -122,8 +126,8 @@ public:
     std::unique_ptr<BaseAST> number;
 
 
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;
 };
 
 //UnaryOp     ::= "+" | "-" | "!";
@@ -132,8 +136,8 @@ public:
 //mode == 2 -> !
 class UnaryOpAST : public BaseAST {
 public:
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;
 };
 
 //MulExp      ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
@@ -147,8 +151,8 @@ public:
     std::unique_ptr<BaseAST> mulexp;
     
     
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;
 };
 
 //AddExp      ::= MulExp | AddExp ("+" | "-") MulExp;
@@ -161,6 +165,6 @@ public:
     std::unique_ptr<BaseAST> mulexp;
     
     
-    virtual void Dump() const override;
-    virtual void DumpKoopa() const override;
+    virtual void Dump()  override;
+    virtual void DumpKoopa(ASTResult*)  override;
 };

@@ -1,59 +1,50 @@
 #include "AST.h"
 
+std::vector<ASTResult*> ast_result_vec;
+int temp_sign_num = 0;
 
-ExpSign::ExpSign(std::string res_, std::string lhs_, std::string rhs_) {
-    result_sign = res_;
-    lhs_sign = lhs_;
-    rhs_sign = rhs_;
-};
-
-int BaseAST::temp_sign_num = 0;
-std::stack<std::string> BaseAST::sign_stack = {};
-
-ExpSign BaseAST::AllocSign() {
-    //分配临时标号
-    //res = sub lhs, rhs .....
-    assert(sign_stack.size() >= 1);
-    std::string res, lhs, rhs;
-
-    if (sign_stack.size() == 1) {
-        lhs = "0";
-        rhs = sign_stack.top();
-        sign_stack.pop();
-        res = "%"+std::to_string(temp_sign_num);
-        temp_sign_num++;
-        sign_stack.push(res);
+void delete_ast_res_vec() {
+    for (auto val : ast_result_vec) {
+        delete val;
     }
-    else {
-        //1 - -2的优先级问题？
-        rhs = sign_stack.top();
-        sign_stack.pop();
-        
-        lhs = sign_stack.top();
-        sign_stack.pop();
-        
-        
-        
-        res = "%"+std::to_string(temp_sign_num);
-        temp_sign_num++;
-        sign_stack.push(res);
-    }
-    return ExpSign(res, lhs, rhs);
 }
 
-void BaseAST::PrintInstruction(ExpSign& exp_sign, std::string op) {
-    std::cout << "    " << exp_sign.result_sign << " = "<< op << " ";
-    std::cout << exp_sign.lhs_sign << ", " << exp_sign.rhs_sign << std::endl;
-    return;
+ASTResult::ASTResult(std::unique_ptr<BaseAST>* ast_pointer_, int temp_sign_num_) {
+  ast_pointer = ast_pointer_;
+  sign_num = temp_sign_num_;
+  sign_name = '%' + std::to_string(temp_sign_num_);                                                
 } 
 
-void CompUnitAST::Dump() const  {
+ASTResult* IsASTAllocated(std::unique_ptr<BaseAST>* ast_pointer_) {
+  for (auto pt: ast_result_vec) {
+    if (pt->ast_pointer == ast_pointer_)
+      return pt;
+  }
+  return nullptr;
+}
+
+ASTResult* StoreASTToVec(std::unique_ptr<BaseAST>* ins_pt) {
+  ASTResult* ast_res_pt = new ASTResult(ins_pt, temp_sign_num);
+  temp_sign_num++;
+  ast_result_vec.push_back(ast_res_pt);
+  return ast_res_pt;
+}
+
+//分配结果器，管他分没分配结果，在dumpkoopa之前执行以下。执行完毕之后要继续dumpkoopa。
+ASTResult* Allocate(std::unique_ptr<BaseAST> *pt) {
+    ASTResult* allocated = IsASTAllocated(pt);
+    if (!allocated) 
+      allocated = StoreASTToVec(pt);
+    return allocated;
+}
+
+void CompUnitAST::Dump()   {
     std::cout << "CompUnitAST { ";
     func_def->Dump();
     std::cout << " }";
 }
 
-void FuncDefAST::Dump() const  {
+void FuncDefAST::Dump()   {
     std::cout << "FuncDefAST { ";
     func_type->Dump();
     std::cout << ", " << ident << ", ";
@@ -61,38 +52,33 @@ void FuncDefAST::Dump() const  {
     std::cout << " }";
 }
 
-void FuncTypeAST::Dump() const  {
+void FuncTypeAST::Dump()   {
     std::cout << "FuncTypeAST { ";
     std::cout <<  s_int ;
     std::cout << " }";;
 }
 
-void BlockAST::Dump() const  {
+void BlockAST::Dump()   {
     std::cout << "BlockAST { ";
     stmt->Dump();
     std::cout << " }";
 }
 
-void StmtAST::Dump() const  {
+void StmtAST::Dump()   {
     std::cout << "StmtAST { ";
     exp -> Dump();
     std::cout << " }";
 }
 
-void NumberAST::Dump() const  {
+void NumberAST::Dump()   {
     std::cout << num;
 }
 
-void ExpAST::Dump() const  {
+void ExpAST::Dump()   {
     addexp -> Dump();
 }
 
-void CompUnitAST::DumpKoopa() const {
-    std::cout << "fun ";
-    func_def -> DumpKoopa();
-}
-
-void UnaryExpAST::Dump() const {
+void UnaryExpAST::Dump()  {
     if (mode == 0) {
         primaryexp->Dump();
     }
@@ -102,7 +88,7 @@ void UnaryExpAST::Dump() const {
     }
 }
 
-void PrimaryExpAST::Dump() const  {
+void PrimaryExpAST::Dump()   {
     if (mode == 0) {
         std::cout << "(";
         exp->Dump();
@@ -113,7 +99,7 @@ void PrimaryExpAST::Dump() const  {
     }
 }
 
-void UnaryOpAST::Dump() const {
+void UnaryOpAST::Dump()  {
     if (mode == 0) {
         std::cout << "+";
     }
@@ -125,130 +111,133 @@ void UnaryOpAST::Dump() const {
     }
 }
 
-void MulExpAST::Dump() const {
+void MulExpAST::Dump()  {
     return;
 }
 
-void AddExpAST::Dump() const {
+void AddExpAST::Dump()  {
     return;
 }
 
-void FuncDefAST::DumpKoopa() const  {
+void CompUnitAST::DumpKoopa(ASTResult* self)  {
+    std::cout << "fun ";
+    //ASTResult* allocated = Allocate(&func_def);
+    func_def -> DumpKoopa(nullptr);
+    delete_ast_res_vec();
+}
+
+void FuncDefAST::DumpKoopa(ASTResult* self)   {
     std::cout << "@" << ident << "(): ";
-    func_type -> DumpKoopa();
-    block -> DumpKoopa();
+    //ASTResult* allocated_1 = Allocate(&func_type);
+    func_type -> DumpKoopa(nullptr);
+    //ASTResult* allocated_2 = Allocate(&block);
+    block -> DumpKoopa(nullptr);
 }
 
-void FuncTypeAST::DumpKoopa() const  {
+void FuncTypeAST::DumpKoopa(ASTResult* self)   {
     std::cout << "i32 ";
 }
 
-void BlockAST::DumpKoopa() const  {
+void BlockAST::DumpKoopa(ASTResult* self)   {
     std::cout << "{" << std::endl;
     std::cout << "%entry:" << std::endl;
-    stmt->DumpKoopa();
+    //ASTResult* allocated = Allocate(&stmt);
+    stmt->DumpKoopa(nullptr);
     std::cout << '}' << std::endl;
 }
 
-void StmtAST::DumpKoopa() const  {
-    exp->DumpKoopa();
-    ExpSign exp_sign = AllocSign();
-    std::cout << "    ret "; 
-    if (exp_sign.result_sign[0] == '%') 
-        std::cout << exp_sign.rhs_sign << std::endl;   
-    else 
-        std::cout << exp_sign.result_sign << std::endl;   
+void StmtAST::DumpKoopa(ASTResult* self) {
+    //ASTResult* allocated = Allocate(&exp);
+    exp->DumpKoopa(nullptr);
 }
 
 
-void NumberAST::DumpKoopa() const  {
-    sign_stack.push(std::to_string(num));
+void NumberAST::DumpKoopa(ASTResult* self) {
+    std::cout << "  " << self->sign_name << " = " << num << std::endl; 
 }
 
 
-void ExpAST::DumpKoopa() const  {
-    addexp -> DumpKoopa();
+void ExpAST::DumpKoopa(ASTResult* self)  {
+    ASTResult* allocated = Allocate(&addexp);
+    addexp -> DumpKoopa(allocated);
 }
 
 
 
-void UnaryExpAST::DumpKoopa() const{
+void UnaryExpAST::DumpKoopa(ASTResult* self) {
     if (mode == 0) {
-        primaryexp->DumpKoopa();
+        ASTResult* allocated = Allocate(&primaryexp);
+        primaryexp->DumpKoopa(allocated);
+        std::cout << "  " << self->sign_name << " " << allocated->sign_name << endl;
+    }
+    else if (mode == 1) {//?
+        std::string ops[3] = {"add", "sub", "eq"};
+        ASTResult* allocated_rhs = Allocate(&unaryexp);
+        unaryexp->DumpKoopa(allocated_rhs);
+        std::cout << "  " << self->sign_name << " = " << ops[unaryop->mode] << ", 0, " << allocated_rhs->sign_name <<  std::endl;  
+    }
+}
+
+
+
+void PrimaryExpAST::DumpKoopa(ASTResult* self)  {
+    if (mode == 0) {
+        ASTResult* allocated = Allocate(&exp);
+        exp->DumpKoopa(nullptr);
+        std::cout << 
     }
     else if (mode == 1) {
-        //优先级问题？
-        unaryexp->DumpKoopa();
-        unaryop->DumpKoopa();        
+        ASTResult* allocated = Allocate(&number);
+        number->DumpKoopa(allocated);
+        std::cout << 
     }
 }
 
-
-
-void PrimaryExpAST::DumpKoopa() const {
+void UnaryOpAST::DumpKoopa(ASTResult* self)  {
+    /*pass
     if (mode == 0) {
-        exp->DumpKoopa();
+        std::cout << "  add";
     }
     else if (mode == 1) {
-        number->DumpKoopa();
-    }
-}
-
-void UnaryOpAST::DumpKoopa() const {
-    //pass
-    ExpSign exp_sign = AllocSign();
-    if (mode == 0) {
-        PrintInstruction(exp_sign, "add");
-    }
-    else if (mode == 1) {
-        //std::cout << "-";
-        PrintInstruction(exp_sign, "sub");
+        std::cout << "  sub";
     }
     else if (mode == 2) {
-        //std::cout << "!";
-        PrintInstruction(exp_sign, "eq");
-    }
+        std::cout << "  eq";
+    }*/
+    return;
 }
 
-void MulExpAST::DumpKoopa() const {
+void MulExpAST::DumpKoopa(ASTResult* self)  {
     if (mode == 0) {
-        unaryexp -> DumpKoopa();
+        ASTResult* allocated = Allocate(&unaryexp);
+        unaryexp -> DumpKoopa(allocated);
     }
     else {
-        std::string ops[4] = {"", "mul", "div", "mod"};
+        std::string ops[4] = {"", "  mul ", "  div ", "  mod "};
         //这个运算的前半句是为了处理单目运算符 (!1, -1) ?
-        if (unaryexp->mode == 1) {
-            unaryexp->DumpKoopa();
-            mulexp->DumpKoopa();
-        }
-        else {
-            mulexp->DumpKoopa();
-            unaryexp->DumpKoopa();
-        }
-        ExpSign exp_sign = AllocSign();
-        PrintInstruction(exp_sign, ops[mode]);
+        ASTResult* allocated_lhs = Allocate(&mulexp);
+        mulexp->DumpKoopa(allocated_lhs);
+        ASTResult* allocated_rhs = Allocate(&unaryexp);
+        unaryexp->DumpKoopa(allocated_rhs);
+        std::cout<< "  " << self->sign_name << ops[mode] << allocated_lhs->sign_name << ", " << allocated_rhs->sign_name;
     }
     return;
 }
 
 
-void AddExpAST::DumpKoopa() const {
+void AddExpAST::DumpKoopa(ASTResult* self)  {
     if (mode == 0) {
-        mulexp -> DumpKoopa();
+        ASTResult* allocated = Allocate(&mulexp);
+        mulexp -> DumpKoopa(allocated);
     }
     else {
-        std::string ops[4] = {"", "add", "sub"};
+        std::string ops[4] = {"", "  add ", "  sub "};
         //这个运算的前半句是为了处理单目运算符 (!1, -1)
-        if ((mulexp->mode == 0 && mulexp->child_mode[0] == 1) || mulexp->mode != 0) {
-            mulexp -> DumpKoopa();
-            addexp -> DumpKoopa();
-        }
-        else {
-            addexp -> DumpKoopa();
-            mulexp -> DumpKoopa();
-        }
-        ExpSign exp_sign = AllocSign();
-        PrintInstruction(exp_sign, ops[mode]);
+        ASTResult* allocated_lhs = Allocate(&addexp);
+        addexp->DumpKoopa(allocated_lhs);
+        ASTResult* allocated_rhs = Allocate(&mulexp);
+        mulexp->DumpKoopa(allocated_rhs);
+        std::cout << "  " << self->sign_name << " = " << ops[mode] << allocated_lhs->sign_name << ", " << allocated_rhs->sign_name;
     }
     return;
 }
