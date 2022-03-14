@@ -125,6 +125,14 @@ void UnaryOpAST::Dump() const {
     }
 }
 
+void MulExpAST::Dump() const {
+    return;
+}
+
+void AddExpAST::Dump() const {
+    return;
+}
+
 void FuncDefAST::DumpKoopa() const  {
     std::cout << "@" << ident << "(): ";
     func_type -> DumpKoopa();
@@ -200,7 +208,6 @@ void UnaryOpAST::DumpKoopa() const {
         //std::cout << "!";
         PrintInstruction(exp_sign, "eq");
     }
-    //sign_stack.push(exp_sign.result_sign);
 }
 
 void MulExpAST::DumpKoopa() const {
