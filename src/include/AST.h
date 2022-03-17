@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <random>
 #include <iostream>
 #include <string>
 #include <stddef.h>
@@ -10,10 +11,14 @@
 #include <unordered_map>
 
 class BaseAST;
+class ValueData;
 
 //Record the instructions as (key, value) in an unordered-map.
 //We use the unique_ptr's pointer as the key, and a struct as value.
 typedef std::unique_ptr<BaseAST>* Value;
+
+//将键值对插入unordered_map,将键插入vector: insts
+void InsertKVToMap(Value, ValueData);
 
 //For unordered_map hash function.
 class ValueHash
@@ -111,10 +116,10 @@ public:
     virtual Value DumpKoopa(Value self)  override;
 };
 
-//Exp         ::= AddExp;
+//Exp ::= LOrExp;
 class ExpAST : public BaseAST {
 public:
-    std::unique_ptr<BaseAST> addexp;
+    std::unique_ptr<BaseAST> lorexp;
 
     virtual Value DumpKoopa(Value self)  override;
 };
@@ -174,5 +179,45 @@ public:
     std::unique_ptr<BaseAST> addexp;
     std::unique_ptr<BaseAST> mulexp;
     
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//RelExp ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp;
+//mode = 0,1,2,3,4
+class RelExpAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> relexp;
+    std::unique_ptr<BaseAST> addexp;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//EqExp ::= RelExp | EqExp ("==" | "!=") RelExp;
+//mode = 0,1,2
+class EqExpAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> relexp;
+    std::unique_ptr<BaseAST> eqexp;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//LAndExp::= EqExp | LAndExp "&&" EqExp;
+//mode = 0,1
+class LAndExpAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> landexp;
+    std::unique_ptr<BaseAST> eqexp;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//LOrExp::= LAndExp | LOrExp "||" LAndExp;
+//mode = 0,1
+class LOrExpAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> landexp;
+    std::unique_ptr<BaseAST> lorexp;
+
     virtual Value DumpKoopa(Value self)  override;
 };

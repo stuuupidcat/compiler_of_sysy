@@ -12,6 +12,10 @@ std::vector<std::unordered_map<Value, ValueData, ValueHash, ValueEqual>> blocks_
 //unordered_map中key的集合，下标为当前的block。
 std::vector<std::vector<Value>> blocks_insts;
 
+void InsertKVToMap(Value value, ValueData valuedata) {
+    blocks_values[basic_block_num].insert(std::make_pair(value, valuedata));
+    blocks_insts[basic_block_num].push_back(value);
+}
 
 size_t ValueHash::operator() (const Value& value) const noexcept
 {
@@ -28,9 +32,9 @@ size_t ValueEqual::operator() (const Value& val_1, const Value& val_2) const noe
 
 void PrintInstruction() {
     for (auto inst: blocks_insts[basic_block_num]) {
-        auto vd = blocks_values[basic_block_num].find(inst);
-        if ((*vd).second.inst_type != "number")
-            std::cout << " " <<(*vd).second.format();
+        auto vd = blocks_values[basic_block_num][inst];
+        if (vd.inst_type != "number")
+            std::cout << " " <<vd.format();
     }
 }
 
@@ -80,17 +84,25 @@ std::string ValueData::format() {
         inst_type == "sub" ||
         inst_type == "mul" ||
         inst_type == "div" ||
-        inst_type == "mod" 
+        inst_type == "mod" ||
+        inst_type == "le" ||
+        inst_type == "ge" ||
+        inst_type == "lt" ||
+        inst_type == "gt" ||
+        inst_type == "eq" ||
+        inst_type == "ne" ||
+        inst_type == "and" ||
+        inst_type == "or"
     ) { 
         res = "%" + std::to_string(no) + " = " + inst_type + " ";
-
+        //处理左表达式
         if (lhs_vd.inst_type == "number") {
             res += lhs_vd.format() + ",";
         }
         else {
             res += "%" + std::to_string(lhs_vd.no) + ", ";
         }
-
+        //处理右表达式
         if (rhs_vd.inst_type == "number") {
             res += rhs_vd.format() + "\n";
         }
@@ -153,25 +165,23 @@ Value StmtAST::DumpKoopa(Value self) {
     Value rhs_value = exp->DumpKoopa(&exp);
     ValueData vd = AllocateValueData("return", lhs_value, rhs_value);
     Value this_value = self;
-    blocks_values[basic_block_num].insert(std::make_pair(this_value, vd));
-    blocks_insts[basic_block_num].push_back(this_value);
+    InsertKVToMap(this_value, vd);
     return this_value;
 }
 
 
 Value NumberAST::DumpKoopa(Value self) {
-    Value lhs_value = (Value) num;
+    Value lhs_value = (Value)(long)num;
     Value rhs_value = nullptr;
     ValueData vd = ValueData(-1, "number", lhs_value, rhs_value);
     Value this_value = self;
-    blocks_values[basic_block_num].insert({this_value, vd});
-    blocks_insts[basic_block_num].push_back(this_value);
+    InsertKVToMap(this_value, vd);
     return this_value;
 }
 
 
 Value ExpAST::DumpKoopa(Value self)  {
-    return addexp -> DumpKoopa(&addexp);
+    return lorexp -> DumpKoopa(&lorexp);
 }
 
 
@@ -188,8 +198,7 @@ Value UnaryExpAST::DumpKoopa(Value self) {
 
         ValueData vd = AllocateValueData(ops[unaryop->mode], lhs_value, rhs_value);
         Value this_value = self;
-        blocks_values[basic_block_num].insert(std::make_pair(this_value, vd));
-        blocks_insts[basic_block_num].push_back(this_value);
+        InsertKVToMap(this_value, vd);
         return this_value;
     }
     //never reached.
@@ -225,8 +234,7 @@ Value MulExpAST::DumpKoopa(Value self)  {
         Value rhs_value = unaryexp->DumpKoopa(&unaryexp);
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
         Value this_value = self;
-        blocks_values[basic_block_num].insert(std::make_pair(this_value, vd));
-        blocks_insts[basic_block_num].push_back(this_value);
+        InsertKVToMap(this_value, vd);
         return this_value;
     }
 }
@@ -238,13 +246,104 @@ Value AddExpAST::DumpKoopa(Value self)  {
     }
     else {
         std::string ops[4] = {"", "add", "sub"};
-        //这个运算的前半句是为了处理单目运算符 (!1, -1)
         Value lhs_value = addexp->DumpKoopa(&addexp);
         Value rhs_value = mulexp->DumpKoopa(&mulexp);
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
         Value this_value = self;
-        blocks_values[basic_block_num].insert(std::make_pair(this_value, vd));
-        blocks_insts[basic_block_num].push_back(this_value);
+        InsertKVToMap(this_value, vd);
         return this_value;
     }
 }
+
+Value RelExpAST::DumpKoopa(Value self) {
+    if (mode == 0) {
+        return addexp->DumpKoopa(&addexp);
+    }
+    else {
+        std::string ops[5] = {"", "lt", "gt", "le", "ge"};
+        Value lhs_value = relexp->DumpKoopa(&relexp);
+        Value rhs_value = addexp->DumpKoopa(&addexp);
+        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
+        Value this_value = self;
+        InsertKVToMap(this_value, vd);
+        return this_value;        
+    }
+}
+
+Value EqExpAST::DumpKoopa(Value self) {
+    if (mode == 0) {
+        return relexp->DumpKoopa(&relexp);
+    }
+    else {
+        std::string ops[5] = {"", "eq", "ne"};
+        Value lhs_value = eqexp->DumpKoopa(&eqexp);
+        Value rhs_value = relexp->DumpKoopa(&relexp);
+        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
+        Value this_value = self;
+        InsertKVToMap(this_value, vd);
+        return this_value;        
+    }
+}
+
+Value LAndExpAST::DumpKoopa(Value self) {
+    if (mode == 0) {
+        return eqexp->DumpKoopa(&eqexp);
+    }
+    else {
+        Value lhs_value = landexp->DumpKoopa(&landexp);
+        Value rhs_value = eqexp->DumpKoopa(&eqexp);
+        
+        //按位与或实现逻辑与或。
+        //%n = eq lhs, 0;    -> vd_l
+        //%n+1 = eq rhs, 0;  -> vd_r
+        //%n+2 = and %n, %n+1;
+
+        //为数字0, vd_l, vd_r分配一个数据结构。采用随机数作为value.
+        ValueData vd_zero = AllocateValueData("number", 0, 0);
+        Value vd_zero_value  = (std::unique_ptr<BaseAST>*)random();
+        ValueData vd_l = AllocateValueData("ne", lhs_value, vd_zero_value);
+        Value vd_l_value = (std::unique_ptr<BaseAST>*)random();
+        ValueData vd_r = AllocateValueData("ne", rhs_value, vd_zero_value);
+        Value vd_r_value = (std::unique_ptr<BaseAST>*)random();
+        InsertKVToMap(vd_zero_value, vd_zero);
+        InsertKVToMap(vd_l_value, vd_l);
+        InsertKVToMap(vd_r_value, vd_r);
+        ValueData vd = AllocateValueData("and", vd_l_value, vd_r_value);
+        Value this_value = self;
+        InsertKVToMap(this_value, vd);
+        return this_value;        
+    }
+}
+
+
+Value LOrExpAST::DumpKoopa(Value self) {
+    if (mode == 0) {
+        return landexp->DumpKoopa(&landexp);
+    }
+    else {
+        Value lhs_value = lorexp->DumpKoopa(&lorexp);
+        Value rhs_value = landexp->DumpKoopa(&landexp);
+
+         //按位与或实现逻辑与或。
+        //%n = eq lhs, 0;    -> vd_l
+        //%n+1 = eq rhs, 0;  -> vd_r
+        //%n+2 = or %n, %n+1;
+
+        //为数字0, vd_l, vd_r分配一个数据结构。采用随机数作为value.
+        ValueData vd_zero = AllocateValueData("number", 0, 0);
+        Value vd_zero_value  = (std::unique_ptr<BaseAST>*)random();
+        ValueData vd_l = AllocateValueData("ne", lhs_value, vd_zero_value);
+        Value vd_l_value = (std::unique_ptr<BaseAST>*)random();
+        ValueData vd_r = AllocateValueData("ne", rhs_value, vd_zero_value);
+        Value vd_r_value = (std::unique_ptr<BaseAST>*)random();
+        InsertKVToMap(vd_zero_value, vd_zero);
+        InsertKVToMap(vd_l_value, vd_l);
+        InsertKVToMap(vd_r_value, vd_r);
+        ValueData vd = AllocateValueData("or", vd_l_value, vd_r_value);
+        Value this_value = self;
+        InsertKVToMap(this_value, vd);
+        return this_value;        
+    }
+}
+
+

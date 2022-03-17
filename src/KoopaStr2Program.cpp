@@ -118,7 +118,7 @@ std::string Visit(const koopa_raw_integer_t &integer) {
   //mode == 1, 想要将值0返回为x_0;
   std::string res, reg_name;
   int32_t value = integer.value;
-  void *pt = (void *) value;
+  void *pt = (void *)(long)value;
   if (value == 0) {
     res = "x0";
   }

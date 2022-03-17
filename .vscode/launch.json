@@ -12,7 +12,7 @@
           "args": ["-koopa",
                    "./debug/input/hello.c",
                    "-o",
-                   "./debug/output/lv3.2_koopa_output"
+                   "./debug/output/lv3.3_koopa_output"
                   ],
           "stopAtEntry": false,
           "cwd": "/root/compiler/",

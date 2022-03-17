@@ -28,6 +28,17 @@ Decimal       [1-9][0-9]*
 Octal         0[0-7]*
 Hexadecimal   0[xX][0-9a-fA-F]+
 
+/* "=" "<" ">" "<="  ">=" "==" "!=" "&&" "||" */
+AssignSign         = 
+LessThanSign       <
+GreaterThanSign    >
+LessOrEqualSign    <=
+GreaterOrEqualSign >=
+EqualSign          ==
+NotEqualSign       !=
+AndSign            &&
+OrSign             \|\|
+
 %%
 
 {WhiteSpace}    { /* 忽略, 不做任何操作 */ }
@@ -42,6 +53,16 @@ Hexadecimal   0[xX][0-9a-fA-F]+
 {Decimal}       { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
 {Octal}         { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
 {Hexadecimal}   { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
+
+{AssignSign}          {return ASSIGN;}
+{LessThanSign}        {return LT;}
+{GreaterThanSign}     {return GT;}
+{LessOrEqualSign}     {return LE;} 
+{GreaterOrEqualSign}  {return GE;} 
+{EqualSign}           {return EQ;}
+{NotEqualSign}        {return NE;}
+{AndSign}             {return AND;}
+{OrSign}              {return OR;} 
 
 .               { return yytext[0]; }
 
