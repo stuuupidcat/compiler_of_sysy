@@ -47,7 +47,9 @@
         "iterator": "cpp",
         "numeric": "cpp",
         "random": "cpp",
-        "cassert": "cpp"
+        "cassert": "cpp",
+        "map": "cpp",
+        "strstream": "cpp"
     },
     "C_Cpp.errorSquiggles": "Enabled"
 }

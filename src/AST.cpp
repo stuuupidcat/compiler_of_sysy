@@ -1,245 +1,246 @@
 #include "AST.h"
 
-std::vector<ASTResult*> ast_result_vec;
 int temp_sign_num = 0;
+int basic_block_num = -1;
 
-void delete_ast_res_vec() {
-    for (auto val : ast_result_vec) {
-        delete val;
+std::vector<std::unordered_map<Value, ValueData, ValueHash, ValueEqual>> blocks_values;
+std::vector<std::vector<Value>> blocks_insts;
+
+size_t ValueHash::operator() (const Value& value) const noexcept
+{
+     std::hash<long> myhash;
+     return myhash(long(value));
+}
+
+size_t ValueEqual::operator() (const Value& val_1, const Value& val_2) const noexcept
+{
+    return ((long)val_1 == (long)val_2);
+}
+
+
+void PrintInstruction() {
+    for (auto inst: blocks_insts[basic_block_num]) {
+        auto vd = blocks_values[basic_block_num].find(inst);
+        if ((*vd).second.inst_type != "number")
+            std::cout << " " <<(*vd).second.format();
     }
 }
 
-ASTResult::ASTResult(std::unique_ptr<BaseAST>* ast_pointer_, int temp_sign_num_) {
-  ast_pointer = ast_pointer_;
-  sign_num = temp_sign_num_;
-  sign_name = '%' + std::to_string(temp_sign_num_);                                                
-} 
-
-ASTResult* IsASTAllocated(std::unique_ptr<BaseAST>* ast_pointer_) {
-  for (auto pt: ast_result_vec) {
-    if (pt->ast_pointer == ast_pointer_)
-      return pt;
-  }
-  return nullptr;
+ValueData::ValueData(int no_, std::string inst_type_, Value lhs_, Value rhs_) {
+    no = no_;
+    inst_type = inst_type_;
+    lhs = lhs_;
+    rhs = rhs_;
 }
 
-ASTResult* StoreASTToVec(std::unique_ptr<BaseAST>* ins_pt) {
-  ASTResult* ast_res_pt = new ASTResult(ins_pt, temp_sign_num);
-  temp_sign_num++;
-  ast_result_vec.push_back(ast_res_pt);
-  return ast_res_pt;
-}
+ValueData::ValueData() = default;
 
-//分配结果器，管他分没分配结果，在dumpkoopa之前执行以下。执行完毕之后要继续dumpkoopa。
-ASTResult* Allocate(std::unique_ptr<BaseAST> *pt) {
-    ASTResult* allocated = IsASTAllocated(pt);
-    if (!allocated) 
-      allocated = StoreASTToVec(pt);
-    return allocated;
-}
+std::string ValueData::format() {
+    std::string res;
+    ValueData lhs_vd, rhs_vd;
 
-void CompUnitAST::Dump()   {
-    std::cout << "CompUnitAST { ";
-    func_def->Dump();
-    std::cout << " }";
-}
-
-void FuncDefAST::Dump()   {
-    std::cout << "FuncDefAST { ";
-    func_type->Dump();
-    std::cout << ", " << ident << ", ";
-    block->Dump();
-    std::cout << " }";
-}
-
-void FuncTypeAST::Dump()   {
-    std::cout << "FuncTypeAST { ";
-    std::cout <<  s_int ;
-    std::cout << " }";;
-}
-
-void BlockAST::Dump()   {
-    std::cout << "BlockAST { ";
-    stmt->Dump();
-    std::cout << " }";
-}
-
-void StmtAST::Dump()   {
-    std::cout << "StmtAST { ";
-    exp -> Dump();
-    std::cout << " }";
-}
-
-void NumberAST::Dump()   {
-    std::cout << num;
-}
-
-void ExpAST::Dump()   {
-    addexp -> Dump();
-}
-
-void UnaryExpAST::Dump()  {
-    if (mode == 0) {
-        primaryexp->Dump();
+    if (inst_type == "number") {
+        res = std::to_string((long)lhs);
+        return res;
     }
-    else if (mode == 1) {
-        unaryexp->Dump();
-        unaryop->Dump();
+    
+    if (lhs != nullptr) {
+        lhs_vd = (*blocks_values[basic_block_num].find(lhs)).second;
     }
+    if (rhs != nullptr) {
+        rhs_vd = (*blocks_values[basic_block_num].find(rhs)).second;
+    }
+
+
+    if (inst_type.find("single") != std::string::npos) {
+        res = "%" + std::to_string(no) + " = " + inst_type.substr(6);
+        res += " 0, ";
+        if (rhs_vd.inst_type == "number") {
+            res += rhs_vd.format();
+        }
+        else {
+            res += "%";
+            res += std::to_string(rhs_vd.no);
+        }
+        res += "\n";
+    }
+
+    else if (inst_type == "return") {
+        res = "ret ";
+        if (rhs_vd.inst_type == "number") {
+            res += rhs_vd.format();
+        }
+        else {
+            res += "%";
+            res += std::to_string(rhs_vd.no);
+        }
+        res += "\n";
+    }
+
+    else { //add, sub, mul, mod, div
+        res = "%" + std::to_string(no) + " = " + inst_type + " ";
+        if (lhs_vd.inst_type == "number") {
+            res += lhs_vd.format();
+            res += ", ";
+        }
+        else {
+            res += "%";
+            res += std::to_string(lhs_vd.no);
+            res += ", ";
+        }
+        if (rhs_vd.inst_type == "number") {
+            res += rhs_vd.format();
+            res += "\n";
+        }
+        else {
+            res += "%";
+            res += std::to_string(rhs_vd.no);
+            res += "\n";
+        }
+    }
+    return res;
 }
 
-void PrimaryExpAST::Dump()   {
-    if (mode == 0) {
-        std::cout << "(";
-        exp->Dump();
-        std::cout << ")" << std::endl;
-    }
-    else if (mode == 1) {
-        number->Dump();
-    }
+ValueData AllocateValueData(std::string inst_type_, Value lhs_, Value rhs_) {
+    ValueData vd = {temp_sign_num, inst_type_, lhs_, rhs_};
+    temp_sign_num++;
+    return vd;
 }
 
-void UnaryOpAST::Dump()  {
-    if (mode == 0) {
-        std::cout << "+";
-    }
-    else if (mode == 1) {
-        std::cout << "-";
-    }
-    else if (mode == 2) {
-        std::cout << "!";
-    }
-}
-
-void MulExpAST::Dump()  {
-    return;
-}
-
-void AddExpAST::Dump()  {
-    return;
-}
-
-void CompUnitAST::DumpKoopa(ASTResult* self)  {
+Value CompUnitAST::DumpKoopa(Value self)  {
     std::cout << "fun ";
-    //ASTResult* allocated = Allocate(&func_def);
+    //Value allocated = Allocate(&func_def);
+    blocks_values.resize(100);
+    blocks_insts.resize(100);
     func_def -> DumpKoopa(nullptr);
-    delete_ast_res_vec();
+    return self;
 }
 
-void FuncDefAST::DumpKoopa(ASTResult* self)   {
+Value FuncDefAST::DumpKoopa(Value self)   {
     std::cout << "@" << ident << "(): ";
-    //ASTResult* allocated_1 = Allocate(&func_type);
+    //Value allocated_1 = Allocate(&func_type);
     func_type -> DumpKoopa(nullptr);
-    //ASTResult* allocated_2 = Allocate(&block);
+    //Value allocated_2 = Allocate(&block);
     block -> DumpKoopa(nullptr);
+    return self;
 }
 
-void FuncTypeAST::DumpKoopa(ASTResult* self)   {
+Value FuncTypeAST::DumpKoopa(Value self)   {
     std::cout << "i32 ";
+    return self;
 }
 
-void BlockAST::DumpKoopa(ASTResult* self)   {
+Value BlockAST::DumpKoopa(Value self)   {
+    basic_block_num++;
     std::cout << "{" << std::endl;
     std::cout << "%entry:" << std::endl;
-    //ASTResult* allocated = Allocate(&stmt);
+    //Value allocated = Allocate(&stmt);
     stmt->DumpKoopa(nullptr);
+    PrintInstruction();
     std::cout << '}' << std::endl;
+    return self;
 }
 
-void StmtAST::DumpKoopa(ASTResult* self) {
-    //ASTResult* allocated = Allocate(&exp);
-    exp->DumpKoopa(nullptr);
+Value StmtAST::DumpKoopa(Value self) {
+    //Value allocated = Allocate(&exp);
+    Value lhs_value = nullptr;
+    Value rhs_value = exp->DumpKoopa(&exp);
+    ValueData vd = AllocateValueData("return", lhs_value, rhs_value);
+    Value this_value = self;
+    blocks_values[basic_block_num].insert(std::make_pair(this_value, vd));
+    blocks_insts[basic_block_num].push_back(this_value);
+    return this_value;
+}
+
+//这以上的后期再改。关于他们的传入值，输出格式等等。
+
+Value NumberAST::DumpKoopa(Value self) {
+    Value lhs_value = (Value) num;
+    Value rhs_value = nullptr;
+    ValueData vd = ValueData(-1, "number", lhs_value, rhs_value);
+    Value this_value = self;
+    blocks_values[basic_block_num].insert({this_value, vd});
+    blocks_insts[basic_block_num].push_back(this_value);
+    return this_value;
 }
 
 
-void NumberAST::DumpKoopa(ASTResult* self) {
-    std::cout << "  " << self->sign_name << " = " << num << std::endl; 
-}
-
-
-void ExpAST::DumpKoopa(ASTResult* self)  {
-    ASTResult* allocated = Allocate(&addexp);
-    addexp -> DumpKoopa(allocated);
+Value ExpAST::DumpKoopa(Value self)  {
+    return addexp -> DumpKoopa(&addexp);
 }
 
 
 
-void UnaryExpAST::DumpKoopa(ASTResult* self) {
+Value UnaryExpAST::DumpKoopa(Value self) {
     if (mode == 0) {
-        ASTResult* allocated = Allocate(&primaryexp);
-        primaryexp->DumpKoopa(allocated);
-        std::cout << "  " << self->sign_name << " " << allocated->sign_name << endl;
+        return primaryexp->DumpKoopa(&primaryexp);
     }
     else if (mode == 1) {//?
-        std::string ops[3] = {"add", "sub", "eq"};
-        ASTResult* allocated_rhs = Allocate(&unaryexp);
-        unaryexp->DumpKoopa(allocated_rhs);
-        std::cout << "  " << self->sign_name << " = " << ops[unaryop->mode] << ", 0, " << allocated_rhs->sign_name <<  std::endl;  
+        std::string ops[3] = {"singleadd", "singlesub", "singleeq"};
+
+        Value lhs_value = nullptr;
+        Value rhs_value = unaryexp->DumpKoopa(&unaryexp);
+
+
+        ValueData vd = AllocateValueData(ops[unaryop->mode], lhs_value, rhs_value);
+        Value this_value = self;
+        blocks_values[basic_block_num].insert(std::make_pair(this_value, vd));
+        blocks_insts[basic_block_num].push_back(this_value);
+        return this_value;
     }
+    //never reached.
+    return self;
 }
 
 
 
-void PrimaryExpAST::DumpKoopa(ASTResult* self)  {
+Value PrimaryExpAST::DumpKoopa(Value self)  {
     if (mode == 0) {
-        ASTResult* allocated = Allocate(&exp);
-        exp->DumpKoopa(nullptr);
-        std::cout << 
+        return exp->DumpKoopa(&exp);
     }
     else if (mode == 1) {
-        ASTResult* allocated = Allocate(&number);
-        number->DumpKoopa(allocated);
-        std::cout << 
+        return number->DumpKoopa(&number);
     }
+    //never reached;
+    return self;
 }
 
-void UnaryOpAST::DumpKoopa(ASTResult* self)  {
-    /*pass
-    if (mode == 0) {
-        std::cout << "  add";
-    }
-    else if (mode == 1) {
-        std::cout << "  sub";
-    }
-    else if (mode == 2) {
-        std::cout << "  eq";
-    }*/
-    return;
+Value UnaryOpAST::DumpKoopa(Value self)  {
+    return self;
 }
 
-void MulExpAST::DumpKoopa(ASTResult* self)  {
+Value MulExpAST::DumpKoopa(Value self)  {
     if (mode == 0) {
-        ASTResult* allocated = Allocate(&unaryexp);
-        unaryexp -> DumpKoopa(allocated);
+        return unaryexp -> DumpKoopa(&unaryexp);
     }
     else {
-        std::string ops[4] = {"", "  mul ", "  div ", "  mod "};
-        //这个运算的前半句是为了处理单目运算符 (!1, -1) ?
-        ASTResult* allocated_lhs = Allocate(&mulexp);
-        mulexp->DumpKoopa(allocated_lhs);
-        ASTResult* allocated_rhs = Allocate(&unaryexp);
-        unaryexp->DumpKoopa(allocated_rhs);
-        std::cout<< "  " << self->sign_name << ops[mode] << allocated_lhs->sign_name << ", " << allocated_rhs->sign_name;
+        std::string ops[4] = {"", "mul", "div", "mod"};
+
+        Value lhs_value = mulexp->DumpKoopa(&mulexp);
+        Value rhs_value = unaryexp->DumpKoopa(&unaryexp);
+        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
+        Value this_value = self;
+        blocks_values[basic_block_num].insert(std::make_pair(this_value, vd));
+        blocks_insts[basic_block_num].push_back(this_value);
+        return this_value;
     }
-    return;
 }
 
-
-void AddExpAST::DumpKoopa(ASTResult* self)  {
+Value AddExpAST::DumpKoopa(Value self)  {
     if (mode == 0) {
-        ASTResult* allocated = Allocate(&mulexp);
-        mulexp -> DumpKoopa(allocated);
+        return mulexp -> DumpKoopa(&mulexp);
     }
     else {
-        std::string ops[4] = {"", "  add ", "  sub "};
+        std::string ops[4] = {"", "add", "sub"};
         //这个运算的前半句是为了处理单目运算符 (!1, -1)
-        ASTResult* allocated_lhs = Allocate(&addexp);
-        addexp->DumpKoopa(allocated_lhs);
-        ASTResult* allocated_rhs = Allocate(&mulexp);
-        mulexp->DumpKoopa(allocated_rhs);
-        std::cout << "  " << self->sign_name << " = " << ops[mode] << allocated_lhs->sign_name << ", " << allocated_rhs->sign_name;
+        Value lhs_value = addexp->DumpKoopa(&addexp);
+        Value rhs_value = mulexp->DumpKoopa(&mulexp);
+        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
+        Value this_value = self;
+        blocks_values[basic_block_num].insert(std::make_pair(this_value, vd));
+        blocks_insts[basic_block_num].push_back(this_value);
+        return this_value;
     }
-    return;
 }
 
 

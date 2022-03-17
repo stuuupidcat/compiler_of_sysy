@@ -7,45 +7,60 @@
 #include <stdint.h>
 #include <stack>
 #include <cassert>
+#include <unordered_map>
 
-class ASTResult;
+class BaseAST;
+typedef std::unique_ptr<BaseAST>* Value;
+
+//for unordered_map
+class ValueHash
+{
+public:
+    size_t operator() (const Value& value) const noexcept;
+}; 
+
+//for unordered_map
+class ValueEqual
+{
+public:
+    size_t operator() (const Value& val_1, const Value& val_2) const noexcept;
+}; 
+
+class ValueData{
+public:
+    //分配的标号。%n
+    int no;
+    //指令的类型。
+    //"number", 直接输出
+    //"single add/sub/eq", lhs为0的二元操作
+    //"add/sub/mil/mod"
+    //"return"
+    std::string inst_type;
+    Value lhs, rhs;
+    ValueData(int, std::string, Value, Value);
+    ValueData();
+    std::string format();
+};
+
+ValueData AllocateValueData(int, std::string, Value, Value);
+void PrintInstruction();
 
 class BaseAST {
 public:
     virtual ~BaseAST() = default;
-    virtual void Dump()  = 0;
-    virtual void DumpKoopa(ASTResult*)  = 0;
-
+    virtual Value DumpKoopa(Value self)  = 0;
+    
 
     int mode = 0;
 };  
 
-//利用指针查找表达式的结果储存在哪个以百分号开头的临时变量存储器中
-class ASTResult {
-public:
-    std::unique_ptr<BaseAST>* ast_pointer = nullptr;
-    int sign_num = 0;
-    std::string sign_name; 
 
-    ASTResult(std::unique_ptr<BaseAST>*, int);
-
-};
-
-
-//这个函数要对类中的每一个智能指针的指针调用。
-ASTResult* IsASTAllocated(std::unique_ptr<BaseAST>*);
-ASTResult* Allocate(std::unique_ptr<BaseAST> *);
-ASTResult* StoreASTToVec(std::unique_ptr<BaseAST>*);
-void delete_ast_res_vec();
-
-// CompUnit 是 BaseAST
 class CompUnitAST : public BaseAST {
 public:
   // 用智能指针管理对象
     std::unique_ptr<BaseAST> func_def;
     
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;
+    virtual Value DumpKoopa(Value self)  override;
 };
 
 
@@ -56,24 +71,21 @@ public:
     std::string ident;
     std::unique_ptr<BaseAST> block;
     
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;
+    virtual Value DumpKoopa(Value self)  override;
 };
 
 class FuncTypeAST : public BaseAST {   
 public:
     std:: string s_int = "int";
     
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;
+    virtual Value DumpKoopa(Value self)  override;
 };
 
 class BlockAST : public BaseAST {   
 public:
     std::unique_ptr<BaseAST> stmt;
     
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;
+    virtual Value DumpKoopa(Value self)  override;
 };
 
 class StmtAST : public BaseAST {   
@@ -82,16 +94,14 @@ public:
     std::unique_ptr<BaseAST> exp;
     std::string semicolon = ";";
     
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;
+    virtual Value DumpKoopa(Value self)  override;
 };
 
 class NumberAST : public BaseAST {   
 public:
     int num;
     
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;
+    virtual Value DumpKoopa(Value self)  override;
 };
 
 //Exp         ::= AddExp;
@@ -99,8 +109,7 @@ class ExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> addexp;
 
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;
+    virtual Value DumpKoopa(Value self)  override;
 };
 
 //UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
@@ -112,9 +121,7 @@ public:
     std::unique_ptr<BaseAST> unaryop;
     std::unique_ptr<BaseAST> unaryexp;
 
-
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;           
+    virtual Value DumpKoopa(Value self)  override;           
 };
 
 //PrimaryExp  ::= "(" Exp ")" | Number;
@@ -126,8 +133,7 @@ public:
     std::unique_ptr<BaseAST> number;
 
 
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;
+    virtual Value DumpKoopa(Value self)  override;
 };
 
 //UnaryOp     ::= "+" | "-" | "!";
@@ -136,8 +142,7 @@ public:
 //mode == 2 -> !
 class UnaryOpAST : public BaseAST {
 public:
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;
+    virtual Value DumpKoopa(Value self)  override;
 };
 
 //MulExp      ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
@@ -150,9 +155,7 @@ public:
     std::unique_ptr<BaseAST> unaryexp;
     std::unique_ptr<BaseAST> mulexp;
     
-    
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;
+    virtual Value DumpKoopa(Value self)  override;
 };
 
 //AddExp      ::= MulExp | AddExp ("+" | "-") MulExp;
@@ -164,7 +167,5 @@ public:
     std::unique_ptr<BaseAST> addexp;
     std::unique_ptr<BaseAST> mulexp;
     
-    
-    virtual void Dump()  override;
-    virtual void DumpKoopa(ASTResult*)  override;
+    virtual Value DumpKoopa(Value self)  override;
 };
