@@ -12,7 +12,8 @@
 class BaseAST;
 typedef std::unique_ptr<BaseAST>* Value;
 
-//for unordered_map
+//for unordered_map hash
+//...
 class ValueHash
 {
 public:
