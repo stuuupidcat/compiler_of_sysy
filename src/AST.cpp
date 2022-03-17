@@ -1,6 +1,7 @@
 #include "AST.h"
 
 int temp_sign_num = 0;
+//当前基本块的个数。
 int basic_block_num = -1;
 
 std::vector<std::unordered_map<Value, ValueData, ValueHash, ValueEqual>> blocks_values;
