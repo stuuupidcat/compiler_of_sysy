@@ -1,17 +1,24 @@
 #include "AST.h"
 
+//当前临时标号的个数。
 int temp_sign_num = 0;
+
 //当前基本块的个数。
 int basic_block_num = -1;
 
+//unordered_map的集合，下标为当前的block。
 std::vector<std::unordered_map<Value, ValueData, ValueHash, ValueEqual>> blocks_values;
+
+//unordered_map中key的集合，下标为当前的block。
 std::vector<std::vector<Value>> blocks_insts;
+
 
 size_t ValueHash::operator() (const Value& value) const noexcept
 {
      std::hash<long> myhash;
      return myhash(long(value));
 }
+
 
 size_t ValueEqual::operator() (const Value& val_1, const Value& val_2) const noexcept
 {
@@ -27,24 +34,18 @@ void PrintInstruction() {
     }
 }
 
-ValueData::ValueData(int no_, std::string inst_type_, Value lhs_, Value rhs_) {
-    no = no_;
-    inst_type = inst_type_;
-    lhs = lhs_;
-    rhs = rhs_;
-}
-
-ValueData::ValueData() = default;
 
 std::string ValueData::format() {
     std::string res;
     ValueData lhs_vd, rhs_vd;
 
+    //指令类型为number并不需要输出，将number返回即可。
     if (inst_type == "number") {
         res = std::to_string((long)lhs);
         return res;
     }
     
+    //寻找对应的ValueData。
     if (lhs != nullptr) {
         lhs_vd = (*blocks_values[basic_block_num].find(lhs)).second;
     }
@@ -52,53 +53,52 @@ std::string ValueData::format() {
         rhs_vd = (*blocks_values[basic_block_num].find(rhs)).second;
     }
 
-
+    //运算符为一元操作。
     if (inst_type.find("single") != std::string::npos) {
-        res = "%" + std::to_string(no) + " = " + inst_type.substr(6);
-        res += " 0, ";
+        res = "%" + std::to_string(no) + " = " + inst_type.substr(6) + " 0, ";
         if (rhs_vd.inst_type == "number") {
-            res += rhs_vd.format();
+            res += rhs_vd.format() + "\n";
         }
         else {
-            res += "%";
-            res += std::to_string(rhs_vd.no);
+            res += "%" + std::to_string(rhs_vd.no) + "\n";
         }
-        res += "\n";
     }
 
+    //运算符为return操作。
     else if (inst_type == "return") {
         res = "ret ";
         if (rhs_vd.inst_type == "number") {
-            res += rhs_vd.format();
+            res += rhs_vd.format() + "\n";
         }
         else {
-            res += "%";
-            res += std::to_string(rhs_vd.no);
+            res += "%" + std::to_string(rhs_vd.no) + "\n";
         }
-        res += "\n";
+    }
+    //运算符为二元操作。
+    else if (
+        inst_type == "add" ||
+        inst_type == "sub" ||
+        inst_type == "mul" ||
+        inst_type == "div" ||
+        inst_type == "mod" 
+    ) { 
+        res = "%" + std::to_string(no) + " = " + inst_type + " ";
+
+        if (lhs_vd.inst_type == "number") {
+            res += lhs_vd.format() + ",";
+        }
+        else {
+            res += "%" + std::to_string(lhs_vd.no) + ", ";
+        }
+
+        if (rhs_vd.inst_type == "number") {
+            res += rhs_vd.format() + "\n";
+        }
+        else {
+            res += "%" + std::to_string(rhs_vd.no) + "\n";
+        }
     }
 
-    else { //add, sub, mul, mod, div
-        res = "%" + std::to_string(no) + " = " + inst_type + " ";
-        if (lhs_vd.inst_type == "number") {
-            res += lhs_vd.format();
-            res += ", ";
-        }
-        else {
-            res += "%";
-            res += std::to_string(lhs_vd.no);
-            res += ", ";
-        }
-        if (rhs_vd.inst_type == "number") {
-            res += rhs_vd.format();
-            res += "\n";
-        }
-        else {
-            res += "%";
-            res += std::to_string(rhs_vd.no);
-            res += "\n";
-        }
-    }
     return res;
 }
 
@@ -108,9 +108,16 @@ ValueData AllocateValueData(std::string inst_type_, Value lhs_, Value rhs_) {
     return vd;
 }
 
+ValueData::ValueData(int no_, std::string inst_type_, Value lhs_, Value rhs_) {
+    no = no_;
+    inst_type = inst_type_;
+    lhs = lhs_;
+    rhs = rhs_;
+}
+
+
 Value CompUnitAST::DumpKoopa(Value self)  {
     std::cout << "fun ";
-    //Value allocated = Allocate(&func_def);
     blocks_values.resize(100);
     blocks_insts.resize(100);
     func_def -> DumpKoopa(nullptr);
@@ -119,9 +126,7 @@ Value CompUnitAST::DumpKoopa(Value self)  {
 
 Value FuncDefAST::DumpKoopa(Value self)   {
     std::cout << "@" << ident << "(): ";
-    //Value allocated_1 = Allocate(&func_type);
     func_type -> DumpKoopa(nullptr);
-    //Value allocated_2 = Allocate(&block);
     block -> DumpKoopa(nullptr);
     return self;
 }
@@ -135,12 +140,12 @@ Value BlockAST::DumpKoopa(Value self)   {
     basic_block_num++;
     std::cout << "{" << std::endl;
     std::cout << "%entry:" << std::endl;
-    //Value allocated = Allocate(&stmt);
     stmt->DumpKoopa(nullptr);
     PrintInstruction();
     std::cout << '}' << std::endl;
     return self;
 }
+
 
 Value StmtAST::DumpKoopa(Value self) {
     //Value allocated = Allocate(&exp);
@@ -153,7 +158,6 @@ Value StmtAST::DumpKoopa(Value self) {
     return this_value;
 }
 
-//这以上的后期再改。关于他们的传入值，输出格式等等。
 
 Value NumberAST::DumpKoopa(Value self) {
     Value lhs_value = (Value) num;
@@ -169,7 +173,6 @@ Value NumberAST::DumpKoopa(Value self) {
 Value ExpAST::DumpKoopa(Value self)  {
     return addexp -> DumpKoopa(&addexp);
 }
-
 
 
 Value UnaryExpAST::DumpKoopa(Value self) {
@@ -194,7 +197,6 @@ Value UnaryExpAST::DumpKoopa(Value self) {
 }
 
 
-
 Value PrimaryExpAST::DumpKoopa(Value self)  {
     if (mode == 0) {
         return exp->DumpKoopa(&exp);
@@ -206,9 +208,11 @@ Value PrimaryExpAST::DumpKoopa(Value self)  {
     return self;
 }
 
+
 Value UnaryOpAST::DumpKoopa(Value self)  {
     return self;
 }
+
 
 Value MulExpAST::DumpKoopa(Value self)  {
     if (mode == 0) {
@@ -227,6 +231,7 @@ Value MulExpAST::DumpKoopa(Value self)  {
     }
 }
 
+
 Value AddExpAST::DumpKoopa(Value self)  {
     if (mode == 0) {
         return mulexp -> DumpKoopa(&mulexp);
@@ -243,6 +248,3 @@ Value AddExpAST::DumpKoopa(Value self)  {
         return this_value;
     }
 }
-
-
-

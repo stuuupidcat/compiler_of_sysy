@@ -10,17 +10,19 @@
 #include <unordered_map>
 
 class BaseAST;
+
+//Record the instructions as (key, value) in an unordered-map.
+//We use the unique_ptr's pointer as the key, and a struct as value.
 typedef std::unique_ptr<BaseAST>* Value;
 
-//for unordered_map hash
-//...
+//For unordered_map hash function.
 class ValueHash
 {
 public:
     size_t operator() (const Value& value) const noexcept;
 }; 
 
-//for unordered_map
+//For unordered_map equal function.
 class ValueEqual
 {
 public:
@@ -31,27 +33,33 @@ class ValueData{
 public:
     //分配的标号。%n
     int no;
+
     //指令的类型。
-    //"number", 直接输出
-    //"single add/sub/eq", lhs为0的二元操作
-    //"add/sub/mil/mod"
-    //"return"
+    //"number"            -> 不用输出。数字存储在lhs中。
+    //"single add/sub/eq" -> 左操作数为0的二元操作。
+    //"add/sub/mil/mod"   -> 二元操作。
+    //"return"            -> 右操作数为返回值的二元操作。
     std::string inst_type;
+
+    //利用lhs,rhs去unordered_map中查找对应的ValueData.
     Value lhs, rhs;
+
     ValueData(int, std::string, Value, Value);
-    ValueData();
+    ValueData() = default;
+    
     std::string format();
 };
 
+//分配ValueData。增加temp_sign_num。
 ValueData AllocateValueData(int, std::string, Value, Value);
+
+//各种指令的输出。
 void PrintInstruction();
 
 class BaseAST {
 public:
     virtual ~BaseAST() = default;
-    virtual Value DumpKoopa(Value self)  = 0;
-    
-
+    virtual Value DumpKoopa(Value self) = 0;
     int mode = 0;
 };  
 
@@ -91,9 +99,7 @@ public:
 
 class StmtAST : public BaseAST {   
 public:
-    std::string return_s = "return";
     std::unique_ptr<BaseAST> exp;
-    std::string semicolon = ";";
     
     virtual Value DumpKoopa(Value self)  override;
 };

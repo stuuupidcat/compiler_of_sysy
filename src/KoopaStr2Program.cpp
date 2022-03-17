@@ -131,12 +131,11 @@ std::string Visit(const koopa_raw_integer_t &integer) {
   return res;
 }
 
-//访问二元运算指令的简陋的实现。
+//访问二元运算指令.
 std::string Visit (const koopa_raw_binary_t& bi) {
   InsResult* executed = IsExecuted((void*)&bi);
   //执行过。
   if (executed) {
-    
     return executed->reg_name;
   }
 
