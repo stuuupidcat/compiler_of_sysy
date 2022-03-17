@@ -1,14 +1,16 @@
 #include "KoopaStr2Program.h"
 
 int a_reg_num = 0;
-int t_reg_num = 0; 
-std::vector<InsResult*> ins_result_vec;
+int t_reg_num = 0;
 
-InsResult::InsResult(void* ins_pointer_, int reg_num_) {
+//利用指令的指针查找二元运算指令的结果储存在哪个寄存器中。
+std::unordered_map<void*, int> inst_result;
+
+/*InsResult::InsResult(void* ins_pointer_, int reg_num_) {
   ins_pointer = ins_pointer_;
   reg_num = reg_num_;
   reg_name = 't' + std::to_string(reg_num_);                                                
-} 
+} */
 
 // 访问 raw program
 void Visit(const koopa_raw_program_t &program) {
@@ -104,7 +106,7 @@ void Visit(const koopa_raw_return_t &ret) {
   }
   
   //在return.value是%n的情况下，是一个指向指令的指针。
-  //有了“已经执行的指令的数组”，我们会找到那个指令的结果所使用的寄存器。
+  //有了“已经执行的指令的map”，我们会找到那个指令的结果所使用的寄存器。
   //恰好就可以将返回值打印出来。  
   std::string reg_name = Visit(ret.value);
 
@@ -114,32 +116,35 @@ void Visit(const koopa_raw_return_t &ret) {
 
 std::string Visit(const koopa_raw_integer_t &integer) {
   //mode == 1, 想要将值0返回为x_0;
-  std::string res;
+  std::string res, reg_name;
   int32_t value = integer.value;
   void *pt = (void *) value;
   if (value == 0) {
     res = "x0";
   }
   else {
-    InsResult* executed = IsExecuted(pt);
+    bool executed = IsExecuted(pt);
     if (!executed) {
-      executed = StoreInsToVec(pt);
-      std::cout << "  li    " << executed->reg_name << ", " << value << std::endl;
+      int reg_num = StoreInsToMap(pt);
+      reg_name = 't' + std::to_string(reg_num);
+      std::cout << "  li    " << reg_name << ", " << value << std::endl;
     }
-    res = executed->reg_name;
+    res = reg_name;
   }
   return res;
 }
 
 //访问二元运算指令.
 std::string Visit (const koopa_raw_binary_t& bi) {
-  InsResult* executed = IsExecuted((void*)&bi);
+  bool executed = IsExecuted((void*)&bi);
   //执行过。
   if (executed) {
-    return executed->reg_name;
+    std::string reg_name = 't'+std::to_string(inst_result[(void*)&bi]);
+    return reg_name;
   }
-
-  InsResult* ins_res_pt = StoreInsToVec((void*)&bi);
+  std::string reg_name;
+  int reg_num = StoreInsToMap((void*)&bi);
+  reg_name = 't'+std::to_string(reg_num);
   std::string left_reg_name = Visit(bi.lhs);
   std::string right_reg_name = Visit(bi.rhs);
   switch (bi.op)
@@ -149,32 +154,32 @@ std::string Visit (const koopa_raw_binary_t& bi) {
     //xor   t0, t0, x0
     //seqz  t0, t0'
 
-    std::cout << "  xor   " << ins_res_pt->reg_name << ", ";
+    std::cout << "  xor   " << reg_name << ", ";
     std::cout << left_reg_name << ", " << right_reg_name << std::endl;
-    std::cout << "  seqz  " << ins_res_pt->reg_name << ", " << ins_res_pt->reg_name << std::endl;
+    std::cout << "  seqz  " << reg_name << ", " << reg_name << std::endl;
     break;
   case KOOPA_RBO_SUB: //%1 = sub 0, %0
-    std::cout << "  sub   " << ins_res_pt->reg_name << ", ";    
+    std::cout << "  sub   " << reg_name << ", ";    
     std::cout << left_reg_name << ", " << right_reg_name;
     std::cout << std::endl;
     break;
   case KOOPA_RBO_ADD:
-    std::cout << "  add   " << ins_res_pt->reg_name << ", ";    
+    std::cout << "  add   " <<reg_name << ", ";    
     std::cout << left_reg_name << ", " << right_reg_name;
     std::cout << std::endl;
     break;
   case KOOPA_RBO_MUL:
-    std::cout << "  mul   " << ins_res_pt->reg_name << ", ";    
+    std::cout << "  mul   " << reg_name << ", ";    
     std::cout << left_reg_name << ", " << right_reg_name;
     std::cout << std::endl;
     break;
   case KOOPA_RBO_DIV:
-    std::cout << "  div   " << ins_res_pt->reg_name << ", ";    
+    std::cout << "  div   " << reg_name << ", ";    
     std::cout << left_reg_name << ", " << right_reg_name;
     std::cout << std::endl;
     break;
   case KOOPA_RBO_MOD:
-    std::cout << "  rem   " << ins_res_pt->reg_name << ", ";    
+    std::cout << "  rem   " << reg_name << ", ";    
     std::cout << left_reg_name << ", " << right_reg_name;
     std::cout << std::endl;
     break;
@@ -182,7 +187,7 @@ std::string Visit (const koopa_raw_binary_t& bi) {
   default:
     break;
   }
-  return ins_res_pt->reg_name;
+  return reg_name;
 }
 
 
@@ -209,25 +214,22 @@ void KoopaStrToProgram(const char *input, const char *output) {
     // 注意, raw program 中所有的指针指向的内存均为 raw program builder 的内存
     // 所以不要在 raw program builder 处理完毕之前释放 builder
     koopa_delete_raw_program_builder(builder);
-    delete_ins_result_vec();
 }
 
-InsResult* IsExecuted(void* ins_pt) {
-  for (auto pt: ins_result_vec) {
-    if (pt->ins_pointer == ins_pt)
-      return pt;
-  }
-  return nullptr;
+bool IsExecuted(void* inst_pt) {
+  bool flag = false;
+  if (inst_result.count(inst_pt) == 0) 
+    flag = false;
+  else 
+    flag = true;
+  return flag;
 }
 
-InsResult* StoreInsToVec(void* ins_pt) {
-  InsResult* ins_res_pt = new InsResult(ins_pt, t_reg_num);
+int StoreInsToMap(void* inst_pt) {
+  int res = 0;
+  inst_result.insert(std::make_pair(inst_pt, t_reg_num));
+  res = t_reg_num;
   t_reg_num++;
-  ins_result_vec.push_back(ins_res_pt);
-  return ins_res_pt;
+  return res;
 }
 
-void delete_ins_result_vec() {
-  for (auto vec_pt: ins_result_vec) 
-    delete vec_pt;
-}
