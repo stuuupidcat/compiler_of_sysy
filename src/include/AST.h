@@ -47,6 +47,7 @@ public:
     std::string inst_type;
 
     //利用lhs,rhs去unordered_map中查找对应的ValueData.
+    //只有一个操作数的用lhs.
     Value lhs, rhs;
 
     ValueData(int, std::string, Value, Value);
@@ -98,11 +99,12 @@ public:
 //Block ::= "{" {BlockItem} "}";
 class BlockAST : public BaseAST {   
 public:
-    std::vector<std::unique_ptr<BaseAST>> blockitem;
+    std::vector<std::unique_ptr<BaseAST>> blockitems;
     
     virtual Value DumpKoopa(Value self)  override;
 };
 
+//Stmt:  ';' | "return" Exp ";"
 class StmtAST : public BaseAST {   
 public:
     std::unique_ptr<BaseAST> exp;
@@ -277,6 +279,7 @@ public:
 
 //ConstExp ::= Exp;
 class ConstExpAST : public BaseAST {
+public:
     std::unique_ptr<BaseAST> exp;
 
     virtual Value DumpKoopa(Value self)  override;

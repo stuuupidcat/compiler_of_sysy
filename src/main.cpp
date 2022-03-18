@@ -9,7 +9,7 @@
 #include "KoopaStr2Program.h"
 
 using namespace std;
-//#define DEBUG_MODE 0
+//#define DEBUG_MODE 1
 
 extern FILE *yyin;
 extern int yyparse(unique_ptr<BaseAST> &ast);
@@ -36,12 +36,11 @@ int main(int argc, const char *argv[]) {
   auto ret = yyparse(ast);
   assert(!ret);
 
-#ifdef DEBUG_MODE
-#else
-#endif
-
   if (strcmp(mode, "-koopa") == 0) {
+    #ifdef DEBUG_MODE
+    #else
     OutputToFile(output);
+    #endif
     ast->DumpKoopa(nullptr);
   }
   else if (strcmp(mode, "-riscv") == 0) {

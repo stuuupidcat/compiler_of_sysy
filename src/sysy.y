@@ -52,7 +52,7 @@ using namespace std;
 %type <ast_val> FuncDef FuncType Block Stmt Number 
 %type <ast_val> Exp UnaryExp PrimaryExp UnaryOp ConstExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp MulExp AddExp
-%type <ast_val> Decl ConstDecl ConstDef ConstInitVal BlockItem LVal             
+%type <ast_val> Decl ConstDecl ConstDef ConstInitVal BlockItems BlockItem LVal             
 
 
 
@@ -93,26 +93,40 @@ FuncType
 
 //Block ::= "{" {BlockItem} "}";
 Block
-  : '{' BlockItem {
+  : '{' BlockItems '}'{
+    $$ = $2;
+  }
+  ;
+
+BlockItems
+  : BlockItem {
     auto ast = new BlockAST();
-    ast -> blockitem.push_back(unique_ptr<BaseAST>($2));
+    ast->blockitems.push_back(unique_ptr<BaseAST>($1));
     $$ = ast;
   }
-  | Block BlockItem {
-    $$ -> blockitem.push_back(unique_ptr<BaseAST>($2));
+  | BlockItems BlockItem {
+    $$ = $1;
+    ((BlockAST*)$$)->blockitems.push_back(unique_ptr<BaseAST>($2));
   }
   ;
 
 Stmt
-  : RETURN Exp ';' {
+  : ';' {
+    auto ast = new StmtAST();
+    ast->mode = 0;
+    $$ = ast;
+  }
+  | RETURN Exp ';' {
     auto ast = new StmtAST();
     // auto number = $2; 
     // 该number一直输出261, 这里的Number应该是? ->应该是INT_CONST的值。
     // -> 示例程序中将Number写成了int_val
     // 我们将其变为BaseAST
+    ast-> mode = 1;
     ast -> exp = unique_ptr<BaseAST>($2);
     $$ = ast;
   }
+  
   ;
 
 Number
@@ -335,7 +349,7 @@ LOrExp
 
 Decl
   : ConstDecl {
-    auto ast = new DeclExpAST();
+    auto ast = new DeclAST();
     ast->constdecl = unique_ptr<BaseAST>($1);
     $$ = ast;
   }
@@ -348,14 +362,14 @@ ConstDecl
     ast->constdefs.push_back(unique_ptr<BaseAST>($3));
     $$ = ast;
   }
-  | ConstDecl ',' ConstDef {
-    $$->constdef.push_back(unique_ptr<BaseAST>($3));
+  | ConstDecl ',' ConstDef ';' {
+    ((ConstDeclAST*)$$)->constdefs.push_back(unique_ptr<BaseAST>($3));
     //$$ = ast;
   }
-  //| ConstDecl ',' ConstDef ';' {
-  //  $$->constdef.push_back(unique_ptr<BaseAST>($3));
-  //  //$$ = ast;
-  //}
+  | ConstDecl ',' ConstDef {
+    ((ConstDeclAST*)$$)->constdefs.push_back(unique_ptr<BaseAST>($3));
+    //$$ = ast;
+  }
   ;
 
 ConstDef
@@ -384,8 +398,8 @@ BlockItem
   } 
   | Stmt{
     auto ast = new BlockItemAST();
-    ast->decl = unique_ptr<BaseAST>($1);
-    ast->stmt = 1;
+    ast->stmt = unique_ptr<BaseAST>($1);
+    ast->mode = 1;
     $$ = ast;
   }
   ;
@@ -400,7 +414,7 @@ LVal
 
 ConstExp
   :Exp {
-    auto ast = new ConstExp();
+    auto ast = new ConstExpAST();
     ast->exp = unique_ptr<BaseAST>($1);
     $$ = ast;
   };
