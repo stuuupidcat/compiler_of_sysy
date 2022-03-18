@@ -44,13 +44,17 @@ using namespace std;
 %token INT RETURN
 %token ASSIGN LT GT LE GE EQ NE  
 %token AND OR 
+%token CONST
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
 // 非终结符的类型定义
 %type <ast_val> FuncDef FuncType Block Stmt Number 
-%type <ast_val> Exp UnaryExp PrimaryExp UnaryOp MulExp AddExp
-%type <ast_val> RelExp EqExp LAndExp LOrExp
+%type <ast_val> Exp UnaryExp PrimaryExp UnaryOp ConstExp
+%type <ast_val> RelExp EqExp LAndExp LOrExp MulExp AddExp
+%type <ast_val> Decl ConstDecl ConstDef ConstInitVal BlockItem LVal             
+
+
 
 %%
 
@@ -87,11 +91,15 @@ FuncType
   }
   ;
 
+//Block ::= "{" {BlockItem} "}";
 Block
-  : '{' Stmt '}' {
+  : '{' BlockItem {
     auto ast = new BlockAST();
-    ast -> stmt = unique_ptr<BaseAST>($2);
+    ast -> blockitem.push_back(unique_ptr<BaseAST>($2));
     $$ = ast;
+  }
+  | Block BlockItem {
+    $$ -> blockitem.push_back(unique_ptr<BaseAST>($2));
   }
   ;
 
@@ -148,10 +156,16 @@ PrimaryExp
     ast -> mode = 0;
     $$ = ast;
   }
+  | LVal {
+    auto ast = new PrimaryExpAST();
+    ast -> lval = unique_ptr<BaseAST>($1);
+    ast -> mode = 1;
+    $$ = ast;
+  } 
   | Number {
     auto ast = new PrimaryExpAST();
     ast -> number = unique_ptr<BaseAST>($1);
-    ast -> mode = 1;
+    ast -> mode = 2;
     $$ = ast;
   }
   ;
@@ -318,6 +332,80 @@ LOrExp
     $$ = ast;
   }
   ;
+
+Decl
+  : ConstDecl {
+    auto ast = new DeclExpAST();
+    ast->constdecl = unique_ptr<BaseAST>($1);
+    $$ = ast;
+  }
+  ;
+
+//如何处理{}+?         
+ConstDecl 
+  : CONST INT ConstDef  {
+    auto ast = new ConstDeclAST();
+    ast->constdefs.push_back(unique_ptr<BaseAST>($3));
+    $$ = ast;
+  }
+  | ConstDecl ',' ConstDef {
+    $$->constdef.push_back(unique_ptr<BaseAST>($3));
+    //$$ = ast;
+  }
+  //| ConstDecl ',' ConstDef ';' {
+  //  $$->constdef.push_back(unique_ptr<BaseAST>($3));
+  //  //$$ = ast;
+  //}
+  ;
+
+ConstDef
+  :IDENT ASSIGN ConstInitVal {
+    auto ast = new ConstDefAST();
+    ast->ident = *unique_ptr<string>($1);
+    ast->constinitval = unique_ptr<BaseAST>($3);
+    $$ = ast;
+  }
+  ;
+
+ConstInitVal  
+  :ConstExp {
+    auto ast = new ConstInitValAST();
+    ast->constexp = unique_ptr<BaseAST>($1);
+    $$ = ast;
+  }
+  ;
+
+BlockItem
+  :Decl {
+    auto ast = new BlockItemAST();
+    ast->decl = unique_ptr<BaseAST>($1);
+    ast->mode = 0;
+    $$ = ast;
+  } 
+  | Stmt{
+    auto ast = new BlockItemAST();
+    ast->decl = unique_ptr<BaseAST>($1);
+    ast->stmt = 1;
+    $$ = ast;
+  }
+  ;
+
+LVal
+  :IDENT {
+    auto ast = new LValAST();
+    ast->ident = *unique_ptr<string>($1);
+    $$ = ast;
+  }
+  ;
+
+ConstExp
+  :Exp {
+    auto ast = new ConstExp();
+    ast->exp = unique_ptr<BaseAST>($1);
+    $$ = ast;
+  };
+
+
 %%
 
 // 定义错误处理函数, 其中第二个参数是错误信息

@@ -95,9 +95,10 @@ public:
     virtual Value DumpKoopa(Value self)  override;
 };
 
+//Block ::= "{" {BlockItem} "}";
 class BlockAST : public BaseAST {   
 public:
-    std::unique_ptr<BaseAST> stmt;
+    std::vector<std::unique_ptr<BaseAST>> blockitem;
     
     virtual Value DumpKoopa(Value self)  override;
 };
@@ -136,12 +137,12 @@ public:
     virtual Value DumpKoopa(Value self)  override;           
 };
 
-//PrimaryExp  ::= "(" Exp ")" | Number;
-//mode == 0 -> "(" Exp ")"
-//mode == 1 -> Number
+//PrimaryExp ::= "(" Exp ")" | LVal | Number
+//mode == 0, 1, 2;
 class PrimaryExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> exp;
+    std::unique_ptr<BaseAST> lval;
     std::unique_ptr<BaseAST> number;
 
 
@@ -218,6 +219,65 @@ class LOrExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> landexp;
     std::unique_ptr<BaseAST> lorexp;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//Decl ::= ConstDecl;
+class DeclAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> constdecl;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//ConstDecl ::= "const" "int" ConstDef {"," ConstDef} ";";
+class ConstDeclAST : public BaseAST {
+public:
+    std::vector<std::unique_ptr<BaseAST>> constdefs;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//ConstDef ::= IDENT "=" ConstInitVal;
+class ConstDefAST : public BaseAST {
+public:
+
+    std::string ident;
+    std::unique_ptr<BaseAST> constinitval;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//ConstInitVal ::= ConstExp;
+class ConstInitValAST: public BaseAST {
+public:
+    std::unique_ptr<BaseAST> constexp;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//BlockItem ::= Decl | Stmt;
+class BlockItemAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> decl;
+    std::unique_ptr<BaseAST> stmt;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//LVal ::= IDENT;
+class LValAST : public BaseAST {
+public:
+    //ast->ident = *unique_ptr<string>($n);
+    std::string ident;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//ConstExp ::= Exp;
+class ConstExpAST : public BaseAST {
+    std::unique_ptr<BaseAST> exp;
 
     virtual Value DumpKoopa(Value self)  override;
 };
