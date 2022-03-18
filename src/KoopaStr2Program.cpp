@@ -156,34 +156,62 @@ std::string Visit (const koopa_raw_binary_t& bi) {
 
     std::cout << "  xor   " << reg_name << ", ";
     std::cout << left_reg_name << ", " << right_reg_name << std::endl;
+    //seqz r1, r2 命令 r2 == 0, 将1写入rd
+    //snez r1, r2 命令 r2 != 0, 将1写入rd
     std::cout << "  seqz  " << reg_name << ", " << reg_name << std::endl;
+    break;
+  case KOOPA_RBO_NOT_EQ: //同上。
+    std::cout << "  xor   " << reg_name << ", ";
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
+    std::cout << "  snez  " << reg_name << ", " << reg_name << std::endl;
     break;
   case KOOPA_RBO_SUB: //%1 = sub 0, %0
     std::cout << "  sub   " << reg_name << ", ";    
-    std::cout << left_reg_name << ", " << right_reg_name;
-    std::cout << std::endl;
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
     break;
   case KOOPA_RBO_ADD:
     std::cout << "  add   " <<reg_name << ", ";    
-    std::cout << left_reg_name << ", " << right_reg_name;
-    std::cout << std::endl;
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
     break;
   case KOOPA_RBO_MUL:
     std::cout << "  mul   " << reg_name << ", ";    
-    std::cout << left_reg_name << ", " << right_reg_name;
-    std::cout << std::endl;
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
     break;
   case KOOPA_RBO_DIV:
     std::cout << "  div   " << reg_name << ", ";    
-    std::cout << left_reg_name << ", " << right_reg_name;
-    std::cout << std::endl;
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
     break;
   case KOOPA_RBO_MOD:
     std::cout << "  rem   " << reg_name << ", ";    
-    std::cout << left_reg_name << ", " << right_reg_name;
-    std::cout << std::endl;
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
     break;
-
+  case KOOPA_RBO_AND:
+    std::cout << "  and   " << reg_name << ", ";    
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
+    break;
+  case KOOPA_RBO_OR:
+    std::cout << "  or   " << reg_name << ", ";    
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
+    break;
+  //slt t0, t1, t2 指令的含义是, 判断寄存器 t1 的值是否小于 t2 的值
+  case KOOPA_RBO_LT:
+    std::cout << "  slt  " << reg_name << ", ";    
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
+    break;
+  case KOOPA_RBO_GT: //注意是反的。
+    std::cout << "  sgt  " << reg_name << ", ";    
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
+    break;
+  case KOOPA_RBO_LE:
+    std::cout << "  sgt  " << reg_name << ", ";    
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
+    std::cout << "  seqz  " << reg_name << ", " << reg_name << std::endl;    
+    break;
+  case KOOPA_RBO_GE:
+    std::cout << "  slt  " << reg_name << ", ";    
+    std::cout << left_reg_name << ", " << right_reg_name << std::endl;
+    std::cout << "  seqz  " << reg_name << ", " << reg_name << std::endl;    
+    break;
   default:
     break;
   }
