@@ -92,24 +92,13 @@ std::string Visit(const koopa_raw_value_t &value) {
 }
 
 void Visit(const koopa_raw_return_t &ret) {
-  switch (ret.value->kind.tag)
-  {
-  case KOOPA_RVT_INTEGER:
-    std::cout << "  li    a0, ";
-    break;
-  case KOOPA_RVT_BINARY:
-    std::cout << "  mv    a0, ";
-    break;
-  default:
-    std::cout << "  mv    a0, ";
-    break;
-  }
+
+  std::string reg_name = Visit(ret.value);
+  std::cout << "  mv    a0, ";
   
   //在return.value是%n的情况下，是一个指向指令的指针。
   //有了“已经执行的指令的map”，我们会找到那个指令的结果所使用的寄存器。
-  //恰好就可以将返回值打印出来。  
-  std::string reg_name = Visit(ret.value);
-
+  //恰好就可以将返回值打印出来。 
   std::cout << reg_name << std::endl;
   std::cout << "  ret"  << std::endl;
 }
@@ -129,6 +118,10 @@ std::string Visit(const koopa_raw_integer_t &integer) {
       reg_name = 't' + std::to_string(reg_num);
       std::cout << "  li    " << reg_name << ", " << value << std::endl;
     }
+    else {
+      int reg_num = inst_result[pt];
+      reg_name = 't' + std::to_string(reg_num);
+    }
     res = reg_name;
   }
   return res;
@@ -143,10 +136,10 @@ std::string Visit (const koopa_raw_binary_t& bi) {
     return reg_name;
   }
   std::string reg_name;
-  int reg_num = StoreInsToMap((void*)&bi);
-  reg_name = 't'+std::to_string(reg_num);
   std::string left_reg_name = Visit(bi.lhs);
   std::string right_reg_name = Visit(bi.rhs);
+  int reg_num = StoreInsToMap((void*)&bi);
+  reg_name = 't'+std::to_string(reg_num);
   switch (bi.op)
   {
   case KOOPA_RBO_EQ: //%0 = eq 6, 0
