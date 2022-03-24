@@ -33,9 +33,8 @@ void PrintInstruction() {
     }
 }
 
-VariableInfo::VariableInfo(Value value_, bool is_const_, std::string name_) {
+VariableInfo::VariableInfo(Value value_, bool is_const_) {
     value = value_;
-    alloc_name = name_;
     is_const_variable = is_const_;
 }
 
@@ -426,7 +425,7 @@ Value ConstDefAST::DumpKoopa() {
     Value exp_value = constinitval->DumpKoopa();
     //将符号插入到符号表中。
     symbol_table[function_num].insert(std::make_pair(ident,
-                                                     VariableInfo(exp_value, true, ident)));
+                                                     VariableInfo(exp_value, true)));
     return 0;
 }
 
@@ -439,14 +438,14 @@ Value VarDefAST::DumpKoopa() {
     InsertValuedata(vd_alloc);
     if (mode == 0) { //无赋值
         symbol_table[function_num].insert(std::make_pair(ident,
-                                                     VariableInfo(0, false, ident)));
+                                                     VariableInfo(0, false)));
     }
     else {
         Value lhs = initval->DumpKoopa();
         ValueData vd_store = ValueData(-1, "store", lhs, 0, ident);
         InsertValuedata(vd_store);
         symbol_table[function_num].insert(std::make_pair(ident,
-                                                     VariableInfo(lhs, false, ident)));
+                                                     VariableInfo(lhs, false)));
     }
     return 0;
 }
@@ -497,3 +496,4 @@ Value InitValAST::DumpKoopa() {
     return exp->DumpKoopa();
 }
 
+std::string AddReg();

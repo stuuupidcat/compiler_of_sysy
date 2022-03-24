@@ -94,3 +94,4 @@ for (auto inst : bb.insts()) {
 - load需要，可是load什么时候有用呢 lval?
 
 改一下value
+

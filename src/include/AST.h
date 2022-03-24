@@ -61,8 +61,7 @@ class VariableInfo {
 public:
     Value value;
     bool is_const_variable = false;
-    std::string alloc_name;
-    VariableInfo(Value, bool, std::string);
+    VariableInfo(Value, bool);
     VariableInfo() = default;
 };
 

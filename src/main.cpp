@@ -4,6 +4,9 @@
 #include <memory>
 #include <string>
 #include <string.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <fcntl.h>
 
 #include "AST.h"
 #include "KoopaStr2Program.h"
@@ -14,8 +17,9 @@ using namespace std;
 extern FILE *yyin;
 extern int yyparse(unique_ptr<BaseAST> &ast);
 
-inline void OutputToFile(const char *path) {
-  freopen(path, "w", stdout);
+inline FILE* OutputToFile(const char *path) {
+  FILE* fp = freopen(path, "w", stdout);
+  return fp;
 }
 
 inline void OutputToConsole() {
@@ -37,18 +41,20 @@ int main(int argc, const char *argv[]) {
   assert(!ret);
 
   if (strcmp(mode, "-koopa") == 0) {
-    #ifdef DEBUG_MODE
-    #else
-    OutputToFile(output);
-    #endif
+    
     ast->DumpKoopa();
   }
   else if (strcmp(mode, "-riscv") == 0) {
-    
-    OutputToFile("./temp/temp_koopa");
+    int old = dup( 1 );
+    FILE* fp = OutputToFile("./temp/temp_koopa");
     ast->DumpKoopa();
 
+    #ifdef DEBUG_MODE
+    fflush(fp);//将输出缓冲区清空
+    dup2( old, 1 );//恢复标准输出文件描述符
+    #else
     OutputToFile(output);
+    #endif
     KoopaStrToProgram("./temp/temp_koopa", output);
   }
     
