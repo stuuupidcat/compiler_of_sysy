@@ -7,7 +7,7 @@ int temp_sign_num = 0;
 int basic_block_num = -1;
 
 //unordered_map的集合，下标为当前的block。
-std::vector<std::unordered_map<Value, ValueData, ValueHash, ValueEqual>> blocks_values;
+std::vector<std::unordered_map<Value, ValueData>> blocks_values;
 
 //unordered_map中key的集合，下标为当前的block。
 std::vector<std::vector<Value>> blocks_insts;
@@ -17,21 +17,11 @@ int function_num = -1;
 //符号表。
 std::vector<std::unordered_map<std::string, VariableInfo>> symbol_table; 
 
-void InsertKVToMap(Value value, ValueData valuedata) {
+Value InsertValuedata(ValueData valuedata) {
+    Value value = random();
     blocks_values[basic_block_num].insert(std::make_pair(value, valuedata));
     blocks_insts[basic_block_num].push_back(value);
-}
-
-size_t ValueHash::operator() (const Value& value) const noexcept
-{
-     std::hash<long> myhash;
-     return myhash(long(value));
-}
-
-
-size_t ValueEqual::operator() (const Value& val_1, const Value& val_2) const noexcept
-{
-    return ((long)val_1 == (long)val_2);
+    return value;
 }
 
 
@@ -62,10 +52,10 @@ std::string ValueData::format() {
     }
     
     //寻找对应的ValueData。
-    if (lhs != nullptr) {
+    if (lhs != 0) {
         lhs_vd = (*blocks_values[basic_block_num].find(lhs)).second;
     }
-    if (rhs != nullptr) {
+    if (rhs != 0) {
         rhs_vd = (*blocks_values[basic_block_num].find(rhs)).second;
     }
     if (variable_name != "") {
@@ -176,201 +166,193 @@ ValueData::ValueData(int no_, std::string inst_type_, Value lhs_, Value rhs_, st
 }
 
 
-Value CompUnitAST::DumpKoopa(Value self)  {
+Value CompUnitAST::DumpKoopa()  {
     blocks_values.resize(100);
     blocks_insts.resize(100);
     symbol_table.resize(100);
 
     function_num++;
-    func_def -> DumpKoopa(nullptr);
-    return self;
+    func_def -> DumpKoopa();
+    return 0;
 }
 
-Value FuncDefAST::DumpKoopa(Value self)   {
+Value FuncDefAST::DumpKoopa()   {
     std::cout << "fun ";
     std::cout << "@" << ident << "(): ";
 
-    func_type -> DumpKoopa(nullptr);
-    block -> DumpKoopa(nullptr);
-    return self;
+    func_type -> DumpKoopa();
+    block -> DumpKoopa();
+    return 0;
 }
 
-Value FuncTypeAST::DumpKoopa(Value self)   {
+Value FuncTypeAST::DumpKoopa()   {
     std::cout << "i32 ";
-    return self;
+    return 0;
 }
 
 //wrong code.
-Value BlockAST::DumpKoopa(Value self)   {
+Value BlockAST::DumpKoopa()   {
     std::cout << "{" << std::endl;
     std::cout << "%entry:" << std::endl;
     basic_block_num++;
     for (auto &blockitem:blockitems) {
-        blockitem->DumpKoopa(&blockitem);
+        blockitem->DumpKoopa();
     }
     PrintInstruction();
     std::cout << '}' << std::endl;
-    return self;
+    return 0;
 }
 
 
-Value StmtAST::DumpKoopa(Value self) {
+Value StmtAST::DumpKoopa() {
     if (mode == 0) {
-        return self;
+        return 0;
     }
     else if (mode == 1) {
         //Value allocated = Allocate(&exp);
-        Value lhs_value = exp->DumpKoopa(&exp);
-        Value rhs_value = nullptr;
+        Value lhs_value = exp->DumpKoopa();
+        Value rhs_value = 0;
         ValueData vd = AllocateValueData("return", lhs_value, rhs_value);
-        Value this_value = self;
-        InsertKVToMap(this_value, vd);
+        Value this_value = InsertValuedata(vd);
         return this_value;
     }
     else if (mode == 2) { //lval(ident) = exp;
-        Value lhs_value = exp->DumpKoopa(&exp);
-        Value rhs_value = nullptr;
+        Value lhs_value = exp->DumpKoopa();
+        Value rhs_value = 0;
         //不需要分配百分号的值。
         ValueData vd = ValueData(-1, "store", lhs_value, rhs_value, lval->ident);
         //但是需要改动符号表中的值。
         auto vi = symbol_table[function_num].find(lval->ident);
         (*vi).second.value = lhs_value;
         
-        Value this_value = self;
-        InsertKVToMap(this_value, vd);
+        Value this_value = InsertValuedata(vd);
         return this_value;
     }
-    return self;
+    return 0;
 }
 
 
-Value NumberAST::DumpKoopa(Value self) {
+Value NumberAST::DumpKoopa() {
     Value lhs_value = (Value)(long)num;
-    Value rhs_value = nullptr;
+    Value rhs_value = 0;
 
     //不需要分配新的值。
     ValueData vd = ValueData(-1, "number", lhs_value, rhs_value);
-    Value this_value = self;
-    InsertKVToMap(this_value, vd);
+    Value this_value = InsertValuedata(vd);
     return this_value;
 }
 
 
-Value ExpAST::DumpKoopa(Value self)  {
-    return lorexp -> DumpKoopa(&lorexp);
+Value ExpAST::DumpKoopa()  {
+    return lorexp -> DumpKoopa();
 }
 
 
-Value UnaryExpAST::DumpKoopa(Value self) {
+Value UnaryExpAST::DumpKoopa() {
     if (mode == 0) {
-        return primaryexp->DumpKoopa(&primaryexp);
+        return primaryexp->DumpKoopa();
     }
     else if (mode == 1) {//?
         std::string ops[3] = {"singleadd", "singlesub", "singleeq"};
 
-        Value lhs_value = nullptr;
-        Value rhs_value = unaryexp->DumpKoopa(&unaryexp);
+        Value lhs_value = 0;
+        Value rhs_value = unaryexp->DumpKoopa();
 
 
         ValueData vd = AllocateValueData(ops[unaryop->mode], lhs_value, rhs_value);
-        Value this_value = self;
-        InsertKVToMap(this_value, vd);
+        Value this_value = InsertValuedata(vd);
         return this_value;
     }
     //never reached.
-    return self;
+    return 0;
 }
 
 
-Value PrimaryExpAST::DumpKoopa(Value self)  {
+Value PrimaryExpAST::DumpKoopa()  {
     if (mode == 0) {
-        return exp->DumpKoopa(&exp);
+        return exp->DumpKoopa();
     }
     else if (mode == 1) {
-        return lval->DumpKoopa(&lval);
+        return lval->DumpKoopa();
     }
     else if (mode == 2) {
-        return number->DumpKoopa(&number);
+        return number->DumpKoopa();
     }
     //never reached;
-    return self;
+    return 0;
 }
 
 
-Value UnaryOpAST::DumpKoopa(Value self)  {
-    return self;
+Value UnaryOpAST::DumpKoopa()  {
+    return 0;
 }
 
 
-Value MulExpAST::DumpKoopa(Value self)  {
+Value MulExpAST::DumpKoopa()  {
     if (mode == 0) {
-        return unaryexp -> DumpKoopa(&unaryexp);
+        return unaryexp -> DumpKoopa();
     }
     else {
         std::string ops[4] = {"", "mul", "div", "mod"};
 
-        Value lhs_value = mulexp->DumpKoopa(&mulexp);
-        Value rhs_value = unaryexp->DumpKoopa(&unaryexp);
+        Value lhs_value = mulexp->DumpKoopa();
+        Value rhs_value = unaryexp->DumpKoopa();
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
-        Value this_value = self;
-        InsertKVToMap(this_value, vd);
+        Value this_value = InsertValuedata(vd);
         return this_value;
     }
 }
 
 
-Value AddExpAST::DumpKoopa(Value self)  {
+Value AddExpAST::DumpKoopa()  {
     if (mode == 0) {
-        return mulexp -> DumpKoopa(&mulexp);
+        return mulexp -> DumpKoopa();
     }
     else {
         std::string ops[4] = {"", "add", "sub"};
-        Value lhs_value = addexp->DumpKoopa(&addexp);
-        Value rhs_value = mulexp->DumpKoopa(&mulexp);
+        Value lhs_value = addexp->DumpKoopa();
+        Value rhs_value = mulexp->DumpKoopa();
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
-        Value this_value = self;
-        InsertKVToMap(this_value, vd);
+        Value this_value = InsertValuedata(vd);
         return this_value;
     }
 }
 
-Value RelExpAST::DumpKoopa(Value self) {
+Value RelExpAST::DumpKoopa() {
     if (mode == 0) {
-        return addexp->DumpKoopa(&addexp);
+        return addexp->DumpKoopa();
     }
     else {
         std::string ops[5] = {"", "lt", "gt", "le", "ge"};
-        Value lhs_value = relexp->DumpKoopa(&relexp);
-        Value rhs_value = addexp->DumpKoopa(&addexp);
+        Value lhs_value = relexp->DumpKoopa();
+        Value rhs_value = addexp->DumpKoopa();
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
-        Value this_value = self;
-        InsertKVToMap(this_value, vd);
+        Value this_value = InsertValuedata(vd);
         return this_value;        
     }
 }
 
-Value EqExpAST::DumpKoopa(Value self) {
+Value EqExpAST::DumpKoopa() {
     if (mode == 0) {
-        return relexp->DumpKoopa(&relexp);
+        return relexp->DumpKoopa();
     }
     else {
         std::string ops[5] = {"", "eq", "ne"};
-        Value lhs_value = eqexp->DumpKoopa(&eqexp);
-        Value rhs_value = relexp->DumpKoopa(&relexp);
+        Value lhs_value = eqexp->DumpKoopa();
+        Value rhs_value = relexp->DumpKoopa();
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
-        Value this_value = self;
-        InsertKVToMap(this_value, vd);
+        Value this_value = InsertValuedata(vd);
         return this_value;        
     }
 }
 
-Value LAndExpAST::DumpKoopa(Value self) {
+Value LAndExpAST::DumpKoopa() {
     if (mode == 0) {
-        return eqexp->DumpKoopa(&eqexp);
+        return eqexp->DumpKoopa();
     }
     else {
-        Value lhs_value = landexp->DumpKoopa(&landexp);
-        Value rhs_value = eqexp->DumpKoopa(&eqexp);
+        Value lhs_value = landexp->DumpKoopa();
+        Value rhs_value = eqexp->DumpKoopa();
         
         //按位与或实现逻辑与或。
         //%n = eq lhs, 0;    -> vd_l
@@ -379,29 +361,25 @@ Value LAndExpAST::DumpKoopa(Value self) {
 
         //为数字0, vd_l, vd_r分配一个数据结构。采用随机数作为value.
         ValueData vd_zero = AllocateValueData("number", 0, 0);
-        Value vd_zero_value  = (std::unique_ptr<BaseAST>*)random();
+        Value vd_zero_value = InsertValuedata(vd_zero);
         ValueData vd_l = AllocateValueData("ne", lhs_value, vd_zero_value);
-        Value vd_l_value = (std::unique_ptr<BaseAST>*)random();
+        Value vd_l_value = InsertValuedata(vd_l);
         ValueData vd_r = AllocateValueData("ne", rhs_value, vd_zero_value);
-        Value vd_r_value = (std::unique_ptr<BaseAST>*)random();
-        InsertKVToMap(vd_zero_value, vd_zero);
-        InsertKVToMap(vd_l_value, vd_l);
-        InsertKVToMap(vd_r_value, vd_r);
+        Value vd_r_value = InsertValuedata(vd_r);
         ValueData vd = AllocateValueData("and", vd_l_value, vd_r_value);
-        Value this_value = self;
-        InsertKVToMap(this_value, vd);
+        Value this_value = InsertValuedata(vd);
         return this_value;        
     }
 }
 
 
-Value LOrExpAST::DumpKoopa(Value self) {
+Value LOrExpAST::DumpKoopa() {
     if (mode == 0) {
-        return landexp->DumpKoopa(&landexp);
+        return landexp->DumpKoopa();
     }
     else {
-        Value lhs_value = lorexp->DumpKoopa(&lorexp);
-        Value rhs_value = landexp->DumpKoopa(&landexp);
+        Value lhs_value = lorexp->DumpKoopa();
+        Value rhs_value = landexp->DumpKoopa();
 
          //按位与或实现逻辑与或。
         //%n = eq lhs, 0;    -> vd_l
@@ -410,120 +388,112 @@ Value LOrExpAST::DumpKoopa(Value self) {
 
         //为数字0, vd_l, vd_r分配一个数据结构。采用随机数作为value.
         ValueData vd_zero = AllocateValueData("number", 0, 0);
-        Value vd_zero_value  = (std::unique_ptr<BaseAST>*)random();
+        Value vd_zero_value = InsertValuedata(vd_zero);
         ValueData vd_l = AllocateValueData("ne", lhs_value, vd_zero_value);
-        Value vd_l_value = (std::unique_ptr<BaseAST>*)random();
+        Value vd_l_value = InsertValuedata(vd_l);
         ValueData vd_r = AllocateValueData("ne", rhs_value, vd_zero_value);
-        Value vd_r_value = (std::unique_ptr<BaseAST>*)random();
-        InsertKVToMap(vd_zero_value, vd_zero);
-        InsertKVToMap(vd_l_value, vd_l);
-        InsertKVToMap(vd_r_value, vd_r);
+        Value vd_r_value = InsertValuedata(vd_r);
         ValueData vd = AllocateValueData("or", vd_l_value, vd_r_value);
-        Value this_value = self;
-        InsertKVToMap(this_value, vd);
+        Value this_value = InsertValuedata(vd);
         return this_value;        
     }
 }
 
 /////////////////////////////////////////////
-Value DeclAST::DumpKoopa(Value self) {
+Value DeclAST::DumpKoopa() {
     if (mode == 0)
-        return constdecl->DumpKoopa(&constdecl);
+        return constdecl->DumpKoopa();
     else 
-        return vardecl->DumpKoopa(&vardecl);
+        return vardecl->DumpKoopa();
 }
 
-Value ConstDeclAST::DumpKoopa(Value self) {
+Value ConstDeclAST::DumpKoopa() {
     for (auto& constdef: constdefs) {
-        constdef->DumpKoopa(&constdef);
+        constdef->DumpKoopa();
     }
-    return self;
+    return 0;
 }
 
-Value VarDeclAST::DumpKoopa(Value self) {
+Value VarDeclAST::DumpKoopa() {
     for (auto& vardef: vardefs) {
-        vardef->DumpKoopa(&vardef);
+        vardef->DumpKoopa();
     }
-    return self;
+    return 0;
 }
 
-Value ConstDefAST::DumpKoopa(Value self) {
+Value ConstDefAST::DumpKoopa() {
     //exp_value是一个表达式对应的<Value, ValueData>的键值。
-    Value exp_value = constinitval->DumpKoopa(&constinitval);
+    Value exp_value = constinitval->DumpKoopa();
     //将符号插入到符号表中。
     symbol_table[function_num].insert(std::make_pair(ident,
                                                      VariableInfo(exp_value, true, ident)));
-    return self;
+    return 0;
 }
 
-Value VarDefAST::DumpKoopa(Value self) {
+Value VarDefAST::DumpKoopa() {
     //分成三个指令
     //alloc
     //计算exp的值
     //store
-    ValueData vd_alloc = ValueData(-1, "alloc", nullptr, nullptr, ident);
-    Value vd_alloc_value = (std::unique_ptr<BaseAST>*)random();
-    InsertKVToMap(vd_alloc_value, vd_alloc);
+    ValueData vd_alloc = ValueData(-1, "alloc", 0, 0, ident);
+    InsertValuedata(vd_alloc);
     if (mode == 0) { //无赋值
         symbol_table[function_num].insert(std::make_pair(ident,
-                                                     VariableInfo(nullptr, false, ident)));
+                                                     VariableInfo(0, false, ident)));
     }
     else {
-        Value lhs = initval->DumpKoopa(&initval);
-        ValueData vd_store = ValueData(-1, "store", lhs, nullptr, ident);
-        Value vd_store_value = (std::unique_ptr<BaseAST>*)random();
-        InsertKVToMap(vd_store_value, vd_store);
+        Value lhs = initval->DumpKoopa();
+        ValueData vd_store = ValueData(-1, "store", lhs, 0, ident);
+        InsertValuedata(vd_store);
         symbol_table[function_num].insert(std::make_pair(ident,
                                                      VariableInfo(lhs, false, ident)));
     }
-    return self;
+    return 0;
 }
 
-Value ConstInitValAST::DumpKoopa(Value self) {
-    return constexp->DumpKoopa(&constexp);
+Value ConstInitValAST::DumpKoopa() {
+    return constexp->DumpKoopa();
 }
 
-Value BlockItemAST::DumpKoopa(Value self) {
+Value BlockItemAST::DumpKoopa() {
     if (mode == 0) {
-        return decl->DumpKoopa(&decl);
+        return decl->DumpKoopa();
     }
     else if (mode == 1) {
-        return stmt->DumpKoopa(&stmt);
+        return stmt->DumpKoopa();
     }
-    return self;
+    return 0;
 }
 
-Value LValAST::DumpKoopa(Value self) {
+Value LValAST::DumpKoopa() {
     
     //加入变量之后应如何改变。
     auto vi = symbol_table[function_num].find(ident);
     Value lhs_value = (*vi).second.value;
-    Value rhs_value = nullptr;
+    Value rhs_value = 0;
 
     if (!(*vi).second.is_const_variable) {
         //变量
          ValueData vd = AllocateValueData("load", lhs_value, rhs_value, ident);
-         Value this_value = self;
-         InsertKVToMap(this_value, vd);
-         return this_value;
+         Value this_value = InsertValuedata(vd);
+         return this_value;   
     }
 
     else {
         //常量不需要分配新的值。
         //宛如number。需要新的数据结构但并不需要新的临时标号。
         ValueData vd = ValueData(-1, "lval", lhs_value, rhs_value);
-        Value this_value = self;
-        InsertKVToMap(this_value, vd);
-        return this_value;
+        Value this_value = InsertValuedata(vd);
+        return this_value;   
     }
-    return self;
+    return 0;
 }
 
-Value ConstExpAST::DumpKoopa(Value self) {
-    return exp->DumpKoopa(&exp);
+Value ConstExpAST::DumpKoopa() {
+    return exp->DumpKoopa();
 }
 
-Value InitValAST::DumpKoopa(Value self) {
-    return exp->DumpKoopa(&exp);
+Value InitValAST::DumpKoopa() {
+    return exp->DumpKoopa();
 }
 

@@ -91,4 +91,6 @@ for (auto inst : bb.insts()) {
 * 每一个alloc load 是否需要分配百分号开头的符号？
 - alloc不需要
 - store不需要
-- load需要，可是load什么时候有用呢 他说明天？
+- load需要，可是load什么时候有用呢 lval?
+
+改一下value

@@ -12,27 +12,14 @@
 
 class BaseAST;
 class ValueData;
-
-//Record the instructions as (key, value) in an unordered-map.
-//We use the unique_ptr's pointer as the key, and a struct as value.
-typedef std::unique_ptr<BaseAST>* Value;
+//*****abort**********************************************************
+//Record the instructions as (key, value) in an unordered-map.********
+//We use the unique_ptr's pointer as the key, and a struct as value.**
+//*****abort**********************************************************
+typedef long Value;
 
 //将键值对插入unordered_map,将键插入vector: insts
-void InsertKVToMap(Value, ValueData);
-
-//For unordered_map hash function.
-class ValueHash
-{
-public:
-    size_t operator() (const Value& value) const noexcept;
-}; 
-
-//For unordered_map equal function.
-class ValueEqual
-{
-public:
-    size_t operator() (const Value& val_1, const Value& val_2) const noexcept;
-}; 
+Value InsertValuedata(ValueData valuedata);
 
 class ValueData{
 public:
@@ -65,7 +52,7 @@ void PrintInstruction();
 class BaseAST {
 public:
     virtual ~BaseAST() = default;
-    virtual Value DumpKoopa(Value self) = 0;
+    virtual Value DumpKoopa() = 0;
     int mode = 0;
     std::string ident;
 };  
@@ -85,7 +72,7 @@ public:
   // 用智能指针管理对象
     std::unique_ptr<BaseAST> func_def;
     
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 
@@ -95,14 +82,14 @@ public:
     std::unique_ptr<BaseAST> func_type;
     std::unique_ptr<BaseAST> block;
     
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 class FuncTypeAST : public BaseAST {   
 public:
     std:: string s_int = "int";
     
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //Block ::= "{" {BlockItem} "}";
@@ -110,7 +97,7 @@ class BlockAST : public BaseAST {
 public:
     std::vector<std::unique_ptr<BaseAST>> blockitems;
     
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //Stmt:  ';' | "return" Exp ";" | Stmt ::= LVal "=" Exp ";"
@@ -119,14 +106,14 @@ public:
     std::unique_ptr<BaseAST> exp;
     std::unique_ptr<BaseAST> lval;
     
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 class NumberAST : public BaseAST {   
 public:
     int num;
     
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //Exp ::= LOrExp;
@@ -134,7 +121,7 @@ class ExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> lorexp;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
@@ -146,7 +133,7 @@ public:
     std::unique_ptr<BaseAST> unaryop;
     std::unique_ptr<BaseAST> unaryexp;
 
-    virtual Value DumpKoopa(Value self)  override;           
+    virtual Value DumpKoopa()  override;           
 };
 
 //PrimaryExp ::= "(" Exp ")" | LVal | Number
@@ -158,7 +145,7 @@ public:
     std::unique_ptr<BaseAST> number;
 
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //UnaryOp     ::= "+" | "-" | "!";
@@ -167,7 +154,7 @@ public:
 //mode == 2 -> !
 class UnaryOpAST : public BaseAST {
 public:
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //MulExp      ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
@@ -180,7 +167,7 @@ public:
     std::unique_ptr<BaseAST> unaryexp;
     std::unique_ptr<BaseAST> mulexp;
     
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //AddExp      ::= MulExp | AddExp ("+" | "-") MulExp;
@@ -192,7 +179,7 @@ public:
     std::unique_ptr<BaseAST> addexp;
     std::unique_ptr<BaseAST> mulexp;
     
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //RelExp ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp;
@@ -202,7 +189,7 @@ public:
     std::unique_ptr<BaseAST> relexp;
     std::unique_ptr<BaseAST> addexp;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //EqExp ::= RelExp | EqExp ("==" | "!=") RelExp;
@@ -212,7 +199,7 @@ public:
     std::unique_ptr<BaseAST> relexp;
     std::unique_ptr<BaseAST> eqexp;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //LAndExp::= EqExp | LAndExp "&&" EqExp;
@@ -222,7 +209,7 @@ public:
     std::unique_ptr<BaseAST> landexp;
     std::unique_ptr<BaseAST> eqexp;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //LOrExp::= LAndExp | LOrExp "||" LAndExp;
@@ -232,7 +219,7 @@ public:
     std::unique_ptr<BaseAST> landexp;
     std::unique_ptr<BaseAST> lorexp;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //Decl ::= ConstDecl | VarDecl;
@@ -240,7 +227,7 @@ class DeclAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> constdecl;
     std::unique_ptr<BaseAST> vardecl;
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //ConstDecl ::= "const" "int" ConstDef {"," ConstDef} ";";
@@ -248,7 +235,7 @@ class ConstDeclAST : public BaseAST {
 public:
     std::vector<std::unique_ptr<BaseAST>> constdefs;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //ConstDef ::= IDENT "=" ConstInitVal;
@@ -257,7 +244,7 @@ public:
 
     std::unique_ptr<BaseAST> constinitval;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //ConstInitVal ::= ConstExp;
@@ -265,7 +252,7 @@ class ConstInitValAST: public BaseAST {
 public:
     std::unique_ptr<BaseAST> constexp;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //BlockItem ::= Decl | Stmt;
@@ -274,7 +261,7 @@ public:
     std::unique_ptr<BaseAST> decl;
     std::unique_ptr<BaseAST> stmt;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //LVal ::= IDENT;
@@ -282,7 +269,7 @@ class LValAST : public BaseAST {
 public:
     //ast->ident = *unique_ptr<string>($n);
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //ConstExp ::= Exp;
@@ -290,7 +277,7 @@ class ConstExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> exp;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //VarDecl ::= BType VarDef {"," VarDef} ";";
@@ -298,7 +285,7 @@ class VarDeclAST : public BaseAST {
 public:
     std::vector<std::unique_ptr<BaseAST>> vardefs;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //VarDef        ::= IDENT | IDENT "=" InitVal;
@@ -306,7 +293,7 @@ class VarDefAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> initval;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
 //InitVal ::= Exp;
@@ -314,6 +301,6 @@ class InitValAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> exp;
 
-    virtual Value DumpKoopa(Value self)  override;
+    virtual Value DumpKoopa()  override;
 };
 
