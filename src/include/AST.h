@@ -45,19 +45,19 @@ public:
     //"add/sub/mil/mod"   -> 二元操作。
     //"return"            -> 右操作数为返回值的二元操作。
     std::string inst_type;
-
+    
     //利用lhs,rhs去unordered_map中查找对应的ValueData.
     //只有一个操作数的用lhs.
     Value lhs, rhs;
-
-    ValueData(int, std::string, Value, Value);
+    std::string variable_name;
+    ValueData(int, std::string, Value, Value, std::string);
     ValueData() = default;
     
     std::string format();
 };
 
 //分配ValueData。增加temp_sign_num。
-ValueData AllocateValueData(int, std::string, Value, Value);
+ValueData AllocateValueData(int, std::string&, Value, Value, std::string);
 
 //各种指令的输出。
 void PrintInstruction();
@@ -67,7 +67,17 @@ public:
     virtual ~BaseAST() = default;
     virtual Value DumpKoopa(Value self) = 0;
     int mode = 0;
+    std::string ident;
 };  
+
+class VariableInfo {
+public:
+    Value value;
+    bool is_const_variable = false;
+    std::string alloc_name;
+    VariableInfo(Value, bool, std::string);
+    VariableInfo() = default;
+};
 
 
 class CompUnitAST : public BaseAST {
@@ -83,7 +93,6 @@ public:
 class FuncDefAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> func_type;
-    std::string ident;
     std::unique_ptr<BaseAST> block;
     
     virtual Value DumpKoopa(Value self)  override;
@@ -104,10 +113,11 @@ public:
     virtual Value DumpKoopa(Value self)  override;
 };
 
-//Stmt:  ';' | "return" Exp ";"
+//Stmt:  ';' | "return" Exp ";" | Stmt ::= LVal "=" Exp ";"
 class StmtAST : public BaseAST {   
 public:
     std::unique_ptr<BaseAST> exp;
+    std::unique_ptr<BaseAST> lval;
     
     virtual Value DumpKoopa(Value self)  override;
 };
@@ -225,11 +235,11 @@ public:
     virtual Value DumpKoopa(Value self)  override;
 };
 
-//Decl ::= ConstDecl;
+//Decl ::= ConstDecl | VarDecl;
 class DeclAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> constdecl;
-
+    std::unique_ptr<BaseAST> vardecl;
     virtual Value DumpKoopa(Value self)  override;
 };
 
@@ -245,7 +255,6 @@ public:
 class ConstDefAST : public BaseAST {
 public:
 
-    std::string ident;
     std::unique_ptr<BaseAST> constinitval;
 
     virtual Value DumpKoopa(Value self)  override;
@@ -272,7 +281,6 @@ public:
 class LValAST : public BaseAST {
 public:
     //ast->ident = *unique_ptr<string>($n);
-    std::string ident;
 
     virtual Value DumpKoopa(Value self)  override;
 };
@@ -284,3 +292,28 @@ public:
 
     virtual Value DumpKoopa(Value self)  override;
 };
+
+//VarDecl ::= BType VarDef {"," VarDef} ";";
+class VarDeclAST : public BaseAST {
+public:
+    std::vector<std::unique_ptr<BaseAST>> vardefs;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//VarDef        ::= IDENT | IDENT "=" InitVal;
+class VarDefAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> initval;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+
+//InitVal ::= Exp;
+class InitValAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> exp;
+
+    virtual Value DumpKoopa(Value self)  override;
+};
+

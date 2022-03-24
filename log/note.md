@@ -83,3 +83,12 @@ for (auto inst : bb.insts()) {
     - 有对应的lval的时候，在符号表中找到对应的变量名及其ID。同Number处理。
     - 将单独的分号作为一个stmt
     
+
+### lv4.2:
+* 将定义分为不同的alloc load及store的组合；
+* vardef = alloc + exp + load
+* 
+* 每一个alloc load 是否需要分配百分号开头的符号？
+- alloc不需要
+- store不需要
+- load需要，可是load什么时候有用呢 他说明天？
