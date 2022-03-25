@@ -56,8 +56,8 @@ int main(int argc, const char *argv[]) {
     OutputToFile(output);
     #endif
     KoopaStrToProgram("./temp/temp_koopa.txt", output);
+    std::cout << "test";
   }
-    
-  OutputToConsole();
+
   return 0;
 }
