@@ -27,7 +27,7 @@ int CountInsts       (const koopa_raw_slice_t&);
 int CountInsts (const koopa_raw_basic_block_t&);
 int CountInsts       (const koopa_raw_value_t&);
 
-void KoopaStrToProgram(const char *, const char *);
+void KoopaStrToProgram(const char *);
 bool IsExecuted(void *);
 int  StoreInsToMap(void *);
 

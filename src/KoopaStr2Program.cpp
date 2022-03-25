@@ -280,7 +280,7 @@ int Visit  (const koopa_raw_global_alloc_t& alloc) {
 }
 
 //从文件中读取字符串形式的koopa IR转换为raw program
-void KoopaStrToProgram(const char *input, const char *output) {
+void KoopaStrToProgram(const char *input) {
     koopa_program_t program;
     koopa_error_code_t ret = koopa_parse_from_file(input, &program);
     assert(ret == KOOPA_EC_SUCCESS);  // 确保解析时没有出错

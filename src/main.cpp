@@ -46,7 +46,7 @@ int main(int argc, const char *argv[]) {
   }
   else if (strcmp(mode, "-riscv") == 0) {
     int old = dup( 1 );
-    FILE* fp = OutputToFile("./temp/temp_koopa.txt");
+    FILE* fp = OutputToFile("./temp_koopa.txt");
     ast->DumpKoopa();
 
     #ifdef DEBUG_MODE
@@ -55,8 +55,8 @@ int main(int argc, const char *argv[]) {
     #else
     OutputToFile(output);
     #endif
-    KoopaStrToProgram("./temp/temp_koopa.txt", output);
-    std::cout << "test";
+    KoopaStrToProgram("./temp_koopa.txt");
+    //std::cout << "test";
   }
 
   return 0;
