@@ -41,7 +41,7 @@ int main(int argc, const char *argv[]) {
   assert(!ret);
 
   if (strcmp(mode, "-koopa") == 0) {
-    
+    FILE* fp = OutputToFile("./temp/temp_koopa.txt");
     ast->DumpKoopa();
   }
   else if (strcmp(mode, "-riscv") == 0) {
