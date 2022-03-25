@@ -96,6 +96,10 @@ Block
   : '{' BlockItems '}'{
     $$ = $2;
   }
+  | '{' '}' {
+    auto ast = new BlockAST();
+    $$ = ast;
+  }
   ;
 
 BlockItems
@@ -126,11 +130,32 @@ Stmt
     ast -> exp = unique_ptr<BaseAST>($2);
     $$ = ast;
   }
+  | RETURN ';' {
+    auto ast = new StmtAST();
+    // auto number = $2; 
+    // 该number一直输出261, 这里的Number应该是? ->应该是INT_CONST的值。
+    // -> 示例程序中将Number写成了int_val
+    // 我们将其变为BaseAST
+    ast-> mode = 2;
+    $$ = ast;
+  }
   | LVal ASSIGN Exp ';' {
     auto ast = new StmtAST();
-    ast-> mode = 2;
-    ast -> lval = unique_ptr<BaseAST>($1);
-    ast -> exp = unique_ptr<BaseAST>($3);
+    ast->mode = 3;
+    ast->lval = unique_ptr<BaseAST>($1);
+    ast->exp = unique_ptr<BaseAST>($3);
+    $$ = ast;
+  }
+  | Exp ';' {
+    auto ast = new StmtAST();
+    ast->mode = 4;
+    ast->exp = unique_ptr<BaseAST>($1);
+    $$ = ast;
+  }
+  | Block {
+    auto ast = new StmtAST();
+    ast->mode = 5;
+    ast->block = unique_ptr<BaseAST>($1);
     $$ = ast;
   }
   ;

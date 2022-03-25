@@ -55,7 +55,7 @@ int main(int argc, const char *argv[]) {
     #else
     OutputToFile(output);
     #endif
-    KoopaStrToProgram("./temp/temp_koopa", output);
+    KoopaStrToProgram("./temp/temp_koopa.txt", output);
   }
     
   OutputToConsole();

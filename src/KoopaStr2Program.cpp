@@ -2,7 +2,7 @@
 
 int cur_avaliable_pos = 0;
 int t_reg_num = 0;
-//利用指令的指针查找二元运算指令的结果储存在哪个寄存器中。
+//利用指令的指针查找二元运算指令的结果储存在栈中的哪个位置中。
 std::unordered_map<void*, int> inst_result;
 
 /*InsResult::InsResult(void* ins_pointer_, int reg_num_) {
@@ -75,12 +75,12 @@ void Visit(const koopa_raw_basic_block_t &bb) {
 }
 
 // 访问指令
-std::string Visit(const koopa_raw_value_t &value) {
+int Visit(const koopa_raw_value_t &value) {
   // 根据指令类型判断后续需要如何访问
   // 我们想给这些指令加一个返回值, 表明他们指定的结果存到了哪里。
   // 主要是interger指令和二元运算符指令。
   const auto &kind = value->kind;
-  std::string visit_instruction_result = "";
+  int visit_instruction_result = 0;
   switch (kind.tag) {
     case KOOPA_RVT_RETURN:
       // 访问 return 指令
@@ -112,22 +112,23 @@ std::string Visit(const koopa_raw_value_t &value) {
 
 void Visit(const koopa_raw_return_t &ret) {
   //是否是寄存器。
-  std::string reg_name = Visit(ret.value);
+  int pos = Visit(ret.value);
+  std::string stack_pos = std::to_string(pos) + "(sp)";
   std::cout << "  lw    a0, ";
   
   //在return.value是%n的情况下，是一个指向指令的指针。
   //有了“已经执行的指令的map”，我们会找到那个指令的结果所使用的寄存器。
   //恰好就可以将返回值打印出来。 
-  std::cout << reg_name << std::endl;
+  std::cout << stack_pos << std::endl;
 }
 
-std::string Visit(const koopa_raw_integer_t &integer) {
+int Visit(const koopa_raw_integer_t &integer) {
   //mode == 1, 想要将值0返回为x_0;
   std::string res, reg_name;
   int32_t value = integer.value;
   void *pt = (void *)(long)value;
   int pos;
-  reg_name = AddReg();
+  reg_name = "t"+std::to_string(AddReg());
   bool executed = IsExecuted(pt);
   if (!executed) {
     pos = StoreInsToMap(pt);
@@ -140,27 +141,28 @@ std::string Visit(const koopa_raw_integer_t &integer) {
   }
   res = std::to_string(pos) + "(sp)";
   
-  return res;
+  return pos;
 }
 
 //访问二元运算指令.
-std::string Visit (const koopa_raw_binary_t& bi) {
+int Visit (const koopa_raw_binary_t& bi) {
   bool executed = IsExecuted((void*)&bi);
   //执行过。
   if (executed) {
-    std::string res = AddReg();
-    std::cout << "  lw    " << res << ", " << inst_result[(void*)&bi] << "(sp)\n";     
-    res = std::to_string(inst_result[(void*)&bi]) + "(sp)";
-    return res;
+    std::string res = "t"+std::to_string(AddReg());
+    int pos = inst_result[(void*)&bi];
+    std::cout << "  lw    " << res << ", " << pos << "(sp)\n";     
+    //res = std::to_string(inst_result[(void*)&bi]) + "(sp)";
+    return pos;
   }
-  std::string left_reg_name = AddReg();
-  std::string right_reg_name = AddReg();
-  std::string left_stack_pos = Visit(bi.lhs);
-  std::string right_stack_pos = Visit(bi.rhs);
+  std::string left_reg_name = "t"+std::to_string(AddReg());
+  std::string right_reg_name = "t"+std::to_string(AddReg());
+  std::string left_stack_pos = std::to_string(Visit(bi.lhs)) + "(sp)";
+  std::string right_stack_pos = std::to_string(Visit(bi.rhs)) + "(sp)";
   std::cout << "  lw    " << left_reg_name << ", " << left_stack_pos  << std::endl;   
   std::cout << "  lw    " << right_reg_name << ", " << right_stack_pos << std::endl;      
   
-  std::string reg_name = AddReg();
+  std::string reg_name = "t"+std::to_string(AddReg());
   switch (bi.op)
   {
     case KOOPA_RBO_EQ: //%0 = eq 6, 0
@@ -232,50 +234,49 @@ std::string Visit (const koopa_raw_binary_t& bi) {
   int pos = StoreInsToMap((void*)&bi);
   std::cout << "  sw    " << reg_name << ", " << pos << "(sp)\n";
   std::string res = std::to_string(pos) + "sp";
-  return res;
+  return pos;
 }
 
 //load指令
-std::string Visit (const koopa_raw_load_t& lw) {
+int Visit (const koopa_raw_load_t& lw) {
   bool executed = IsExecuted((void*)&lw);
   //执行过。
   if (executed) {
-    std::string res = std::to_string(inst_result[(void*)&lw]) + "(sp)";
-    return res;
+    return inst_result[(void*)&lw];
+    
   } 
   else {
     int pos = StoreInsToMap((void *)&lw);
-    std::string src = Visit(lw.src);
-    std::string reg_name = AddReg();
+    std::string src = std::to_string(Visit(lw.src)) + "(sp)";
+    std::string reg_name = "t"+std::to_string(AddReg());
     std::cout << "  lw    " << reg_name << ", " << src << std::endl;
     std::cout << "  sw    " << reg_name << ", " << std::to_string(pos) + "(sp)\n";
-    std::string res = std::to_string(pos) + "(sp)";
-    return res;
+    //std::string res = std::to_string(pos) + "(sp)";
+    return pos;
   }
-  return "";
+  return 0;
 }
 
-std::string Visit (const koopa_raw_store_t& sw) {
-  std::string reg_name = AddReg();
-  std::string load_pos = Visit(sw.value);
-  std::string store_pos = Visit(sw.dest);
+int Visit (const koopa_raw_store_t& sw) {
+  std::string reg_name = "t"+std::to_string(AddReg());
+  std::string load_pos = std::to_string(Visit(sw.value)) + "(sp)";
+  std::string store_pos = std::to_string(Visit(sw.dest)) + "(sp)";
   std::cout << "  lw    " << reg_name << ", " << load_pos << std::endl;
   std::cout << "  sw    " << reg_name << ", " << store_pos << std::endl;
-  return "";
+  return 0;
 }
 
-std::string Visit  (const koopa_raw_global_alloc_t& alloc) {
+int Visit  (const koopa_raw_global_alloc_t& alloc) {
   bool executed = IsExecuted((void*)&alloc);
   //执行过。
   if (executed) {
-    std::string res = std::to_string(inst_result[(void*)&alloc]) + "(sp)";
-    return res;
+    return inst_result[(void*)&alloc];
   } else {
     int pos = StoreInsToMap((void *)&alloc);
-    std::string res = std::to_string(pos) + "(sp)";
-    return res;
+    //std::string res = std::to_string(pos) + "(sp)";
+    return pos;
   }
-  return "";
+  return 0;
 }
 
 //从文件中读取字符串形式的koopa IR转换为raw program
@@ -345,8 +346,9 @@ int CountInsts (const koopa_raw_basic_block_t& bb) {
   return res;
 }
 
-std::string AddReg() {
-  std::string res = "t" + std::to_string(t_reg_num);
+
+int AddReg() {
+  int res = t_reg_num;
   t_reg_num = (t_reg_num+1) % 7;
   return res;
 }

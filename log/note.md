@@ -93,5 +93,16 @@ for (auto inst : bb.insts()) {
 - store不需要
 - load需要，可是load什么时候有用呢 lval?
 
-改一下value
+- 改一下value 从奇怪的东西变成了随机long
+- 在koopa-》riscv的过程中，将所有的结果都存到了栈上再取回来。利用gdb查看指针是啥。(alloc?)（新增指令。）
 
+
+## lv5
+* 利用vector中的增减来表明变量作用域
+* 同名变量的处理再输出的时候直接输出对应的block的下标即可，不可以，还是要有一个计数器。
+  因为printinstruction是以block为单位的。
+  
+  符号表中插入原名。x不可以，利用find_var_in_symbol_table查找。
+  但是valuedata中存储的应该是带下标的名字。
+  常量
+**.second是一种拷贝，好像有bug**

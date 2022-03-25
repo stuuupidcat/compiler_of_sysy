@@ -46,15 +46,20 @@ public:
 //分配ValueData。增加temp_sign_num。
 ValueData AllocateValueData(int, std::string&, Value, Value, std::string);
 
-//各种指令的输出。
+//各种指令的输出
 void PrintInstruction();
+//,以及符号表的删除。
+void update();
 
 class BaseAST {
 public:
     virtual ~BaseAST() = default;
     virtual Value DumpKoopa() = 0;
     int mode = 0;
+    //变量的名字
     std::string ident;
+    //变量通过下标处理后的名字。
+    std::string ident_id;
 };  
 
 class VariableInfo {
@@ -99,11 +104,12 @@ public:
     virtual Value DumpKoopa()  override;
 };
 
-//Stmt:  ';' | "return" Exp ";" | Stmt ::= LVal "=" Exp ";"
+//Stmt:  ';' | "return" Exp ";" | return ';' | LVal "=" Exp ";" | exp ';' | Block 
 class StmtAST : public BaseAST {   
 public:
     std::unique_ptr<BaseAST> exp;
     std::unique_ptr<BaseAST> lval;
+    std::unique_ptr<BaseAST> block;
     
     virtual Value DumpKoopa()  override;
 };
@@ -303,3 +309,6 @@ public:
     virtual Value DumpKoopa()  override;
 };
 
+//向外层嵌套查找变量
+std::unordered_map<std::string, VariableInfo>::iterator find_var_in_symbol_table(std::string&);
+void change_varvalue_in_symbol_table(std::string&, Value);

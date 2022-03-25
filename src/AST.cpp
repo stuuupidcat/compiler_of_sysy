@@ -6,28 +6,31 @@ int temp_sign_num = 0;
 //当前基本块的个数。
 int basic_block_num = -1;
 
-//unordered_map的集合，下标为当前的block。
-std::vector<std::unordered_map<Value, ValueData>> blocks_values;
-
-//unordered_map中key的集合，下标为当前的block。
-std::vector<std::vector<Value>> blocks_insts;
-
 //函数的个数，搭配符号表使用。
 int function_num = -1;
-//符号表。
-std::vector<std::unordered_map<std::string, VariableInfo>> symbol_table; 
+
+//unordered_map的集合，下标为当前的(function_num)
+std::vector<std::unordered_map<Value, ValueData>> functions_values;
+
+//unordered_map中key的集合，下标为当前的(function_num)
+std::vector<std::vector<Value>> functions_insts;
+
+//符号表。下标为当前的(function_num, block_num)
+std::vector<std::vector<std::unordered_map<std::string, VariableInfo>>> symbol_table; 
+//处理同名变量。下标为function_num
+std::vector<std::unordered_map<std::string, int>> varname_cnt;
 
 Value InsertValuedata(ValueData valuedata) {
     Value value = random();
-    blocks_values[basic_block_num].insert(std::make_pair(value, valuedata));
-    blocks_insts[basic_block_num].push_back(value);
+    functions_values[function_num].insert(std::make_pair(value, valuedata));
+    functions_insts[function_num].push_back(value);
     return value;
 }
 
 
 void PrintInstruction() {
-    for (auto inst: blocks_insts[basic_block_num]) {
-        auto vd = blocks_values[basic_block_num][inst];
+    for (auto inst: functions_insts[function_num]) {
+        auto vd = functions_values[function_num][inst];
         if (vd.inst_type != "number" && vd.inst_type != "lval")
             std::cout << "  " <<vd.format();
     }
@@ -51,17 +54,25 @@ std::string ValueData::format() {
     }
     
     //寻找对应的ValueData。
+    //向外寻找
     if (lhs != 0) {
-        lhs_vd = (*blocks_values[basic_block_num].find(lhs)).second;
+        auto iter = functions_values[function_num].find(lhs);
+        if (iter != functions_values[function_num].end()) 
+            lhs_vd = (*iter).second;
     }
     if (rhs != 0) {
-        rhs_vd = (*blocks_values[basic_block_num].find(rhs)).second;
+        auto iter = functions_values[function_num].find(rhs);
+        if (iter != functions_values[function_num].end()) 
+            rhs_vd = (*iter).second;
     }
     if (variable_name != "") {
-        vi = (*symbol_table[function_num].find(variable_name)).second;
+        for (int i = basic_block_num; i>=0; --i) {
+            auto iter = symbol_table[function_num][i].find(variable_name);
+            if (iter != symbol_table[function_num][i].end()) {
+                vi = (*iter).second;
+            }
+        }
     }
-
-
     //运算符为一元操作, lhs为0。
     if (inst_type.find("single") != std::string::npos) {
         res = "%" + std::to_string(no) + " = " + inst_type.substr(6) + " 0, ";
@@ -135,7 +146,7 @@ std::string ValueData::format() {
     else if(inst_type == "store") {
         res = "store ";
         if (lhs_vd.inst_type == "number" || lhs_vd.inst_type == "lval") {
-            res += lhs_vd.format() + ",";
+            res += lhs_vd.format() + ", ";
         }
         else {
             res += "%" + std::to_string(lhs_vd.no) + ", ";
@@ -166,9 +177,12 @@ ValueData::ValueData(int no_, std::string inst_type_, Value lhs_, Value rhs_, st
 
 
 Value CompUnitAST::DumpKoopa()  {
-    blocks_values.resize(100);
-    blocks_insts.resize(100);
+    functions_values.resize(100);
+    functions_insts.resize(100);
     symbol_table.resize(100);
+    for (auto &val: symbol_table)
+        val.resize(100);
+    varname_cnt.resize(100);
 
     function_num++;
     func_def -> DumpKoopa();
@@ -180,7 +194,12 @@ Value FuncDefAST::DumpKoopa()   {
     std::cout << "@" << ident << "(): ";
 
     func_type -> DumpKoopa();
+    
+    std::cout << "{" << std::endl;
+    std::cout << "%entry:" << std::endl;
     block -> DumpKoopa();
+    PrintInstruction();
+    std::cout << '}' << std::endl;
     return 0;
 }
 
@@ -189,16 +208,15 @@ Value FuncTypeAST::DumpKoopa()   {
     return 0;
 }
 
-//wrong code.
+//
 Value BlockAST::DumpKoopa()   {
-    std::cout << "{" << std::endl;
-    std::cout << "%entry:" << std::endl;
     basic_block_num++;
     for (auto &blockitem:blockitems) {
         blockitem->DumpKoopa();
+        
     }
-    PrintInstruction();
-    std::cout << '}' << std::endl;
+    update();
+    basic_block_num--;
     return 0;
 }
 
@@ -215,17 +233,35 @@ Value StmtAST::DumpKoopa() {
         Value this_value = InsertValuedata(vd);
         return this_value;
     }
-    else if (mode == 2) { //lval(ident) = exp;
+    else if (mode == 2) {
+        ValueData vd = AllocateValueData("return", 0, 0);
+        Value this_value = InsertValuedata(vd);
+        return this_value;
+    }
+    else if (mode == 3) { //lval = exp;
+        //if lval是变量。
+        //可是lval就是变量。
+        auto vi = find_var_in_symbol_table(lval->ident);
+        if (!(*vi).second.is_const_variable) {
+            lval->ident_id = (*vi).first;
+        }
         Value lhs_value = exp->DumpKoopa();
         Value rhs_value = 0;
         //不需要分配百分号的值。
-        ValueData vd = ValueData(-1, "store", lhs_value, rhs_value, lval->ident);
+        ValueData vd = ValueData(-1, "store", lhs_value, rhs_value, lval->ident_id);
         //但是需要改动符号表中的值。
-        auto vi = symbol_table[function_num].find(lval->ident);
-        (*vi).second.value = lhs_value;
+        change_varvalue_in_symbol_table(lval->ident_id, lhs_value);
+        
         
         Value this_value = InsertValuedata(vd);
         return this_value;
+    }
+    else if (mode == 4) { // exp;
+        //求值但被丢弃。
+        exp->DumpKoopa();
+    }
+    else if (mode == 5) {
+        return block->DumpKoopa();
     }
     return 0;
 }
@@ -423,8 +459,18 @@ Value VarDeclAST::DumpKoopa() {
 Value ConstDefAST::DumpKoopa() {
     //exp_value是一个表达式对应的<Value, ValueData>的键值。
     Value exp_value = constinitval->DumpKoopa();
+    //处理同名变量
+    auto iter = varname_cnt[function_num].find(ident);
+    if (iter == varname_cnt[function_num].end()) {
+        varname_cnt[function_num].insert(std::make_pair(ident, 1));
+        ident_id = ident +'_' + std::to_string(1);
+    }
+    else {
+        varname_cnt[function_num][ident]++;
+        ident_id = ident + '_' + std::to_string(varname_cnt[function_num][ident]);
+    }
     //将符号插入到符号表中。
-    symbol_table[function_num].insert(std::make_pair(ident,
+    symbol_table[function_num][basic_block_num].insert(std::make_pair(ident_id,
                                                      VariableInfo(exp_value, true)));
     return 0;
 }
@@ -434,17 +480,31 @@ Value VarDefAST::DumpKoopa() {
     //alloc
     //计算exp的值
     //store
-    ValueData vd_alloc = ValueData(-1, "alloc", 0, 0, ident);
+    
+    //处理同名变量
+    auto iter = varname_cnt[function_num].find(ident);
+    if (iter == varname_cnt[function_num].end()) {
+        varname_cnt[function_num].insert(std::make_pair(ident, 1));
+        ident_id = ident +'_' + std::to_string(1);
+    }
+    else {
+        varname_cnt[function_num][ident]++;
+        ident_id = ident + '_' + std::to_string(varname_cnt[function_num][ident]);
+    }
+
+
+
+    ValueData vd_alloc = ValueData(-1, "alloc", 0, 0, ident_id);
     InsertValuedata(vd_alloc);
     if (mode == 0) { //无赋值
-        symbol_table[function_num].insert(std::make_pair(ident,
+        symbol_table[function_num][basic_block_num].insert(std::make_pair(ident_id,
                                                      VariableInfo(0, false)));
     }
     else {
         Value lhs = initval->DumpKoopa();
-        ValueData vd_store = ValueData(-1, "store", lhs, 0, ident);
+        ValueData vd_store = ValueData(-1, "store", lhs, 0, ident_id);
         InsertValuedata(vd_store);
-        symbol_table[function_num].insert(std::make_pair(ident,
+        symbol_table[function_num][basic_block_num].insert(std::make_pair(ident_id,
                                                      VariableInfo(lhs, false)));
     }
     return 0;
@@ -467,13 +527,14 @@ Value BlockItemAST::DumpKoopa() {
 Value LValAST::DumpKoopa() {
     
     //加入变量之后应如何改变。
-    auto vi = symbol_table[function_num].find(ident);
+    auto vi = find_var_in_symbol_table(ident);
+    ident_id = (*vi).first;
     Value lhs_value = (*vi).second.value;
     Value rhs_value = 0;
 
     if (!(*vi).second.is_const_variable) {
         //变量
-         ValueData vd = AllocateValueData("load", lhs_value, rhs_value, ident);
+         ValueData vd = AllocateValueData("load", lhs_value, rhs_value, (*vi).first);
          Value this_value = InsertValuedata(vd);
          return this_value;   
     }
@@ -496,4 +557,32 @@ Value InitValAST::DumpKoopa() {
     return exp->DumpKoopa();
 }
 
-std::string AddReg();
+std::unordered_map<std::string, VariableInfo>::iterator find_var_in_symbol_table(std::string& ident) {
+    std::unordered_map<std::string, VariableInfo>::iterator it;
+    int num = varname_cnt[function_num][ident];
+    //倒着查。
+    //最近的定义标号较大。
+    for (int i = num; i >= 1; --i) {
+        for (int j = basic_block_num; j >= 0; --j) {
+            std::string s = ident + "_" + std::to_string(i);
+            auto vi = symbol_table[function_num][j].find(s);
+            if (vi != symbol_table[function_num][j].end())
+                return vi;
+        }
+    }
+    //never reached
+    return it;
+}
+
+void change_varvalue_in_symbol_table(std::string &var_name, Value cur_value) {
+    for (int j = basic_block_num; j >= 0; --j) {
+        auto vi = symbol_table[function_num][j].find(var_name);
+        if (vi != symbol_table[function_num][j].end()) {
+            symbol_table[function_num][j][var_name].value = cur_value;
+        }
+    }
+}
+
+void update() {
+    symbol_table[function_num].erase(symbol_table[function_num].begin() + basic_block_num);
+}
