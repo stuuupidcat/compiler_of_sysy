@@ -9,6 +9,9 @@ int basic_block_num = -1;
 //函数的个数，搭配符号表使用。
 int function_num = -1;
 
+//label的个数;
+int label_num = 0;
+
 //unordered_map的集合，下标为当前的(function_num)
 std::vector<std::unordered_map<Value, ValueData>> functions_values;
 
@@ -20,18 +23,36 @@ std::vector<std::vector<std::unordered_map<std::string, VariableInfo>>> symbol_t
 //处理同名变量。下标为function_num
 std::vector<std::unordered_map<std::string, int>> varname_cnt;
 
-Value InsertValuedata(ValueData valuedata) {
-    Value value = random();
-    functions_values[function_num].insert(std::make_pair(value, valuedata));
-    functions_insts[function_num].push_back(value);
-    return value;
+Value InsertValuedata(ValueData valuedata, Value allocated_val = 0) {
+    if (allocated_val == 0) {
+        Value value = random();
+        functions_values[function_num].insert(std::make_pair(value, valuedata));
+        functions_insts[function_num].push_back(value);
+        return value;
+    }
+    else {
+        functions_values[function_num].insert(std::make_pair(allocated_val, valuedata));
+        functions_insts[function_num].push_back(allocated_val);
+        return allocated_val;
+    }
 }
 
 
 void PrintInstruction() {
-    for (auto inst: functions_insts[function_num]) {
-        auto vd = functions_values[function_num][inst];
-        if (vd.inst_type != "number" && vd.inst_type != "lval")
+    int instruction_num = functions_insts[function_num].size();
+    for (int i = 0; i < instruction_num; ++i) {
+        auto vd = functions_values[function_num][functions_insts[function_num][i]];
+        if (vd.inst_type == "return") {     
+            std::cout << "  "  << vd.format();    
+            while (vd.inst_type != "label" && i < instruction_num) {
+                i++;
+                vd = functions_values[function_num][functions_insts[function_num][i]];
+            }
+        }
+        if (vd.inst_type == "label") {
+            std::cout << vd.format();
+        }
+        else if (vd.inst_type != "number" && vd.inst_type != "lval")
             std::cout << "  " <<vd.format();
     }
 }
@@ -44,7 +65,7 @@ VariableInfo::VariableInfo(Value value_, bool is_const_) {
 
 std::string ValueData::format() {
     std::string res;
-    ValueData lhs_vd, rhs_vd;
+    ValueData lhs_vd, rhs_vd, jump_cond_vd;
     VariableInfo vi;
 
     //指令类型为number并不需要输出，将number返回即可。
@@ -64,6 +85,11 @@ std::string ValueData::format() {
         auto iter = functions_values[function_num].find(rhs);
         if (iter != functions_values[function_num].end()) 
             rhs_vd = (*iter).second;
+    }
+    if (jump_cond != 0) {
+        auto iter = functions_values[function_num].find(jump_cond);
+        if (iter != functions_values[function_num].end()) 
+            jump_cond_vd = (*iter).second;
     }
     if (variable_name != "") {
         for (int i = basic_block_num; i>=0; --i) {
@@ -157,21 +183,35 @@ std::string ValueData::format() {
     else if (inst_type == "load") {
         res = "%" + std::to_string(no) + " = load @" + variable_name + "\n";
     }
-
+    else if (inst_type == "br") {
+        if (jump_cond_vd.inst_type == "number" || jump_cond_vd.inst_type == "lval") {
+            res = "br " + jump_cond_vd.format() + ", " + lhs_vd.variable_name + ", " + rhs_vd.variable_name + "\n";
+        }
+        else {
+            res = "br %" + std::to_string(jump_cond_vd.no) + ", " + lhs_vd.variable_name + ", " + rhs_vd.variable_name + "\n";
+        }
+    }
+    else if (inst_type == "jump") {
+        res = "jump " + lhs_vd.variable_name + "\n";
+    }
+    else if (inst_type == "label") {
+        res = variable_name + ":\n";
+    }
     return res;
 }
 
-ValueData AllocateValueData(std::string inst_type_, Value lhs_, Value rhs_, std::string name_="") {
-    ValueData vd = {temp_sign_num, inst_type_, lhs_, rhs_, name_};
+ValueData AllocateValueData(std::string inst_type_, Value lhs_, Value rhs_, Value jump_cond_ = 0, std::string name_="") {
+    ValueData vd = {temp_sign_num, inst_type_, lhs_, rhs_, jump_cond_, name_};
     temp_sign_num++;
     return vd;
 }
 
-ValueData::ValueData(int no_, std::string inst_type_, Value lhs_, Value rhs_, std::string variable_name_ = "") {
+ValueData::ValueData(int no_, std::string inst_type_, Value lhs_, Value rhs_, Value jump_cond_ = 0, std::string variable_name_ = "") {
     no = no_;
     inst_type = inst_type_;
     lhs = lhs_;
     rhs = rhs_;
+    jump_cond = jump_cond_;
     variable_name = variable_name_;
 }
 
@@ -248,7 +288,7 @@ Value StmtAST::DumpKoopa() {
         Value lhs_value = exp->DumpKoopa();
         Value rhs_value = 0;
         //不需要分配百分号的值。
-        ValueData vd = ValueData(-1, "store", lhs_value, rhs_value, lval->ident_id);
+        ValueData vd = ValueData(-1, "store", lhs_value, rhs_value, 0, lval->ident_id);
         //但是需要改动符号表中的值。
         change_varvalue_in_symbol_table(lval->ident_id, lhs_value);
         
@@ -262,6 +302,63 @@ Value StmtAST::DumpKoopa() {
     }
     else if (mode == 5) {
         return block->DumpKoopa();
+    }
+    else if (mode == 6) {
+        return ifstmt->DumpKoopa();
+    }
+    return 0;
+}
+
+//generate instruction
+Value IfStmtAST::DumpKoopa() {
+    //mode = 0; IF '(' exp ')' Stmt
+    //mode = 1; IF '(' exp ')' Stmt ELSE Stmt
+    if (mode == 0) {
+        //exp
+        //true_label
+        //true_stmt
+        //jump_end
+        //end_label
+        Value cond_value = exp->DumpKoopa();
+        ValueData true_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+        Value true_label_val = random();
+        ValueData end_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+        Value end_label_val = random();
+        ValueData br_vd = AllocateValueData("br", true_label_val, end_label_val, cond_value);
+        InsertValuedata(br_vd);
+        InsertValuedata(true_label_vd, true_label_val);
+        stmt->DumpKoopa();
+        ValueData jump_vd = AllocateValueData("jump", end_label_val, 0);
+        InsertValuedata(jump_vd);
+        InsertValuedata(end_label_vd, end_label_val);
+    }
+    else if (mode == 1) {
+        //exp
+        //true_label
+        //true_stmt
+        //jump_end
+        //false_label
+        //false_stmt
+        //jump_end
+        //end_label
+        Value cond_value = exp->DumpKoopa();
+        ValueData true_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+        Value true_label_val = random();
+        ValueData false_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+        Value false_label_val = random();
+        ValueData end_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+        Value end_label_val = random();
+        ValueData br_vd = AllocateValueData("br", true_label_val, false_label_val, cond_value);
+        InsertValuedata(br_vd);
+        InsertValuedata(true_label_vd, true_label_val);
+        stmt->DumpKoopa();
+        ValueData jump_vd = AllocateValueData("jump", end_label_val, 0);
+        InsertValuedata(jump_vd);
+        InsertValuedata(false_label_vd, false_label_val);
+        elsestmt->DumpKoopa();
+        ValueData jump_vd2 = AllocateValueData("jump", end_label_val, 0);
+        InsertValuedata(jump_vd2);
+        InsertValuedata(end_label_vd, end_label_val);
     }
     return 0;
 }
@@ -494,7 +591,7 @@ Value VarDefAST::DumpKoopa() {
 
 
 
-    ValueData vd_alloc = ValueData(-1, "alloc", 0, 0, ident_id);
+    ValueData vd_alloc = ValueData(-1, "alloc", 0, 0, 0,ident_id);
     InsertValuedata(vd_alloc);
     if (mode == 0) { //无赋值
         symbol_table[function_num][basic_block_num].insert(std::make_pair(ident_id,
@@ -502,7 +599,7 @@ Value VarDefAST::DumpKoopa() {
     }
     else {
         Value lhs = initval->DumpKoopa();
-        ValueData vd_store = ValueData(-1, "store", lhs, 0, ident_id);
+        ValueData vd_store = ValueData(-1, "store", lhs, 0, 0,ident_id);
         InsertValuedata(vd_store);
         symbol_table[function_num][basic_block_num].insert(std::make_pair(ident_id,
                                                      VariableInfo(lhs, false)));
@@ -534,7 +631,7 @@ Value LValAST::DumpKoopa() {
 
     if (!(*vi).second.is_const_variable) {
         //变量
-         ValueData vd = AllocateValueData("load", lhs_value, rhs_value, (*vi).first);
+         ValueData vd = AllocateValueData("load", lhs_value, rhs_value, 0, (*vi).first);
          Value this_value = InsertValuedata(vd);
          return this_value;   
     }

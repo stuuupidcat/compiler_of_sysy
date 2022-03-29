@@ -44,7 +44,7 @@ using namespace std;
 %token INT RETURN
 %token ASSIGN LT GT LE GE EQ NE  
 %token AND OR 
-%token CONST
+%token CONST IF ELSE
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
@@ -53,7 +53,7 @@ using namespace std;
 %type <ast_val> Exp UnaryExp PrimaryExp UnaryOp ConstExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp MulExp AddExp
 %type <ast_val> Decl ConstDecl VarDecl ConstDef ConstInitVal BlockItems BlockItem LVal             
-%type <ast_val> VarDef InitVal
+%type <ast_val> VarDef InitVal IfStmt
 
 
 %%
@@ -158,7 +158,30 @@ Stmt
     ast->block = unique_ptr<BaseAST>($1);
     $$ = ast;
   }
+  | IfStmt {
+    auto ast = new StmtAST();
+    ast->mode = 6;
+    ast->ifstmt = unique_ptr<BaseAST>($1);
+    $$ = ast;
+  }
   ;
+
+IfStmt
+  : IF '(' Exp ')' Stmt {
+    auto ast = new IfStmtAST();
+    ast->exp = unique_ptr<BaseAST>($3);
+    ast->stmt = unique_ptr<BaseAST>($5);
+    ast->mode = 0;
+    $$ = ast;
+  }
+  | IF '(' Exp ')' Stmt ELSE Stmt {
+    auto ast = new IfStmtAST();
+    ast->exp = unique_ptr<BaseAST>($3);
+    ast->stmt = unique_ptr<BaseAST>($5);
+    ast->elsestmt = unique_ptr<BaseAST>($7);
+    ast->mode = 1;
+    $$ = ast;
+  }
 
 Number
   : INT_CONST {

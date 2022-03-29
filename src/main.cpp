@@ -41,8 +41,12 @@ int main(int argc, const char *argv[]) {
   assert(!ret);
 
   if (strcmp(mode, "-koopa") == 0) {
-    FILE* fp = OutputToFile(output);
-    ast->DumpKoopa();
+    #ifdef DEBUG_MODE
+      ast->DumpKoopa();
+    #else
+      FILE* fp = OutputToFile(output);
+      ast->DumpKoopa();
+    #endif
   }
   else if (strcmp(mode, "-riscv") == 0) {
     int old = dup( 1 );

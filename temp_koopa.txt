@@ -1,4 +1,67 @@
 fun @main(): i32 {
 %entry:
-  ret 6
+  @a_1 = alloc i32
+  store 0, @a_1
+  %0 = mul 1,2
+  %1 = sub 1,%0
+  %2 = add %1, 1
+  @c_1 = alloc i32
+  store 1, @c_1
+  @d_1 = alloc i32
+  store 2, @d_1
+  %3 = load @a_1
+  %5 = ne %3, 0
+  %6 = ne %2,0
+  %7 = or %5, %6
+  br %7, %L0, %L1
+%L0:
+  store 3, @c_1
+  jump %L2
+%L1:
+  store 3, @d_1
+  @a_2 = alloc i32
+  store 1, @a_2
+  %10 = load @a_2
+  %12 = ne %10, 0
+  %13 = ne %2,0
+  %14 = or %12, %13
+  br %14, %L3, %L4
+%L3:
+  store 4, @c_1
+  jump %L5
+%L4:
+  store 4, @d_1
+  jump %L5
+%L5:
+  %18 = load @a_2
+  %19 = eq %18, 0
+  br %19, %L6, %L7
+%L6:
+  ret 1
+  jump %L8
+%L7:
+  %23 = load @a_2
+  %24 = eq %23, 0
+  %25 = load @a_2
+  %26 = sub 0, 1
+  %27 = eq %25, %26
+  %29 = ne %24, 0
+  %30 = ne %27, 0
+  %31 = and %29, %30
+  br %31, %L9, %L10
+%L9:
+  ret 2
+  jump %L10
+%L10:
+  jump %L8
+%L8:
+  jump %L2
+%L2:
+  %37 = load @a_1
+  %38 = add %37, %2
+  %39 = load @c_1
+  %40 = add %38, %39
+  %41 = load @d_1
+  %42 = add %40, %41
+  ret %42
 }

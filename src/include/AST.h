@@ -19,7 +19,7 @@ class ValueData;
 typedef long Value;
 
 //将键值对插入unordered_map,将键插入vector: insts
-Value InsertValuedata(ValueData valuedata);
+Value InsertValuedata(ValueData, Value);
 
 class ValueData{
 public:
@@ -36,8 +36,13 @@ public:
     //利用lhs,rhs去unordered_map中查找对应的ValueData.
     //只有一个操作数的用lhs.
     Value lhs, rhs;
+    
+    Value jump_cond=0;
+
+    //load指令中变量的名字。
     std::string variable_name;
-    ValueData(int, std::string, Value, Value, std::string);
+
+    ValueData(int, std::string, Value, Value, Value, std::string);
     ValueData() = default;
     
     std::string format();
@@ -104,12 +109,33 @@ public:
     virtual Value DumpKoopa()  override;
 };
 
-//Stmt:  ';' | "return" Exp ";" | return ';' | LVal "=" Exp ";" | exp ';' | Block 
+//Stmt: 
+// mode = 0 ->  ';' 
+// mode = 1 -> "return" Exp ";"
+// mode = 2 -> return ';' 
+// mode = 3 -> LVal "=" Exp ";" 
+// mode = 4 -> exp ';' 
+// mode = 5 -> Block 
+// mode = 6 -> ifstmt
 class StmtAST : public BaseAST {   
 public:
     std::unique_ptr<BaseAST> exp;
     std::unique_ptr<BaseAST> lval;
     std::unique_ptr<BaseAST> block;
+
+    //if
+    std::unique_ptr<BaseAST> ifstmt;
+    
+    virtual Value DumpKoopa()  override;
+};
+
+//mode = 0; IF '(' Cond ')' Stmt 
+//mode = 1; IF '(' Cond ')' Stmt ELSE Stmt
+class IfStmtAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> exp;
+    std::unique_ptr<BaseAST> stmt;
+    std::unique_ptr<BaseAST> elsestmt;
     
     virtual Value DumpKoopa()  override;
 };
@@ -312,3 +338,4 @@ public:
 //向外层嵌套查找变量
 std::unordered_map<std::string, VariableInfo>::iterator find_var_in_symbol_table(std::string&);
 void change_varvalue_in_symbol_table(std::string&, Value);
+

@@ -1,6 +1,0 @@
-fun @main(): i32 {
-%entry:
-  ret 5
-  ret 4
-  ret 3
-}
