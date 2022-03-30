@@ -486,51 +486,179 @@ Value LAndExpAST::DumpKoopa() {
         return eqexp->DumpKoopa();
     }
     else {
-        Value lhs_value = landexp->DumpKoopa();
-        Value rhs_value = eqexp->DumpKoopa();
+        //implement short-circuit logic and.
+        /*int result = 0;
+        if (lhs_value == 1) {
+            result = rhs_value != 0;
+        }*/
+
+        //int result = 0;
+        auto zero = new NumberAST();  
+        zero->num = 0;
+
+        auto vardef1 = new VarDefAST();
+        vardef1->mode = 1;
+        vardef1->ident = "__short_circuit_and_result";
+        vardef1->initval = std::unique_ptr<BaseAST>(zero);
         
+        auto vardecl = new VarDeclAST(); //是一个vardecl
+        vardecl->vardefs.push_back(std::unique_ptr<BaseAST>(vardef1));
+
+        //if (lhs_value != 0) 
+        //    result = rhs_value != 0;
+        //1
+        auto one = new NumberAST();
+        one->num = 1;
+
+        //lhs_value == 1x
+        //lhs_value != 0
+        auto eqexp1 = new EqExpAST();
+        eqexp1->mode = 2;
+        eqexp1->eqexp = std::move(landexp);
+        eqexp1->relexp = std::unique_ptr<BaseAST>(zero);
+
+        //rhs_value != 0;
+        auto eqexp2 = new EqExpAST();
+        eqexp2->mode = 2;
+        eqexp2->eqexp = std::move(eqexp);
+        eqexp2->relexp = std::unique_ptr<BaseAST>(zero);
+
+        //result = rhs_value != 0;
+        auto lval = new LValAST();
+        lval->ident = vardef1->ident;
+        auto stmt = new StmtAST();
+        stmt->mode = 3;
+        stmt->lval = std::unique_ptr<BaseAST>(lval);
+        stmt->exp = std::unique_ptr<BaseAST>(eqexp2);
+
+        //if
+        auto ifstmt = new IfStmtAST();
+        ifstmt->mode = 0;
+        ifstmt->exp = std::unique_ptr<BaseAST>(eqexp1);
+        ifstmt->stmt = std::unique_ptr<BaseAST>(stmt);
+
+        vardecl->DumpKoopa();
+        ifstmt->DumpKoopa();
+
+        //返回__short_circuit_result的值.
+        auto vi = find_var_in_symbol_table(vardef1->ident);
+        ident_id = (*vi).first;
+        Value lhs_value = (*vi).second.value;
+        Value rhs_value = 0;
+    
+        if (!(*vi).second.is_const_variable) {
+            //变量
+             ValueData vd = AllocateValueData("load", lhs_value, rhs_value, 0, ident_id);
+             Value this_value = InsertValuedata(vd);
+             return this_value;   
+        }
+        return 0;
         //按位与或实现逻辑与或。
         //%n = eq lhs, 0;    -> vd_l
         //%n+1 = eq rhs, 0;  -> vd_r
         //%n+2 = and %n, %n+1;
-
         //为数字0, vd_l, vd_r分配一个数据结构。采用随机数作为value.
-        ValueData vd_zero = AllocateValueData("number", 0, 0);
-        Value vd_zero_value = InsertValuedata(vd_zero);
-        ValueData vd_l = AllocateValueData("ne", lhs_value, vd_zero_value);
-        Value vd_l_value = InsertValuedata(vd_l);
-        ValueData vd_r = AllocateValueData("ne", rhs_value, vd_zero_value);
-        Value vd_r_value = InsertValuedata(vd_r);
-        ValueData vd = AllocateValueData("and", vd_l_value, vd_r_value);
-        Value this_value = InsertValuedata(vd);
-        return this_value;        
+        //Value lhs_value = landexp->DumpKoopa();
+        //Value rhs_value = eqexp->DumpKoopa();
+        //ValueData vd_zero = AllocateValueData("number", 0, 0);
+        //Value vd_zero_value = InsertValuedata(vd_zero);
+        //ValueData vd_l = AllocateValueData("ne", lhs_value, vd_zero_value);
+        //Value vd_l_value = InsertValuedata(vd_l);
+        //ValueData vd_r = AllocateValueData("ne", rhs_value, vd_zero_value);
+        //Value vd_r_value = InsertValuedata(vd_r);
+        //ValueData vd = AllocateValueData("and", vd_l_value, vd_r_value);
+        //Value this_value = InsertValuedata(vd);
+        //return this_value;        
     }
 }
 
 
 Value LOrExpAST::DumpKoopa() {
+    //按位与或实现逻辑与或。
+    //%n = eq lhs, 0;    -> vd_l
+    //%n+1 = eq rhs, 0;  -> vd_r
+    //%n+2 = or %n, %n+1;
     if (mode == 0) {
         return landexp->DumpKoopa();
     }
     else {
-        Value lhs_value = lorexp->DumpKoopa();
-        Value rhs_value = landexp->DumpKoopa();
+        //implement short-circuit logic or.
+        /*int result = 1;
+        if (lhs_value == 0) {
+            result = rhs_value != 0;
+        }*/
 
-         //按位与或实现逻辑与或。
-        //%n = eq lhs, 0;    -> vd_l
-        //%n+1 = eq rhs, 0;  -> vd_r
-        //%n+2 = or %n, %n+1;
+        //int result = 1;
+        auto one = new NumberAST();  
+        one->num = 1;
 
+        auto vardef1 = new VarDefAST();
+        vardef1->mode = 1;
+        vardef1->ident = "__short_circuit_or_result";
+        vardef1->initval = std::unique_ptr<BaseAST>(one);
+        
+        auto vardecl = new VarDeclAST(); //是一个vardecl
+        vardecl->vardefs.push_back(std::unique_ptr<BaseAST>(vardef1));
+
+        //if (lhs_value == 0)result = rhs_value != 0;
+        //0
+        auto zero = new NumberAST();
+        zero->num = 0;
+
+        //lhs_value == 0
+        auto eqexp1 = new EqExpAST();
+        eqexp1->mode = 1;
+        eqexp1->eqexp = std::move(lorexp);
+        eqexp1->relexp = std::unique_ptr<BaseAST>(zero);
+
+        //rhs_value != 0;
+        auto eqexp2 = new EqExpAST();
+        eqexp2->mode = 2;
+        eqexp2->eqexp = std::move(landexp);
+        eqexp2->relexp = std::unique_ptr<BaseAST>(zero);
+
+        //result = rhs_value != 0;
+        auto lval = new LValAST();
+        lval->ident = vardef1->ident;
+        auto stmt = new StmtAST();
+        stmt->mode = 3;
+        stmt->lval = std::unique_ptr<BaseAST>(lval);
+        stmt->exp = std::unique_ptr<BaseAST>(eqexp2);
+        
+        //if
+        auto ifstmt = new IfStmtAST();
+        ifstmt->mode = 0;
+        ifstmt->exp = std::unique_ptr<BaseAST>(eqexp1);
+        ifstmt->stmt = std::unique_ptr<BaseAST>(stmt);
+
+        vardecl->DumpKoopa();
+        ifstmt->DumpKoopa();
+        
+        //返回__short_circuit_result的值.
+        auto vi = find_var_in_symbol_table(vardef1->ident);
+        ident_id = (*vi).first;
+        Value lhs_value = (*vi).second.value;
+        Value rhs_value = 0;
+    
+        if (!(*vi).second.is_const_variable) {
+            //变量
+             ValueData vd = AllocateValueData("load", lhs_value, rhs_value, 0, ident_id);
+             Value this_value = InsertValuedata(vd);
+             return this_value;   
+        }
+        return 0;
+        //Value lhs_value = lorexp->DumpKoopa();
+        //Value rhs_value = landexp->DumpKoopa();
         //为数字0, vd_l, vd_r分配一个数据结构。采用随机数作为value.
-        ValueData vd_zero = AllocateValueData("number", 0, 0);
-        Value vd_zero_value = InsertValuedata(vd_zero);
-        ValueData vd_l = AllocateValueData("ne", lhs_value, vd_zero_value);
-        Value vd_l_value = InsertValuedata(vd_l);
-        ValueData vd_r = AllocateValueData("ne", rhs_value, vd_zero_value);
-        Value vd_r_value = InsertValuedata(vd_r);
-        ValueData vd = AllocateValueData("or", vd_l_value, vd_r_value);
-        Value this_value = InsertValuedata(vd);
-        return this_value;        
+        //ValueData vd_zero = AllocateValueData("number", 0, 0);
+        //Value vd_zero_value = InsertValuedata(vd_zero);
+        //ValueData vd_l = AllocateValueData("ne", lhs_value, vd_zero_value);
+        //Value vd_l_value = InsertValuedata(vd_l);
+        //ValueData vd_r = AllocateValueData("ne", rhs_value, vd_zero_value);
+        //Value vd_r_value = InsertValuedata(vd_r);
+        //ValueData vd = AllocateValueData("or", vd_l_value, vd_r_value);
+        //Value this_value = InsertValuedata(vd);
+        //return this_value;        
     }
 }
 

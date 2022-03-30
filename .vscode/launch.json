@@ -9,7 +9,7 @@
         "type": "cppdbg",
         "request": "launch",
         "program": "/root/compiler/build/compiler",
-        "args": ["-riscv",
+        "args": ["-koopa",
                  "./debug/input/hello.c",
                  "-o",
                  "./debug/output/test.s"
