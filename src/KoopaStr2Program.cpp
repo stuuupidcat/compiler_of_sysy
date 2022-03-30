@@ -3,6 +3,8 @@
 int cur_avaliable_pos = 0;
 int t_reg_num = 0;
 //利用指令的指针查找二元运算指令的结果储存在栈中的哪个位置中。
+//或者利用块的指针查找块的label的number是多少。
+int riscv_label_num = 0;
 std::unordered_map<void*, int> inst_result;
 
 /*InsResult::InsResult(void* ins_pointer_, int reg_num_) {
@@ -60,8 +62,9 @@ void Visit(const koopa_raw_function_t &func) {
   std::cout << "  add   sp, sp, t0\n\n"; 
   // 访问所有基本块
   Visit(func->bbs);
-
-  std::cout << "\n  li    " << "t0, " << stack_usage << "\n";
+  std::cout << std::endl;
+  std::cout << "end:" << std::endl; 
+  std::cout << "  li    t0, " << stack_usage << "\n";
   std::cout << "  sub   sp, sp, t0\n"; 
   std::cout << "  ret"  << std::endl;
 }
@@ -71,7 +74,8 @@ void Visit(const koopa_raw_basic_block_t &bb) {
   // 执行一些其他的必要操作
   // ...
   // 访问所有指令
-  Visit(bb->insts);
+  std::cout << bb->name+1 << ":" << std::endl;
+    Visit(bb->insts);
 }
 
 // 访问指令
@@ -103,6 +107,12 @@ int Visit(const koopa_raw_value_t &value) {
     case KOOPA_RVT_STORE:
       visit_instruction_result = Visit(kind.data.store);
       break;
+    case KOOPA_RVT_BRANCH:
+      visit_instruction_result = Visit(kind.data.branch);
+      break;
+    case KOOPA_RVT_JUMP:
+      visit_instruction_result = Visit(kind.data.jump);
+      break;
     default:
       // 其他类型暂时遇不到
       assert(false);
@@ -120,25 +130,29 @@ void Visit(const koopa_raw_return_t &ret) {
   //有了“已经执行的指令的map”，我们会找到那个指令的结果所使用的寄存器。
   //恰好就可以将返回值打印出来。 
   std::cout << stack_pos << std::endl;
+  std::cout << "  j     end\n";
 }
 
 int Visit(const koopa_raw_integer_t &integer) {
+  //不管执行过否
+  //重新载入
+  //if_bug
   //mode == 1, 想要将值0返回为x_0;
   std::string res, reg_name;
   int32_t value = integer.value;
   void *pt = (void *)(long)value;
   int pos;
   reg_name = "t"+std::to_string(AddReg());
-  bool executed = IsExecuted(pt);
-  if (!executed) {
+  //bool executed = IsExecuted(pt);
+  //if (!executed) {
     pos = StoreInsToMap(pt);
     std::cout << "  li    " << reg_name << ", " << value << std::endl;
     std::cout << "  sw    " << reg_name << ", " << pos << "(sp)\n";
-  }
-  else {
-    pos = inst_result[pt];
-    std::cout << "  lw    " << reg_name << ", " << pos << "(sp)\n";
-  }
+  //}
+  //else {
+  //  pos = inst_result[pt];
+  //  std::cout << "  lw    " << reg_name << ", " << pos << "(sp)\n";
+  //}
   res = std::to_string(pos) + "(sp)";
   
   return pos;
@@ -206,7 +220,7 @@ int Visit (const koopa_raw_binary_t& bi) {
       std::cout << left_reg_name << ", " << right_reg_name << std::endl;
       break;
     case KOOPA_RBO_OR:
-      std::cout << "  or   " << reg_name << ", ";    
+      std::cout << "  or    " << reg_name << ", ";    
       std::cout << left_reg_name << ", " << right_reg_name << std::endl;
       break;
     //slt t0, t1, t2 指令的含义是, 判断寄存器 t1 的值是否小于 t2 的值
@@ -257,6 +271,42 @@ int Visit (const koopa_raw_load_t& lw) {
   return 0;
 }
 
+//branch instruction
+int Visit(const koopa_raw_branch_t& br) {
+  //label需要和块绑定,复用一下ins。
+  std::string src = std::to_string(Visit(br.cond)) + "(sp)";
+  std::string reg = "t" + std::to_string(AddReg());
+  std::string true_label;
+  std::string false_label;
+  
+  //bool true_executed = IsExecuted((void*)&br.true_bb);
+  //bool false_executed = IsExecuted((void*)&br.false_bb);
+  
+  std::cout << "  lw    " << reg << ", " << src << std::endl;
+  std::cout << "  bnez  " << reg << ", " << br.true_bb->name+1 <<  std::endl;
+  std::cout << "  j     " << br.false_bb->name+1 << std::endl;
+  //whether need to check visited.
+  //重复.
+  //if (!true_executed) {
+  //  StoreBlockToMap((void *)&br.true_bb);
+  //  std::cout << br.true_bb->name << ": " << std::endl;;
+  //  Visit(br.true_bb);
+  //}
+  //if (!false_executed) {
+  //  StoreBlockToMap((void *)&br.false_bb);
+  //  std::cout << br.false_bb->name << ": " << std::endl;
+  //  Visit(br.false_bb);
+  //}
+  return 0;
+}
+
+//jump instruction
+int Visit(const koopa_raw_jump_t& jmp) {
+  std::cout << "  j     " << jmp.target->name+1 << std::endl;
+  return 0;
+}
+
+//store指令
 int Visit (const koopa_raw_store_t& sw) {
   std::string reg_name = "t"+std::to_string(AddReg());
   std::string load_pos = std::to_string(Visit(sw.value)) + "(sp)";
@@ -318,6 +368,14 @@ int StoreInsToMap(void* inst_pt) {
   cur_avaliable_pos += 4;
   return res;
 }
+
+//int StoreBlockToMap(void* block_pt) {
+//  //没啥用 block中有name.
+//  int res = riscv_label_num;
+//  inst_result.insert(std::make_pair(block_pt, res)); 
+//  riscv_label_num++;
+//  return res;
+//}
 
 int CountInsts(const koopa_raw_slice_t& slice) {
   int res = 0;

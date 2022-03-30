@@ -4,30 +4,44 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+    {
+        "name": "(gdb) Launch",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "/root/compiler/build/compiler",
+        "args": ["-riscv",
+                 "./debug/input/hello.c",
+                 "-o",
+                 "./debug/output/test.s"
+                ],
+        "stopAtEntry": false,
+        "cwd": "/root/compiler/",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "MIDebuggerPath": "/usr/local/bin/gdb",
+        "setupCommands": [
+            {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            }
+        ],
+        "preLaunchTask": "Build compiler"
+    },
       {
-          "name": "(gdb) Launch",
-          "type": "cppdbg",
+          "type": "venus",
           "request": "launch",
-          "program": "/root/compiler/build/compiler",
-          "args": ["-koopa",
-                   "./debug/input/hello.c",
-                   "-o",
-                   "./debug/output/test"
-                  ],
-          "stopAtEntry": false,
-          "cwd": "/root/compiler/",
-          "environment": [],
-          "externalConsole": false,
-          "MIMode": "gdb",
-          "MIDebuggerPath": "/usr/local/bin/gdb",
-          "setupCommands": [
-              {
-                  "description": "Enable pretty-printing for gdb",
-                  "text": "-enable-pretty-printing",
-                  "ignoreFailures": true
-              }
-          ],
-          "preLaunchTask": "Build compiler"
+          "name": "riscv-venus",
+          "program": "${file}",
+          "stopOnEntry": true,
+          "stopAtBreakpoints": true,
+          "openViews": [],
+          "ledMatrixSize": {
+              "x": 10,
+              "y": 10
+          }
       }
+      
   ]
 }

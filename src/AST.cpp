@@ -48,6 +48,9 @@ void PrintInstruction() {
                 i++;
                 vd = functions_values[function_num][functions_insts[function_num][i]];
             }
+            //改一点点就报错x
+            i = i - 1;
+            continue;
         }
         if (vd.inst_type == "label") {
             std::cout << vd.format();
@@ -269,12 +272,12 @@ Value StmtAST::DumpKoopa() {
         //Value allocated = Allocate(&exp);
         Value lhs_value = exp->DumpKoopa();
         Value rhs_value = 0;
-        ValueData vd = AllocateValueData("return", lhs_value, rhs_value);
+        ValueData vd = ValueData(-1, "return", lhs_value, rhs_value);
         Value this_value = InsertValuedata(vd);
         return this_value;
     }
     else if (mode == 2) {
-        ValueData vd = AllocateValueData("return", 0, 0);
+        ValueData vd = ValueData(-1, "return", 0, 0);
         Value this_value = InsertValuedata(vd);
         return this_value;
     }
@@ -324,11 +327,11 @@ Value IfStmtAST::DumpKoopa() {
         Value true_label_val = random();
         ValueData end_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
         Value end_label_val = random();
-        ValueData br_vd = AllocateValueData("br", true_label_val, end_label_val, cond_value);
+        ValueData br_vd = ValueData(-1, "br", true_label_val, end_label_val, cond_value);
         InsertValuedata(br_vd);
         InsertValuedata(true_label_vd, true_label_val);
         stmt->DumpKoopa();
-        ValueData jump_vd = AllocateValueData("jump", end_label_val, 0);
+        ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd);
         InsertValuedata(end_label_vd, end_label_val);
     }
@@ -348,15 +351,15 @@ Value IfStmtAST::DumpKoopa() {
         Value false_label_val = random();
         ValueData end_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
         Value end_label_val = random();
-        ValueData br_vd = AllocateValueData("br", true_label_val, false_label_val, cond_value);
+        ValueData br_vd = ValueData(-1, "br", true_label_val, false_label_val, cond_value);
         InsertValuedata(br_vd);
         InsertValuedata(true_label_vd, true_label_val);
         stmt->DumpKoopa();
-        ValueData jump_vd = AllocateValueData("jump", end_label_val, 0);
+        ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd);
         InsertValuedata(false_label_vd, false_label_val);
         elsestmt->DumpKoopa();
-        ValueData jump_vd2 = AllocateValueData("jump", end_label_val, 0);
+        ValueData jump_vd2 = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd2);
         InsertValuedata(end_label_vd, end_label_val);
     }
