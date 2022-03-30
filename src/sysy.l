@@ -17,7 +17,8 @@ using namespace std;
 
 /* 空白符和注释 */
 WhiteSpace    [ \t\n\r]*
-LineComment   "//".*$
+LineComment   \/\/[^\n\r]*[\n\r]*
+/* from the Dragon book*/
 BlockComment  \/\*([^*"]*|".*"|\*+[^/])*\*\/
 
 /* 标识符 */
