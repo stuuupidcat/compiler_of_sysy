@@ -400,12 +400,14 @@ Value IfStmtAST::DumpKoopa() {
         InsertValuedata(br_vd);
         InsertValuedata(true_label_vd, true_label_val);
         
-        //if (stmt->mode != 5) {
-        //    enter_block();
+        if (stmt->mode != 5) {
+            enter_block();
             stmt->DumpKoopa();
-        //    leave_block();
-        //}
-        
+            leave_block();
+        }
+        else {
+            stmt->DumpKoopa();
+        }
         ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd);
         InsertValuedata(end_label_vd, end_label_val);
@@ -432,28 +434,28 @@ Value IfStmtAST::DumpKoopa() {
 
         InsertValuedata(true_label_vd, true_label_val);
         
-        //if (stmt->mode != 5) {
-        //    enter_block();
-        //    stmt->DumpKoopa();
-        //    leave_block();
-        //}
-        //else {
+        if (stmt->mode != 5) {
+            enter_block();
             stmt->DumpKoopa();
-        //}
+            leave_block();
+        }
+        else {
+            stmt->DumpKoopa();
+        }
 
         ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd);
         
         InsertValuedata(false_label_vd, false_label_val);
         
-        //if (elsestmt->mode != 5) {
-        //    enter_block();
-        //    elsestmt->DumpKoopa();
-        //    leave_block();
-        //}
-        //else {
+        if (elsestmt->mode != 5) {
+            enter_block();
             elsestmt->DumpKoopa();
-        //}
+            leave_block();
+        }
+        else {
+            elsestmt->DumpKoopa();
+        }
 
         ValueData jump_vd2 = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd2);
