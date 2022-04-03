@@ -1,22 +1,86 @@
 fun @main(): i32 {
 %entry:
-  @i_1 = alloc i32
-  store 0, @i_1
-  jump %L0
+  @a_1 = alloc i32
+  store 0, @a_1
+  %0 = mul 1,2
+  %1 = sub 1,%0
+  %2 = add %1, 1
+  @c_1 = alloc i32
+  store 1, @c_1
+  @d_1 = alloc i32
+  store 2, @d_1
+  @__short_circuit_or_result_1 = alloc i32
+  store 1, @__short_circuit_or_result_1
+  %3 = load @a_1
+  %4 = eq %3, 0
+  br %4, %L0, %L1
 %L0:
-  %0 = load @i_1
-  %1 = lt %0, 10
-  br %1, %L1, %L2
+  %5 = ne %2,0
+  store %5, @__short_circuit_or_result_1
+  jump %L1
 %L1:
-  %2 = load @i_1
-  %3 = add %2, 1
-  store %3, @i_1
+  %6 = load @__short_circuit_or_result_1
+  br %6, %L2, %L3
+%L2:
+  store 3, @c_1
+  jump %L4
+%L3:
+  store 3, @d_1
+  @a_2 = alloc i32
+  store 1, @a_2
+  @__short_circuit_or_result_2 = alloc i32
+  store 1, @__short_circuit_or_result_2
+  %7 = load @a_2
+  %8 = eq %7, 0
+  br %8, %L5, %L6
+%L5:
+  %9 = ne %2,0
+  store %9, @__short_circuit_or_result_2
+  jump %L6
+%L6:
+  %10 = load @__short_circuit_or_result_2
+  br %10, %L7, %L8
+%L7:
+  store 4, @c_1
+  jump %L9
+%L8:
+  store 4, @d_1
+  jump %L9
+%L9:
+  %11 = load @a_2
+  %12 = eq %11, 0
+  br %12, %L10, %L11
+%L10:
+  ret 1
+%L11:
+  @__short_circuit_and_result_1 = alloc i32
+  store 0, @__short_circuit_and_result_1
+  %13 = load @a_2
+  %14 = eq %13, 0
+  %15 = ne %14, 0
+  br %15, %L13, %L14
+%L13:
+  %16 = load @a_2
+  %17 = sub 0, 1
+  %18 = eq %16, %17
+  %19 = ne %18, 0
+  store %19, @__short_circuit_and_result_1
+  jump %L14
+%L14:
+  %20 = load @__short_circuit_and_result_1
+  br %20, %L15, %L16
+%L15:
+  ret 2
+%L16:
+  jump %L12
+%L12:
   jump %L4
 %L4:
-  jump %L0
-%L3:
-  jump %L0
-%L2:
-  %4 = load @i_1
-  ret %4
+  %21 = load @a_1
+  %22 = add %21, %2
+  %23 = load @c_1
+  %24 = add %22, %23
+  %25 = load @d_1
+  %26 = add %24, %25
+  ret %26
 }

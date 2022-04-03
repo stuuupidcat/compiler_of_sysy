@@ -400,9 +400,11 @@ Value IfStmtAST::DumpKoopa() {
         InsertValuedata(br_vd);
         InsertValuedata(true_label_vd, true_label_val);
         
-        enter_block();
-        stmt->DumpKoopa();
-        leave_block();
+        //if (stmt->mode != 5) {
+        //    enter_block();
+            stmt->DumpKoopa();
+        //    leave_block();
+        //}
         
         ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd);
@@ -430,18 +432,28 @@ Value IfStmtAST::DumpKoopa() {
 
         InsertValuedata(true_label_vd, true_label_val);
         
-        enter_block();
-        stmt->DumpKoopa();
-        leave_block();
+        //if (stmt->mode != 5) {
+        //    enter_block();
+        //    stmt->DumpKoopa();
+        //    leave_block();
+        //}
+        //else {
+            stmt->DumpKoopa();
+        //}
 
         ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd);
         
         InsertValuedata(false_label_vd, false_label_val);
         
-        enter_block();
-        elsestmt->DumpKoopa();
-        leave_block();
+        //if (elsestmt->mode != 5) {
+        //    enter_block();
+        //    elsestmt->DumpKoopa();
+        //    leave_block();
+        //}
+        //else {
+            elsestmt->DumpKoopa();
+        //}
 
         ValueData jump_vd2 = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd2);
@@ -487,9 +499,14 @@ Value WhileStmtAST::DumpKoopa() {
 
     InsertValuedata(true_label_vd, true_label_val);
 
-    enter_block();  
-    stmt->DumpKoopa();
-    leave_block();
+    if (stmt->mode != 5) {
+        enter_block();
+        stmt->DumpKoopa();
+        leave_block();
+    }
+    else {
+        stmt->DumpKoopa();
+    }
 
     //连在一起的！
     ValueData jump_vd1 = ValueData(-1, "jump", jump_exp_label_val, 0);
@@ -959,7 +976,7 @@ void enter_block() {
     loop_broken_or_continued[function_num].push_back(false);
 }
 void leave_block() {
-    symbol_table[function_num].pop_back();
+    symbol_table[function_num].erase(symbol_table[function_num].begin() + basic_block_num);
     loop_broken_or_continued[function_num].pop_back();
     basic_block_num--;
 }
