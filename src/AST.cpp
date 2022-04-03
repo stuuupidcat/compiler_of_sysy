@@ -25,7 +25,6 @@ std::vector<std::unordered_map<std::string, int>> varname_cnt;
 
 //循环的信息。
 std::vector<LoopData> loop_data;
-bool cur_loop_finished = false;
 std::vector<std::vector<bool>> loop_broken_or_continued;
 
 Value InsertValuedata(ValueData valuedata, Value allocated_val = 0) {
@@ -355,7 +354,9 @@ Value StmtAST::DumpKoopa() {
             InsertValuedata(jump_vd2);
 
             //loop_data.erase(loop_data.end()-1);
-            loop_data.pop_back();
+            
+            //test
+            //loop_data.pop_back();
         }
         return 0;
     }
@@ -478,7 +479,7 @@ Value WhileStmtAST::DumpKoopa() {
 
     //jump exp_label
     //end_label
-    cur_loop_finished = false;
+
     ValueData exp_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
     Value exp_label_val = random();
     ValueData true_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
