@@ -48,6 +48,16 @@ public:
     std::string format();
 };
 
+class LoopData {
+public:
+    Value exp_label_value = -1;
+    Value true_label_value = -1;
+    Value jump_exp_label_value = -1;
+    Value end_label_value = -1;
+
+    LoopData(Value, Value, Value, Value);
+};
+
 //分配ValueData。增加temp_sign_num。
 ValueData AllocateValueData(int, std::string&, Value, Value, std::string);
 
@@ -117,6 +127,9 @@ public:
 // mode = 4 -> exp ';' 
 // mode = 5 -> Block 
 // mode = 6 -> ifstmt
+// mode = 7 ->  while stmt
+// mode = 8 ->  break ';'
+// mode = 9 ->  continue ';'
 class StmtAST : public BaseAST {   
 public:
     std::unique_ptr<BaseAST> exp;
@@ -125,7 +138,8 @@ public:
 
     //if
     std::unique_ptr<BaseAST> ifstmt;
-    
+    //while
+    std::unique_ptr<BaseAST> whilestmt;
     virtual Value DumpKoopa()  override;
 };
 
@@ -136,6 +150,15 @@ public:
     std::unique_ptr<BaseAST> exp;
     std::unique_ptr<BaseAST> stmt;
     std::unique_ptr<BaseAST> elsestmt;
+    
+    virtual Value DumpKoopa()  override;
+};
+
+//"while" "(" Exp ")" Stmt
+class WhileStmtAST : public BaseAST {
+public:
+    std::unique_ptr<BaseAST> exp;
+    std::unique_ptr<BaseAST> stmt;
     
     virtual Value DumpKoopa()  override;
 };

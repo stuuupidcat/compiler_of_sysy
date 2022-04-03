@@ -23,6 +23,10 @@ std::vector<std::vector<std::unordered_map<std::string, VariableInfo>>> symbol_t
 //处理同名变量。下标为function_num
 std::vector<std::unordered_map<std::string, int>> varname_cnt;
 
+//循环的信息。
+std::vector<LoopData> loop_data;
+bool cur_loop_finished = false;
+
 Value InsertValuedata(ValueData valuedata, Value allocated_val = 0) {
     if (allocated_val == 0) {
         Value value = random();
@@ -36,13 +40,18 @@ Value InsertValuedata(ValueData valuedata, Value allocated_val = 0) {
         return allocated_val;
     }
 }
-
+LoopData::LoopData(Value exp_label_value_, Value true_label_value_, Value jump_exp_label_value_, Value end_label_value_) {
+    exp_label_value = exp_label_value_;
+    true_label_value = true_label_value_;
+    jump_exp_label_value = jump_exp_label_value_;
+    end_label_value = end_label_value_;
+}
 
 void PrintInstruction() {
     int instruction_num = functions_insts[function_num].size();
     for (int i = 0; i < instruction_num; ++i) {
         auto vd = functions_values[function_num][functions_insts[function_num][i]];
-        if (vd.inst_type == "return") {     
+        if (vd.inst_type == "return" || vd.inst_type == "break" || vd.inst_type == "continue") {     
             std::cout << "  "  << vd.format();    
             while (vd.inst_type != "label" && i < instruction_num) {
                 i++;
@@ -52,6 +61,19 @@ void PrintInstruction() {
             i = i - 1;
             continue;
         }
+        //要调到循环结尾的jump_exp_label
+        //if (vd.inst_type == "break" || vd.inst_type == "continue") {
+        //    std::cout << "  "  << vd.format();
+        //    i++;
+        //    auto temp = functions_values[function_num][functions_insts[function_num][i]];
+        //    //vd的rhs是要跳转的地方，label的lhs是想要找到的东西。
+        //    //有趣的是label没有lhs，而和他连在一起的jump有这个value
+        //    while (temp.lhs != vd.rhs && i < instruction_num) {
+        //        i++;
+        //        temp = functions_values[function_num][functions_insts[function_num][i]];
+        //    }
+        //    continue;
+        //}
         if (vd.inst_type == "label") {
             std::cout << vd.format();
         }
@@ -194,7 +216,7 @@ std::string ValueData::format() {
             res = "br %" + std::to_string(jump_cond_vd.no) + ", " + lhs_vd.variable_name + ", " + rhs_vd.variable_name + "\n";
         }
     }
-    else if (inst_type == "jump") {
+    else if (inst_type == "jump" || inst_type == "break" || inst_type == "continue") {
         res = "jump " + lhs_vd.variable_name + "\n";
     }
     else if (inst_type == "label") {
@@ -309,6 +331,49 @@ Value StmtAST::DumpKoopa() {
     else if (mode == 6) {
         return ifstmt->DumpKoopa();
     }
+    else if (mode == 7) {
+        return whilestmt->DumpKoopa();
+    }
+    else if (mode == 8) {
+        if (!cur_loop_finished) {
+            cur_loop_finished = true;
+            ValueData break_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+            Value break_label_val = random();
+
+            ValueData jump_vd1 = ValueData(-1, "jump", break_label_val, 0);
+            InsertValuedata(jump_vd1);
+
+
+            InsertValuedata(break_label_vd, break_label_val);
+
+            //lhs是要跳的地方，rhs是要跳过接下来的语句，直到一个循环结束的标签。
+            ValueData jump_vd2 = ValueData(-1, "break", loop_data[loop_data.size()-1].end_label_value, loop_data[loop_data.size()-1].jump_exp_label_value);
+            InsertValuedata(jump_vd2);
+
+            //loop_data.erase(loop_data.end()-1);
+            loop_data.pop_back();
+        }
+        return 0;
+    }
+    else if (mode == 9) {
+        if (!cur_loop_finished) {
+            cur_loop_finished = true;
+            ValueData ct_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+            Value ct_label_val = random();
+
+            ValueData jump_vd1 = ValueData(-1, "jump", ct_label_val, 0);
+            InsertValuedata(jump_vd1);
+
+            InsertValuedata(ct_label_vd, ct_label_val);
+
+            ValueData jump_vd2 = ValueData(-1, "continue", loop_data[loop_data.size()-1].exp_label_value, loop_data[loop_data.size()-1].jump_exp_label_value);
+            InsertValuedata(jump_vd2);
+
+            //不需要更新循环信息
+            return 0;
+        }
+        
+    }
     return 0;
 }
 
@@ -351,21 +416,84 @@ Value IfStmtAST::DumpKoopa() {
         Value false_label_val = random();
         ValueData end_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
         Value end_label_val = random();
+
         ValueData br_vd = ValueData(-1, "br", true_label_val, false_label_val, cond_value);
         InsertValuedata(br_vd);
+
         InsertValuedata(true_label_vd, true_label_val);
+        
         stmt->DumpKoopa();
+        
         ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd);
+        
         InsertValuedata(false_label_vd, false_label_val);
+        
         elsestmt->DumpKoopa();
+        
         ValueData jump_vd2 = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd2);
+        
         InsertValuedata(end_label_vd, end_label_val);
     }
     return 0;
 }
 
+Value WhileStmtAST::DumpKoopa() {
+    //照着上面if抄。
+    //jump_exp_label
+    //exp_label
+    //exp
+    //br 
+    //true_label
+    //true_stmt
+    //jump jump_exp_label
+    //jump_exp_label
+
+    //jump exp_label
+    //end_label
+    cur_loop_finished = false;
+    ValueData exp_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+    Value exp_label_val = random();
+    ValueData true_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+    Value true_label_val = random();
+    ValueData end_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+    Value end_label_val = random();
+    ValueData jump_exp_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+    Value jump_exp_label_val = random();
+    
+    //更新循环信息。
+    loop_data.push_back(LoopData(exp_label_val, true_label_val, jump_exp_label_val, end_label_val));
+    
+    ValueData jump_vd = ValueData(-1, "jump", exp_label_val, 0);
+    InsertValuedata(jump_vd);
+    InsertValuedata(exp_label_vd, exp_label_val);
+
+    Value cond_value = exp->DumpKoopa();
+    ValueData br_vd = ValueData(-1, "br", true_label_val, end_label_val, cond_value);
+    InsertValuedata(br_vd);
+
+    InsertValuedata(true_label_vd, true_label_val);
+
+    stmt->DumpKoopa();
+
+    //连在一起的！
+    ValueData jump_vd1 = ValueData(-1, "jump", jump_exp_label_val, 0);
+    InsertValuedata(jump_vd1);
+    InsertValuedata(jump_exp_label_vd, jump_exp_label_val);
+
+    ValueData jump_vd2 = ValueData(-1, "jump", exp_label_val, 0);
+    InsertValuedata(jump_vd2);
+
+    InsertValuedata(end_label_vd, end_label_val); 
+
+    //恢复循环信息
+    //loop_data.erase(loop_data.begin()+loop_data.size()-1);
+    //?
+    //loop_data.erase(loop_data.end()-1);
+    loop_data.pop_back();
+    return 0;
+}
 
 Value NumberAST::DumpKoopa() {
     Value lhs_value = (Value)(long)num;
@@ -488,7 +616,7 @@ Value LAndExpAST::DumpKoopa() {
     else {
         //implement short-circuit logic and.
         /*int result = 0;
-        if (lhs_value == 1) {
+        if (lhs_value != 0) {
             result = rhs_value != 0;
         }*/
 

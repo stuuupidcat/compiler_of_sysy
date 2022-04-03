@@ -17,7 +17,7 @@ using namespace std;
 
 /* 空白符和注释 */
 WhiteSpace    [ \t\n\r]*
-LineComment   \/\/[^\n\r]*[\n\r]*
+LineComment   \/\/[^\n\r]*[\t\n\r]*
 /* from the Dragon book*/
 BlockComment  \/\*([^*"]*|".*"|\*+[^/])*\*\/
 
@@ -51,6 +51,9 @@ OrSign             \|\|
 "const"         { return CONST; }
 "if"            { return IF; }
 "else"          { return ELSE; }
+"while"         { return WHILE; }
+"break"         { return BREAK; }
+"continue"      { return CONTINUE; }
 
 {Identifier}    { yylval.str_val = new string(yytext); return IDENT; }
 

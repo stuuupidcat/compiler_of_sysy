@@ -112,9 +112,8 @@ for (auto inst : bb.insts()) {
 * 如何实现代码块的划分？ if语句里还好，if语句之外要一个bool变量，判断是否需要新的代码块label。？
 * 对于常量和数字的问题采用相同的办法处理，虽然很麻烦但是不用改动太多代码。  
 * 给block加上标号。(不太行，基本块和{}还是不太一样，。)
-*   //end label需要处理，在每个块之后都要跳过去。
-*  //这些label是不是需要保存起来。end_label和谁绑定起来？作为返回值？
-* block->name选项.
+* 生成koopaIR时将if语句划分，分成不同的dumpkoopa中间穿插着label.
+* branch语句输出bnez和j即可，在处理blocks时，直接输出block->name选项.
 * ret语句之后直接跳到end:把栈指针加回来走人.
 * if block中的语句可能没有被执行.故num这种每次都要载入一下(?) **还有别的吗**
 ```riscv
@@ -132,3 +131,31 @@ L1:
 ```
 
 * 短路求值 分解. vardef 和lval傻傻分不清楚.
+
+## lv7
+上面的 Koopa IR 程序是文档作者根据经验, 模仿一个编译器生成出来的 (事实上文档里所有的 Koopa IR 示例都是这么写的) (人形编译器 MaxXing 实锤), 仅代表一种可能的 IR 生成方式.
+你会看到, 程序中出现了一个不可达的基本块 %while_body1. 这件事情在人类看来比较费解: 为什么会这样呢? 怎么会事呢? 但对于编译器的 IR 生成部分而言, 这么做是最省事的. 你也许可以思考一下背后的原因.
+
+expbranch:
+
+正常stmt挨个来
+.
+.
+.
+遇见break了：（确保一个循环里只能遇到一次break/continue）
+        jump break的label
+    break_label:
+        jump end_label
+
+        没有遇到break就要jump jump_exp的label
+    最后的jump exp还要有一个label：
+        jump jump_exp_label;       <-标记着循环的结束，然后printinstruction的时候遇到break或者continue；x
+
+    end_label:
+        ...
+
+然后printinstruction的时候遇到break或者continue就跳，跳到"jump_exp_label为止"x 跳到下一个标签就行了。
+
+每一个块后面都要是跳转或者return？
+
+//不太行，if break; 测试不过。像return一样到下一个标签就行

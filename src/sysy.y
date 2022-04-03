@@ -45,6 +45,7 @@ using namespace std;
 %token ASSIGN LT GT LE GE EQ NE  
 %token AND OR 
 %token CONST IF ELSE
+%token WHILE BREAK CONTINUE
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
@@ -53,7 +54,7 @@ using namespace std;
 %type <ast_val> Exp UnaryExp PrimaryExp UnaryOp ConstExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp MulExp AddExp
 %type <ast_val> Decl ConstDecl VarDecl ConstDef ConstInitVal BlockItems BlockItem LVal             
-%type <ast_val> VarDef InitVal IfStmt
+%type <ast_val> VarDef InitVal IfStmt WhileStmt
 
 
 %%
@@ -164,6 +165,22 @@ Stmt
     ast->ifstmt = unique_ptr<BaseAST>($1);
     $$ = ast;
   }
+  | WhileStmt {
+    auto ast = new StmtAST();
+    ast->mode = 7;
+    ast->whilestmt = unique_ptr<BaseAST>($1);
+    $$ = ast;
+  }
+  | BREAK ';' {
+    auto ast = new StmtAST();
+    ast->mode = 8;
+    $$ = ast;
+  }
+  | CONTINUE ';' {
+    auto ast = new StmtAST();
+    ast->mode = 9;
+    $$ = ast;
+  }
   ;
 
 IfStmt
@@ -182,6 +199,15 @@ IfStmt
     ast->mode = 1;
     $$ = ast;
   }
+
+WhileStmt:
+  WHILE '(' Exp ')' Stmt {
+    auto ast = new WhileStmtAST();
+    ast->exp = unique_ptr<BaseAST>($3);
+    ast->stmt = unique_ptr<BaseAST>($5);
+    $$ = ast;
+  }
+  ;
 
 Number
   : INT_CONST {

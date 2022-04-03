@@ -3,7 +3,8 @@
 int cur_avaliable_pos = 0;
 int t_reg_num = 0;
 //利用指令的指针查找二元运算指令的结果储存在栈中的哪个位置中。
-//或者利用块的指针查找块的label的number是多少。
+//或者利用块的指针查找块的label的number是多少。(不用了，label有名字)
+
 int riscv_label_num = 0;
 std::unordered_map<void*, int> inst_result;
 
@@ -273,7 +274,6 @@ int Visit (const koopa_raw_load_t& lw) {
 
 //branch instruction
 int Visit(const koopa_raw_branch_t& br) {
-  //label需要和块绑定,复用一下ins。
   std::string src = std::to_string(Visit(br.cond)) + "(sp)";
   std::string reg = "t" + std::to_string(AddReg());
   std::string true_label;
