@@ -26,6 +26,7 @@ std::vector<std::unordered_map<std::string, int>> varname_cnt;
 //循环的信息。
 std::vector<LoopData> loop_data;
 bool cur_loop_finished = false;
+std::vector<std::vector<bool>> loop_broken_or_continued;
 
 Value InsertValuedata(ValueData valuedata, Value allocated_val = 0) {
     if (allocated_val == 0) {
@@ -247,6 +248,10 @@ Value CompUnitAST::DumpKoopa()  {
     symbol_table.resize(100);
     for (auto &val: symbol_table)
         val.resize(100);
+
+    loop_broken_or_continued.resize(100);
+    for (auto &val: loop_broken_or_continued)
+        val.resize(100);
     varname_cnt.resize(100);
 
     function_num++;
@@ -275,13 +280,12 @@ Value FuncTypeAST::DumpKoopa()   {
 
 //
 Value BlockAST::DumpKoopa()   {
-    basic_block_num++;
+    enter_block();
     for (auto &blockitem:blockitems) {
         blockitem->DumpKoopa();
         
     }
-    update();
-    basic_block_num--;
+    leave_block();
     return 0;
 }
 
@@ -335,8 +339,8 @@ Value StmtAST::DumpKoopa() {
         return whilestmt->DumpKoopa();
     }
     else if (mode == 8) {
-        if (!cur_loop_finished) {
-            cur_loop_finished = true;
+        if (!loop_broken_or_continued[function_num][basic_block_num]) {
+            loop_broken_or_continued[function_num][basic_block_num] = true;
             ValueData break_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
             Value break_label_val = random();
 
@@ -356,8 +360,8 @@ Value StmtAST::DumpKoopa() {
         return 0;
     }
     else if (mode == 9) {
-        if (!cur_loop_finished) {
-            cur_loop_finished = true;
+        if (!loop_broken_or_continued[function_num][basic_block_num]) {
+            loop_broken_or_continued[function_num][basic_block_num] = true;
             ValueData ct_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
             Value ct_label_val = random();
 
@@ -395,7 +399,11 @@ Value IfStmtAST::DumpKoopa() {
         ValueData br_vd = ValueData(-1, "br", true_label_val, end_label_val, cond_value);
         InsertValuedata(br_vd);
         InsertValuedata(true_label_vd, true_label_val);
+        
+        enter_block();
         stmt->DumpKoopa();
+        leave_block();
+        
         ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd);
         InsertValuedata(end_label_vd, end_label_val);
@@ -422,15 +430,18 @@ Value IfStmtAST::DumpKoopa() {
 
         InsertValuedata(true_label_vd, true_label_val);
         
-        stmt->DumpKoopa();
-        
+        enter_block();
+        leave_block();
+
         ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd);
         
         InsertValuedata(false_label_vd, false_label_val);
         
+        enter_block();
         elsestmt->DumpKoopa();
-        
+        leave_block();
+
         ValueData jump_vd2 = ValueData(-1, "jump", end_label_val, 0);
         InsertValuedata(jump_vd2);
         
@@ -475,7 +486,9 @@ Value WhileStmtAST::DumpKoopa() {
 
     InsertValuedata(true_label_vd, true_label_val);
 
+    enter_block();  
     stmt->DumpKoopa();
+    leave_block();
 
     //连在一起的！
     ValueData jump_vd1 = ValueData(-1, "jump", jump_exp_label_val, 0);
@@ -939,6 +952,13 @@ void change_varvalue_in_symbol_table(std::string &var_name, Value cur_value) {
     }
 }
 
-void update() {
-    symbol_table[function_num].erase(symbol_table[function_num].begin() + basic_block_num);
+void enter_block() {
+    basic_block_num++;
+    symbol_table[function_num].push_back(std::unordered_map<std::string, VariableInfo>());
+    loop_broken_or_continued[function_num].push_back(false);
+}
+void leave_block() {
+    symbol_table[function_num].pop_back();
+    loop_broken_or_continued[function_num].pop_back();
+    basic_block_num--;
 }

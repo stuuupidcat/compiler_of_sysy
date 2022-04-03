@@ -142,7 +142,7 @@ expbranch:
 .
 .
 .
-遇见break了：（确保一个循环里只能遇到一次break/continue）
+遇见break了：（确保一个*循环*（对吗？）里只能遇到一次break/continue）
         jump break的label
     break_label:
         jump end_label
@@ -159,3 +159,7 @@ expbranch:
 每一个块后面都要是跳转或者return？
 
 //不太行，if break; 测试不过。像return一样到下一个标签就行
+
+
+if或者while的stmt不是block的时候，也要+-block块。
+然后每一个块中只能有一个break或者continue。

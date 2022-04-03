@@ -64,7 +64,8 @@ ValueData AllocateValueData(int, std::string&, Value, Value, std::string);
 //各种指令的输出
 void PrintInstruction();
 //,以及符号表的删除。
-void update();
+void enter_block();
+void leave_block();
 
 class BaseAST {
 public:
