@@ -431,6 +431,7 @@ Value IfStmtAST::DumpKoopa() {
         InsertValuedata(true_label_vd, true_label_val);
         
         enter_block();
+        stmt->DumpKoopa();
         leave_block();
 
         ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
