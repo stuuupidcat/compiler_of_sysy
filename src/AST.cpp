@@ -479,15 +479,16 @@ Value WhileStmtAST::DumpKoopa() {
 
     //jump exp_label
     //end_label
-
+    
     ValueData exp_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
     Value exp_label_val = random();
     ValueData true_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
     Value true_label_val = random();
-    ValueData end_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-    Value end_label_val = random();
     ValueData jump_exp_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
     Value jump_exp_label_val = random();
+    ValueData end_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
+    Value end_label_val = random();
+    
     
     //更新循环信息。
     loop_data.push_back(LoopData(exp_label_val, true_label_val, jump_exp_label_val, end_label_val));
@@ -980,6 +981,6 @@ void enter_block() {
 }
 void leave_block() {
     symbol_table[function_num].erase(symbol_table[function_num].begin() + basic_block_num);
-    loop_broken_or_continued[function_num].pop_back();
+    loop_broken_or_continued[function_num].erase(loop_broken_or_continued[function_num].begin() + basic_block_num);
     basic_block_num--;
 }

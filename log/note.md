@@ -165,3 +165,45 @@ if或者while的stmt不是block的时候，也要+-block块。
 然后每一个块中只能有一个break或者continue。
 
 "fix a bug: leave_block's pop_back"
+
+fun @main(): i32 {
+%entry:
+  @i_1 = alloc i32
+  store 0, @i_1
+  jump %L0
+%L0:
+  %0 = load @i_1
+  %1 = lt %0, 10
+  br %1, %L1, %L2
+%L1:
+  %2 = load @i_1
+  %3 = lt %2, 5
+  br %3, %L4, %L5
+%L4:
+  %4 = load @i_1
+  %5 = add %4, 1
+  store %5, @i_1
+  jump %L7
+%L7:
+  jump %L0
+%L5:
+  jump %L6
+%L6:
+  jump %L3
+%L3:
+  jump %L0
+%L2:
+  ret 0
+}
+
+int main() {
+  int i = 0;
+  while (i < 10) {
+    if (i < 5) {
+      i = i+1;
+      continue;
+    }
+    else break;
+  }
+  return 0;
+}
