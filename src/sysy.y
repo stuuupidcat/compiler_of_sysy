@@ -56,6 +56,10 @@ using namespace std;
 %type <ast_val> Decl ConstDecl VarDecl ConstDef ConstInitVal BlockItems BlockItem LVal             
 %type <ast_val> VarDef InitVal IfStmt WhileStmt
 
+//https://stackoverflow.com/questions/12731922/reforming-the-grammar-to-remove-shift-reduce-conflict-in-if-then-else
+// Precedences go increasing, so "then" < "else".
+%precedence THEN
+%precedence ELSE
 
 %%
 
@@ -184,14 +188,14 @@ Stmt
   ;
 
 IfStmt
-  : IF '(' Exp ')' Stmt {
+  : IF '(' Exp ')' Stmt              %prec THEN {            
     auto ast = new IfStmtAST();
     ast->exp = unique_ptr<BaseAST>($3);
     ast->stmt = unique_ptr<BaseAST>($5);
     ast->mode = 0;
     $$ = ast;
   }
-  | IF '(' Exp ')' Stmt ELSE Stmt {
+  | IF '(' Exp ')' Stmt ELSE Stmt    %prec ELSE{
     auto ast = new IfStmtAST();
     ast->exp = unique_ptr<BaseAST>($3);
     ast->stmt = unique_ptr<BaseAST>($5);
