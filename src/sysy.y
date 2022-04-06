@@ -42,7 +42,7 @@ using namespace std;
 // lexer 返回的所有 token 种类的声明
 // 注意 IDENT 和 INT_CONST 会返回 token 的值, 分别对应 str_val 和 int_val
 %token INT RETURN
-%token ASSIGN LT GT LE GE EQ NE  
+%token ASSIGN LT GT LE GE EQ NE ADD SUB
 %token AND OR 
 %token CONST IF ELSE
 %token WHILE BREAK CONTINUE
@@ -58,8 +58,14 @@ using namespace std;
 
 //https://stackoverflow.com/questions/12731922/reforming-the-grammar-to-remove-shift-reduce-conflict-in-if-then-else
 // Precedences go increasing, so "then" < "else".
+// 越靠下的见到 优先shift
 %precedence THEN
 %precedence ELSE
+
+%precedence LE GE LT GT
+%precedence ADD SUB
+
+
 
 %%
 
@@ -269,12 +275,12 @@ PrimaryExp
   ;
 
 UnaryOp
-  : '+' {
+  : ADD {
     auto ast = new UnaryOpAST();
     ast -> mode = 0;
     $$ = ast;
   }
-  | '-' {
+  | SUB {
     auto ast = new UnaryOpAST();
     ast -> mode = 1;
     $$ = ast;
@@ -323,14 +329,14 @@ AddExp
     ast -> mode = 0;
     $$ = ast;
   }
-  | AddExp '+' MulExp {
+  | AddExp ADD MulExp  {
     auto ast = new AddExpAST();
     ast -> addexp = unique_ptr<BaseAST>($1);
     ast -> mulexp = unique_ptr<BaseAST>($3);
     ast -> mode = 1;
     $$ = ast;
   }
-  | AddExp '-' MulExp {
+  | AddExp SUB MulExp {
     auto ast = new AddExpAST();
     ast -> addexp = unique_ptr<BaseAST>($1);
     ast -> mulexp = unique_ptr<BaseAST>($3);
@@ -340,27 +346,27 @@ AddExp
   ;
 
 RelExp
-  : AddExp {
+  : AddExp  %prec LT {
     auto ast = new RelExpAST();
     ast -> addexp = unique_ptr<BaseAST>($1);
     ast->mode = 0;
     $$ = ast;
   }
-  | RelExp LT AddExp {
+  | RelExp LT AddExp  {
     auto ast = new RelExpAST();
     ast->relexp = unique_ptr<BaseAST>($1);
     ast->addexp = unique_ptr<BaseAST>($3);
     ast->mode = 1;
     $$ = ast;
   }
-  | RelExp GT AddExp {
+  | RelExp GT AddExp  {
     auto ast = new RelExpAST();
     ast->relexp = unique_ptr<BaseAST>($1);
     ast->addexp = unique_ptr<BaseAST>($3);
     ast->mode = 2;
     $$ = ast;
   }
-  | RelExp LE AddExp {
+  | RelExp LE AddExp  {
     auto ast = new RelExpAST();
     ast->relexp = unique_ptr<BaseAST>($1);
     ast->addexp = unique_ptr<BaseAST>($3);

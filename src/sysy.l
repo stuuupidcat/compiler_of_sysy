@@ -30,6 +30,8 @@ Octal         0[0-7]*
 Hexadecimal   0[xX][0-9a-fA-F]+
 
 /* "=" "<" ">" "<="  ">=" "==" "!=" "&&" "||" */
+AddSign            \+
+SubSign            -
 AssignSign         = 
 LessThanSign       <
 GreaterThanSign    >
@@ -61,6 +63,9 @@ OrSign             \|\|
 {Octal}         { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
 {Hexadecimal}   { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
 
+
+{AddSign}             {return ADD; }
+{SubSign}             {return SUB; }
 {AssignSign}          {return ASSIGN;}
 {LessThanSign}        {return LT;}
 {GreaterThanSign}     {return GT;}
