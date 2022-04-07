@@ -207,3 +207,20 @@ int main() {
   }
   return 0;
 }
+
+
+## lv8
+
+在yacc中插入vardecl，对参数进行处理。
+
+函数的名字是 function_x;
+全局变量的名字是 global_x;
+二者的作用域都是0号
+
+参数的本质是数字
+
+//The Bison parser detects a syntax error (or parse error) whenever it reads a token which cannot satisfy any syntax rule. An action in the grammar can also explicitly proclaim an error, using the macro YYERROR (see Special Features for Use in Actions).
+
+分号？
+
+编译期求值实现。

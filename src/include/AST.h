@@ -11,6 +11,7 @@
 #include <unordered_map>
 
 class BaseAST;
+class DeclAST;
 class ValueData;
 //*****abort**********************************************************
 //Record the instructions as (key, value) in an unordered-map.********
@@ -40,9 +41,16 @@ public:
     Value jump_cond=0;
 
     //load指令中变量的名字。
-    std::string variable_name;
+    //函数的名字
+    std::string symbol_name;
 
-    ValueData(int, std::string, Value, Value, Value, std::string);
+    //调用函数的参数
+    std::vector<Value> parameters;
+
+    //alloc的初始化器
+    int initializer;
+
+    ValueData(int, std::string, Value, Value, Value, std::string, int);
     ValueData() = default;
     
     std::string format();
@@ -76,39 +84,59 @@ public:
     std::string ident;
     //变量通过下标处理后的名字。
     std::string ident_id;
+    
+    //作为一个算数表达式的结果。
+    int exp_val;
 };  
 
-class VariableInfo {
+class SymbolInfo {
 public:
     Value value;
+    int exp_val;
     bool is_const_variable = false;
-    VariableInfo(Value, bool);
-    VariableInfo() = default;
+    bool is_function = false;
+    bool is_void_function = false;
+    SymbolInfo(Value, int,  bool, bool, bool);
+    SymbolInfo() = default;
 };
 
-
+//CompUnit    ::= [CompUnit] FuncDef;
 class CompUnitAST : public BaseAST {
 public:
   // 用智能指针管理对象
-    std::unique_ptr<BaseAST> func_def;
-    
+    std::vector<std::unique_ptr<BaseAST>> funcdefs;
+    std::vector<std::unique_ptr<BaseAST>> decls;
     virtual Value DumpKoopa()  override;
 };
 
 
-// FuncDef 也是 BaseAST
+// FuncDef ::= FuncType IDENT "(" [FuncFParams] ")" Block;
+//mode = 0: VOID 无参数
+//mode = 1: VOID 有参数
+//mode = 2: INT 无参数
+//mode = 3: INT 有参数
 class FuncDefAST : public BaseAST {
 public:
-    std::unique_ptr<BaseAST> func_type;
+    //不知道有没有。用个vector。
+    std::unique_ptr<BaseAST> funcfparams;
+    //参数声明为x0，新建变量声明为x1
+    std::vector<std::unique_ptr<BaseAST>> vardecls;
     std::unique_ptr<BaseAST> block;
-    
+
     virtual Value DumpKoopa()  override;
 };
 
-class FuncTypeAST : public BaseAST {   
+//FuncFParams ::= FuncFParam {"," FuncFParam};
+class FuncFParamsAST : public BaseAST {
 public:
-    std:: string s_int = "int";
-    
+    std::vector<std::unique_ptr<BaseAST>> funcfparams;
+
+    virtual Value DumpKoopa()  override;
+};
+
+//FuncFParam  ::= BType IDENT;
+class FuncFParamAST : public BaseAST {
+public:
     virtual Value DumpKoopa()  override;
 };
 
@@ -117,6 +145,14 @@ class BlockAST : public BaseAST {
 public:
     std::vector<std::unique_ptr<BaseAST>> blockitems;
     
+    virtual Value DumpKoopa()  override;
+};
+
+//FuncRParams ::= Exp {"," Exp};
+class FuncRParamsAST : public BaseAST {
+public:
+    std::vector<std::unique_ptr<BaseAST>> exps;
+
     virtual Value DumpKoopa()  override;
 };
 
@@ -182,11 +218,14 @@ public:
 //UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
 //mode == 0 -> PrimaryExp
 //mode == 1 -> UnaryOp UnaryExp
+//mode == 2 ->  IDENT "(" ")"
+//mode == 3 ->  IDENT "(" [FuncRParams] ")"
 class UnaryExpAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> primaryexp;
     std::unique_ptr<BaseAST> unaryop;
     std::unique_ptr<BaseAST> unaryexp;
+    std::unique_ptr<FuncRParamsAST> funcrparams;
 
     virtual Value DumpKoopa()  override;           
 };
@@ -360,6 +399,6 @@ public:
 };
 
 //向外层嵌套查找变量
-std::unordered_map<std::string, VariableInfo>::iterator find_var_in_symbol_table(std::string&);
+std::unordered_map<std::string, SymbolInfo>::iterator find_var_in_symbol_table(std::string&);
 void change_varvalue_in_symbol_table(std::string&, Value);
 

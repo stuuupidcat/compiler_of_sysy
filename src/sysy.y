@@ -12,9 +12,10 @@
 
 
 // 声明 lexer 函数和错误处理函数
-class BaseAST;
+//class BaseAST;
+class CompUnitAST;
 int yylex();
-void yyerror(std::unique_ptr<BaseAST> &ast, const char *s);
+void yyerror(std::unique_ptr<CompUnitAST> &ast, const char *s);
 
 using namespace std;
 
@@ -24,7 +25,7 @@ using namespace std;
 // 我们需要返回一个字符串作为 AST, 所以我们把附加参数定义成字符串的智能指针
 // 解析完成后, 我们要手动修改这个参数, 把它设置成解析得到的字符串
 // (其他相关声明修改？)
-%parse-param { std::unique_ptr<BaseAST> &ast }
+%parse-param { std::unique_ptr<CompUnitAST> &ast }
 
 
 // yylval 的定义, 我们把它定义成了一个联合体 (union)
@@ -36,12 +37,13 @@ using namespace std;
   std::string *str_val;
   int int_val;
   BaseAST *ast_val;
+  FuncRParamsAST *param_val;
 }
 
 
 // lexer 返回的所有 token 种类的声明
 // 注意 IDENT 和 INT_CONST 会返回 token 的值, 分别对应 str_val 和 int_val
-%token INT RETURN
+%token INT VOID RETURN
 %token ASSIGN LT GT LE GE EQ NE ADD SUB
 %token AND OR 
 %token CONST IF ELSE
@@ -50,11 +52,13 @@ using namespace std;
 %token <int_val> INT_CONST
 
 // 非终结符的类型定义
-%type <ast_val> FuncDef FuncType Block Stmt Number 
+%type <ast_val> CompUnit FuncDef Block Stmt Number 
 %type <ast_val> Exp UnaryExp PrimaryExp UnaryOp ConstExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp MulExp AddExp
-%type <ast_val> Decl ConstDecl VarDecl ConstDef ConstInitVal BlockItems BlockItem LVal             
+%type <ast_val> ConstDef ConstInitVal BlockItems BlockItem LVal             
 %type <ast_val> VarDef InitVal IfStmt WhileStmt
+%type <ast_val> FuncFParams FuncFParam Decl ConstDecl VarDecl
+%type <param_val> FuncRParams
 
 //https://stackoverflow.com/questions/12731922/reforming-the-grammar-to-remove-shift-reduce-conflict-in-if-then-else
 // Precedences go increasing, so "then" < "else".
@@ -65,40 +69,130 @@ using namespace std;
 %precedence LE GE LT GT
 %precedence ADD SUB
 
+%precedence lval
+%precedence '(' ')'
 
+%start CompUnit
 
 %%
 
+//CompUnit ::= [CompUnit] (Decl | FuncDef);
 CompUnit
   : FuncDef {
-    auto comp_unit = make_unique<CompUnitAST>();
-    comp_unit->func_def = unique_ptr<BaseAST>($1);
-    ast = move(comp_unit);
+    auto compunit = make_unique<CompUnitAST>();
+    compunit->funcdefs.push_back(unique_ptr<BaseAST>($1));
+    ast = move(compunit);
   }
+  | Decl {
+    auto compunit = make_unique<CompUnitAST>();
+    compunit->decls.push_back(unique_ptr<BaseAST>($1));
+    ast = move(compunit);
+  }
+  | CompUnit FuncDef{
+    ast->funcdefs.push_back(unique_ptr<BaseAST>($2));
+  }
+  
+  | CompUnit Decl{
+    ast->decls.push_back(unique_ptr<BaseAST>($2));
+  }
+  | CompUnit ';'
+  {}
+  
   ;
 
-//expr : expr PLUS term {语义动作}
-//     | term {语义动作}
-//     ; 
-// FuncDef ::= FuncType IDENT '(' ')' Block;
-// 我们这里可以直接写 '(' 和 ')', 因为之前在 lexer 里已经处理了单个字符的情况
-// 解析完成后, 把这些符号的结果收集起来, 然后拼成一个新的字符串, 作为结果返回
-// $$ 表示非终结符的返回值、
+
 FuncDef
-  : FuncType IDENT '(' ')' Block {
+  : VOID IDENT '(' ')' Block {
     auto ast = new FuncDefAST();
-    ast->func_type = unique_ptr<BaseAST>($1); // dollar符号匹配了该代码块第二行的参数
+    ast->mode = 0;
     ast->ident = *unique_ptr<string>($2);
     ast->block = unique_ptr<BaseAST>($5);
     $$ = ast;
   }
+  | VOID IDENT '(' FuncFParams ')' Block {
+    auto ast = new FuncDefAST();
+    ast->mode = 1;
+    ast->ident = *unique_ptr<string>($2);
+    ast->funcfparams = unique_ptr<BaseAST>($4);
+    ast->block = unique_ptr<BaseAST>($6);
+
+    auto vardecl = new VarDeclAST();
+
+    for (auto& param : ((FuncFParamsAST*)$4)->funcfparams) {
+        auto number = new NumberAST();
+        number->ident = param->ident;
+        
+        auto vardef = new VarDefAST();
+        vardef->ident = param->ident;
+        vardef->initval = unique_ptr<BaseAST>(number);
+        vardef->mode = 1;
+        vardecl->vardefs.push_back(unique_ptr<BaseAST>(vardef));
+    }
+    ast->vardecls.push_back(unique_ptr<BaseAST>(vardecl));
+    $$ = ast;
+  }
+  | INT IDENT '(' ')' Block {
+    auto ast = new FuncDefAST();
+    ast->mode = 2;
+    ast->ident = *unique_ptr<string>($2);
+    ast->block = unique_ptr<BaseAST>($5);
+    $$ = ast;
+  }
+  | INT IDENT '(' FuncFParams ')' Block {
+    auto ast = new FuncDefAST();
+    ast->mode = 3;
+    ast->ident = *unique_ptr<string>($2);
+    ast->funcfparams = unique_ptr<BaseAST>($4);
+    ast->block = unique_ptr<BaseAST>($6);
+
+    auto vardecl = new VarDeclAST();
+
+    for (auto& param : ((FuncFParamsAST*)$4)->funcfparams) {
+        auto number = new NumberAST();
+        number->ident = param->ident;
+        
+        auto vardef = new VarDefAST();
+        vardef->ident = param->ident;
+        vardef->initval = unique_ptr<BaseAST>(number);
+        vardef->mode = 1;
+        vardecl->vardefs.push_back(unique_ptr<BaseAST>(vardef));
+    }
+    ast->vardecls.push_back(unique_ptr<BaseAST>(vardecl));
+    $$ = ast;
+  }
+  ;
+//FuncFParams ::= FuncFParam {"," FuncFParam};
+FuncFParams
+  : FuncFParam {
+    auto ast = new FuncFParamsAST();
+    ast->funcfparams.push_back(unique_ptr<BaseAST>($1));
+    $$ = ast;
+  }
+  | FuncFParams ',' FuncFParam {
+    ((FuncFParamsAST*)$1)->funcfparams.push_back(unique_ptr<BaseAST>($3));
+    $$ = $1;
+  }
   ;
 
-// 同上, 不再解释
-FuncType
-  : INT {
-    auto ast = new FuncTypeAST();
+//FuncFParam  ::= INT IDENT;
+FuncFParam
+  : INT IDENT {
+    auto ast = new FuncFParamAST();
+    ast->ident = *unique_ptr<string>($2);
     $$ = ast;
+  }
+  ;
+
+//FuncRParams ::= Exp {"," Exp};
+FuncRParams
+  : Exp {
+    auto ast = new FuncRParamsAST();
+    ast->exps.push_back(unique_ptr<BaseAST>($1));
+    $$ = ast;
+  }
+  | FuncRParams ',' Exp {
+    (((FuncRParamsAST*)$1)->exps).push_back(unique_ptr<BaseAST>($3));
+    $$ = $1;
   }
   ;
 
@@ -249,6 +343,19 @@ UnaryExp
     ast -> unaryop = unique_ptr<BaseAST>($1);
     ast -> unaryexp = unique_ptr<BaseAST>($2);
     ast -> mode = 1;
+    $$ = ast;
+  }
+  | IDENT '(' ')' {
+    auto ast = new UnaryExpAST();
+    ast -> ident = *unique_ptr<string>($1);
+    ast -> mode = 2;
+    $$ = ast;
+  }
+  | IDENT '(' FuncRParams ')' {
+    auto ast = new UnaryExpAST();
+    ast->mode = 3;
+    ast->ident = *unique_ptr<string>($1);
+    ast->funcrparams = unique_ptr<FuncRParamsAST>($3);
     $$ = ast;
   }
   ;
@@ -498,7 +605,7 @@ BlockItem
   ;
 
 LVal
-  :IDENT {
+  :IDENT %prec lval{
     auto ast = new LValAST();
     ast->ident = *unique_ptr<string>($1);
     $$ = ast;
@@ -553,6 +660,6 @@ InitVal
 
 // 定义错误处理函数, 其中第二个参数是错误信息
 // parser 如果发生错误 (例如输入的程序出现了语法错误), 就会调用这个函数
-void yyerror(unique_ptr<BaseAST> &ast, const char *s) {
+void yyerror(unique_ptr<CompUnitAST> &ast, const char *s) {
   cerr << "error: " << s << endl;
 }
