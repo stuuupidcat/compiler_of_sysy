@@ -389,6 +389,8 @@ Value FuncDefAST::DumpKoopa()   {
     std::cout << " {" << std::endl;
     std::cout << "%entry:" << std::endl;
     need_label = false;
+    enter_block();
+
     for (auto& vardecl: vardecls) {
         vardecl->DumpKoopa();
     }
@@ -399,6 +401,9 @@ Value FuncDefAST::DumpKoopa()   {
     Value val = InsertValueDataToAll(vd);
     InsertValueDataToBlock(vd, val);
     PrintInstruction();
+
+    leave_block();
+
     std::cout << '}' << std::endl << std::endl;
     return 0;
 }
@@ -1182,10 +1187,10 @@ Value DeclAST::DumpKoopa() {
 
 Value ConstDeclAST::DumpKoopa() {
     for (auto& constdef: constdefs) {
-        //print_ins = false;
+        print_ins = false;
         constdef->DumpKoopa();
     }
-    //print_ins = true;
+    print_ins = true;
     return 0;
 }
 
