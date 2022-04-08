@@ -865,7 +865,7 @@ Value MulExpAST::DumpKoopa()  {
             exp_val = mulexp->exp_val * unaryexp->exp_val;
         }
         else if (mode == 2) {
-            if (exp_val != 0) {
+            if (unaryexp->exp_val != 0) {
                 exp_val = mulexp->exp_val / unaryexp->exp_val;
             }
             else {
@@ -874,7 +874,7 @@ Value MulExpAST::DumpKoopa()  {
             //exp_val = mulexp->exp_val / unaryexp->exp_val;
         }
         else if (mode == 3) {
-            if (exp_val != 0) {
+            if (unaryexp->exp_val != 0) {
                 exp_val = mulexp->exp_val % unaryexp->exp_val;
             }
             else {
