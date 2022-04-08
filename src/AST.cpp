@@ -13,11 +13,11 @@ std::vector<int> basic_block_num;
 //label的个数;
 int label_num = 0;
 
-//unordered_map的集合，下标为当前的(scope_num)
-std::vector<std::unordered_map<Value, ValueData>> function_insts;
+std::unordered_map<Value, ValueData> block_insts;
+std::unordered_map<Value, ValueData> all_insts;
+std::vector<Value> block_values;
+std::vector<Value> all_values;
 
-//unordered_map中key的集合，下标为当前的(scope_num)
-std::vector<std::vector<Value>> function_values;
 
 //符号表。下标为当前的(scope_num, block_num)
 std::vector<std::vector<std::unordered_map<std::string, SymbolInfo>>> symbol_table; 
@@ -28,25 +28,26 @@ std::vector<std::unordered_map<std::string, int>> symbolname_cnt;
 std::vector<LoopData> loop_data;
 std::vector<std::vector<bool>> loop_broken_or_continued;
 
-//编译器求值
+//编译期求值
 bool print_ins = true;
+//需要输出一个标签
+bool need_label = false;
 
-Value InsertValuedata(ValueData valuedata, Value allocated_val = 0) {
-    if (allocated_val == 0) {
-        Value value = random();
-        if (print_ins)  {
-            function_insts[scope_num].insert(std::make_pair(value, valuedata));
-            function_values[scope_num].push_back(value);
-        }
-        return value;
+void InsertValueDataToBlock(ValueData valuedata, Value allocated_val) {
+    if (print_ins) {
+        block_insts.insert(std::make_pair(allocated_val, valuedata));
+        block_values.push_back(allocated_val);
+        all_insts.insert(std::make_pair(allocated_val, valuedata));
+        all_values.push_back(allocated_val);
     }
-    else {
-        if (print_ins) {
-            function_insts[scope_num].insert(std::make_pair(allocated_val, valuedata));
-            function_values[scope_num].push_back(allocated_val);
-        }
-        return allocated_val;
-    }
+}
+
+//To block之前必须toall
+Value InsertValueDataToAll(ValueData valuedata) {
+    Value val = random();
+    all_insts.insert(std::make_pair(val, valuedata));
+    all_values.push_back(val);
+    return val;
 }
 LoopData::LoopData(Value exp_label_value_, Value true_label_value_, Value jump_exp_label_value_, Value end_label_value_) {
     exp_label_value = exp_label_value_;
@@ -56,32 +57,35 @@ LoopData::LoopData(Value exp_label_value_, Value true_label_value_, Value jump_e
 }
 
 void PrintInstruction() {
-    int instruction_num = function_values[scope_num].size();
-    for (int i = 0; i < instruction_num; ++i) {
-        auto vd = function_insts[scope_num][function_values[scope_num][i]];
+    int instruction_num = block_values.size();
+    int i = 0;
+    if (need_label) {
+        for (; i < instruction_num; ++i) {
+            auto vd = block_insts[block_values[i]];
+            if (vd.inst_type == "label") {
+                //std::cout << vd.format() << std::endl;
+                need_label = false;
+                break;
+            }
+        }
+    }
+    
+    for (; i < instruction_num; ++i) {
+        auto vd = block_insts[block_values[i]];
         if (vd.inst_type == "return" || vd.inst_type == "break" || vd.inst_type == "continue") {     
             std::cout << "  "  << vd.format();    
-            while (vd.inst_type != "label" && i < instruction_num) {
-                i++;
-                vd = function_insts[scope_num][function_values[scope_num][i]];
-            }
+            //while (vd.inst_type != "label" && i < instruction_num) {
+            //    i++;
+            //    vd = block_insts[block_values[i]];
+            //}
             //改一点点就报错x
-            i = i - 1;
-            continue;
+            //i = i - 1;
+            //continue;
+            //return;
+            need_label = true;
+            break;
         }
-        //要调到循环结尾的jump_exp_label
-        //if (vd.inst_type == "break" || vd.inst_type == "continue") {
-        //    std::cout << "  "  << vd.format();
-        //    i++;
-        //    auto temp = function_insts[scope_num][function_values[scope_num][i]];
-        //    //vd的rhs是要跳转的地方，label的lhs是想要找到的东西。
-        //    //有趣的是label没有lhs，而和他连在一起的jump有这个value
-        //    while (temp.lhs != vd.rhs && i < instruction_num) {
-        //        i++;
-        //        temp = function_insts[scope_num][function_values[scope_num][i]];
-        //    }
-        //    continue;
-        //}
+        //要调到循环结尾的jump_exp_label 不用
         if (vd.inst_type == "label") {
             std::cout << vd.format();
         }
@@ -91,6 +95,8 @@ void PrintInstruction() {
         else if (vd.inst_type != "number" && vd.inst_type != "lval")
             std::cout << "  " <<vd.format();
     }
+    block_insts.erase(block_insts.begin(), block_insts.end());
+    block_values.erase(block_values.begin(), block_values.end());
 }
 
 SymbolInfo::SymbolInfo(Value value_, int exp_val_, bool is_const_, bool is_func_, bool is_void_) {
@@ -122,13 +128,13 @@ std::string ValueData::format() {
     //寻找对应的ValueData。
     //向外寻找
     if (lhs != 0) {
-        lhs_vd = function_insts[scope_num][lhs];
+        lhs_vd = all_insts[lhs];
     }
     if (rhs != 0) {
-        rhs_vd = function_insts[scope_num][rhs];
+        rhs_vd = all_insts[rhs];
     }
     if (jump_cond != 0) {
-        jump_cond_vd = function_insts[scope_num][jump_cond];
+        jump_cond_vd = all_insts[jump_cond];
     }
     if (symbol_name != "" && inst_type != "call") {
         for (int i = basic_block_num[scope_num]; i>=0; --i) {
@@ -161,7 +167,7 @@ std::string ValueData::format() {
         int cnt = 0;
         for (auto val: parameters) {
             if (cnt >= 1) {res += ", ";}
-            ValueData param_vd = function_insts[scope_num][val];
+            ValueData param_vd = all_insts[val];
             if (param_vd.inst_type == "number" || param_vd.inst_type == "lval") {
                 res += param_vd.format();
             }
@@ -306,8 +312,9 @@ Value CompUnitAST::DumpKoopa()  {
     std::cout << "decl @putarray(i32, *i32)\n";
     std::cout << "decl @starttime()\n";
     std::cout << "decl @stoptime()\n\n";
-    function_insts.resize(100);
-    function_values.resize(100);
+
+
+
     symbol_table.resize(100);
     for (auto &val: symbol_table)
         val.resize(100);
@@ -379,12 +386,16 @@ Value FuncDefAST::DumpKoopa()   {
     
     std::cout << " {" << std::endl;
     std::cout << "%entry:" << std::endl;
+    need_label = false;
     for (auto& vardecl: vardecls) {
         vardecl->DumpKoopa();
     }
+    PrintInstruction();
+
     block -> DumpKoopa();
-    ValueData vd = ValueData(-1, "return", 0, 0);
-    InsertValuedata(vd);
+    ValueData vd = ValueData(-1, "return", 0, 0, 0, "", 0);
+    Value val = InsertValueDataToAll(vd);
+    InsertValueDataToBlock(vd, val);
     PrintInstruction();
     std::cout << '}' << std::endl << std::endl;
     return 0;
@@ -393,11 +404,10 @@ Value FuncDefAST::DumpKoopa()   {
 //
 Value BlockAST::DumpKoopa()   {
     enter_block();
-    for (auto &blockitem:blockitems) {
-        blockitem->DumpKoopa();
-        
+    int len = blockitems.size();
+    for (int i = 0; i < len; ++i) {
+        blockitems[i]->DumpKoopa();
     }
-
     leave_block();
     return 0;
 }
@@ -440,13 +450,15 @@ Value StmtAST::DumpKoopa() {
         Value lhs_value = exp->DumpKoopa();
         Value rhs_value = 0;
         ValueData vd = ValueData(-1, "return", lhs_value, rhs_value);
-        Value this_value = InsertValuedata(vd);
-        return this_value;
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val;
     }
     else if (mode == 2) {
         ValueData vd = ValueData(-1, "return", 0, 0);
-        Value this_value = InsertValuedata(vd);
-        return this_value;
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val;
     }
     else if (mode == 3) { //lval = exp;
         //if lval是变量。
@@ -462,9 +474,9 @@ Value StmtAST::DumpKoopa() {
         //但是需要改动符号表中的值。
         change_varvalue_in_symbol_table(lval->ident_id, lhs_value);
         
-        
-        Value this_value = InsertValuedata(vd);
-        return this_value;
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val;
     }
     else if (mode == 4) { // exp;
         //求值但被丢弃。
@@ -483,17 +495,18 @@ Value StmtAST::DumpKoopa() {
         if (!loop_broken_or_continued[scope_num][basic_block_num[scope_num]]) {
             loop_broken_or_continued[scope_num][basic_block_num[scope_num]] = true;
             ValueData break_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-            Value break_label_val = random();
+            Value break_label_val = InsertValueDataToAll(break_label_vd);
 
             ValueData jump_vd1 = ValueData(-1, "jump", break_label_val, 0);
-            InsertValuedata(jump_vd1);
+            Value jump_vd1_val = InsertValueDataToAll(jump_vd1);
 
-
-            InsertValuedata(break_label_vd, break_label_val);
+            InsertValueDataToBlock(jump_vd1, jump_vd1_val);
+            InsertValueDataToBlock(break_label_vd, break_label_val);
 
             //lhs是要跳的地方，rhs是要跳过接下来的语句，直到一个循环结束的标签。
             ValueData jump_vd2 = ValueData(-1, "break", loop_data[loop_data.size()-1].end_label_value, loop_data[loop_data.size()-1].jump_exp_label_value);
-            InsertValuedata(jump_vd2);
+            Value jump_vd2_val = InsertValueDataToAll(jump_vd2);
+            InsertValueDataToBlock(jump_vd2, jump_vd2_val);
 
             //loop_data.erase(loop_data.end()-1);
             
@@ -506,15 +519,17 @@ Value StmtAST::DumpKoopa() {
         if (!loop_broken_or_continued[scope_num][basic_block_num[scope_num]]) {
             loop_broken_or_continued[scope_num][basic_block_num[scope_num]] = true;
             ValueData ct_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-            Value ct_label_val = random();
+            Value ct_label_val = InsertValueDataToAll(ct_label_vd);
 
             ValueData jump_vd1 = ValueData(-1, "jump", ct_label_val, 0);
-            InsertValuedata(jump_vd1);
+            Value jump_vd1_val = InsertValueDataToAll(jump_vd1);
+            InsertValueDataToBlock(jump_vd1, jump_vd1_val);
 
-            InsertValuedata(ct_label_vd, ct_label_val);
+            InsertValueDataToBlock(ct_label_vd, ct_label_val);
 
             ValueData jump_vd2 = ValueData(-1, "continue", loop_data[loop_data.size()-1].exp_label_value, loop_data[loop_data.size()-1].jump_exp_label_value);
-            InsertValuedata(jump_vd2);
+            Value jump_vd2_val = InsertValueDataToAll(jump_vd2);
+            InsertValueDataToBlock(jump_vd2, jump_vd2_val);
 
             //不需要更新循环信息
             return 0;
@@ -536,12 +551,13 @@ Value IfStmtAST::DumpKoopa() {
         //end_label
         Value cond_value = exp->DumpKoopa();
         ValueData true_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-        Value true_label_val = random();
+        Value true_label_val = InsertValueDataToAll(true_label_vd);
         ValueData end_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-        Value end_label_val = random();
+        Value end_label_val = InsertValueDataToAll(end_label_vd);
         ValueData br_vd = ValueData(-1, "br", true_label_val, end_label_val, cond_value);
-        InsertValuedata(br_vd);
-        InsertValuedata(true_label_vd, true_label_val);
+        Value br_val = InsertValueDataToAll(br_vd);
+        InsertValueDataToBlock(br_vd, br_val);
+        InsertValueDataToBlock(true_label_vd, true_label_val);
         
         if (stmt->mode != 5) {
             enter_block();
@@ -552,8 +568,9 @@ Value IfStmtAST::DumpKoopa() {
             stmt->DumpKoopa();
         }
         ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
-        InsertValuedata(jump_vd);
-        InsertValuedata(end_label_vd, end_label_val);
+        Value jump_val = InsertValueDataToAll(jump_vd);
+        InsertValueDataToBlock(jump_vd, jump_val);
+        InsertValueDataToBlock(end_label_vd, end_label_val);
     }
     else if (mode == 1) {
         //exp
@@ -566,16 +583,17 @@ Value IfStmtAST::DumpKoopa() {
         //end_label
         Value cond_value = exp->DumpKoopa();
         ValueData true_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-        Value true_label_val = random();
+        Value true_label_val = InsertValueDataToAll(true_label_vd);
         ValueData false_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-        Value false_label_val = random();
+        Value false_label_val = InsertValueDataToAll(false_label_vd);
         ValueData end_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-        Value end_label_val = random();
+        Value end_label_val = InsertValueDataToAll(end_label_vd);
 
         ValueData br_vd = ValueData(-1, "br", true_label_val, false_label_val, cond_value);
-        InsertValuedata(br_vd);
+        Value br_vd_val = InsertValueDataToAll(br_vd);
+        InsertValueDataToBlock(br_vd, br_vd_val);
 
-        InsertValuedata(true_label_vd, true_label_val);
+        InsertValueDataToBlock(true_label_vd, true_label_val);
         
         if (stmt->mode != 5) {
             enter_block();
@@ -587,9 +605,10 @@ Value IfStmtAST::DumpKoopa() {
         }
 
         ValueData jump_vd = ValueData(-1, "jump", end_label_val, 0);
-        InsertValuedata(jump_vd);
+        Value jump_vd_val = InsertValueDataToAll(jump_vd);
+        InsertValueDataToBlock(jump_vd, jump_vd_val);
         
-        InsertValuedata(false_label_vd, false_label_val);
+        InsertValueDataToBlock(false_label_vd, false_label_val);
         
         if (elsestmt->mode != 5) {
             enter_block();
@@ -601,9 +620,10 @@ Value IfStmtAST::DumpKoopa() {
         }
 
         ValueData jump_vd2 = ValueData(-1, "jump", end_label_val, 0);
-        InsertValuedata(jump_vd2);
+        Value jump_vd2_val = InsertValueDataToAll(jump_vd2);
+        InsertValueDataToBlock(jump_vd2, jump_vd2_val);
         
-        InsertValuedata(end_label_vd, end_label_val);
+        InsertValueDataToBlock(end_label_vd, end_label_val);
     }
     return 0;
 }
@@ -623,27 +643,29 @@ Value WhileStmtAST::DumpKoopa() {
     //end_label
     
     ValueData exp_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-    Value exp_label_val = random();
+    Value exp_label_val = InsertValueDataToAll(exp_label_vd);
     ValueData true_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-    Value true_label_val = random();
+    Value true_label_val = InsertValueDataToAll(true_label_vd);
     ValueData jump_exp_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-    Value jump_exp_label_val = random();
+    Value jump_exp_label_val = InsertValueDataToAll(jump_exp_label_vd);
     ValueData end_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
-    Value end_label_val = random();
+    Value end_label_val = InsertValueDataToAll(end_label_vd);
     
     
     //更新循环信息。
     loop_data.push_back(LoopData(exp_label_val, true_label_val, jump_exp_label_val, end_label_val));
     
     ValueData jump_vd = ValueData(-1, "jump", exp_label_val, 0);
-    InsertValuedata(jump_vd);
-    InsertValuedata(exp_label_vd, exp_label_val);
+    Value jump_vd_val = InsertValueDataToAll(jump_vd);
+    InsertValueDataToBlock(jump_vd, jump_vd_val);
+    InsertValueDataToBlock(exp_label_vd, exp_label_val);
 
     Value cond_value = exp->DumpKoopa();
     ValueData br_vd = ValueData(-1, "br", true_label_val, end_label_val, cond_value);
-    InsertValuedata(br_vd);
+    Value br_vd_val = InsertValueDataToAll(br_vd);
+    InsertValueDataToBlock(br_vd, br_vd_val);
 
-    InsertValuedata(true_label_vd, true_label_val);
+    InsertValueDataToBlock(true_label_vd, true_label_val);
 
     if (stmt->mode != 5) {
         enter_block();
@@ -656,13 +678,16 @@ Value WhileStmtAST::DumpKoopa() {
 
     //连在一起的！
     ValueData jump_vd1 = ValueData(-1, "jump", jump_exp_label_val, 0);
-    InsertValuedata(jump_vd1);
-    InsertValuedata(jump_exp_label_vd, jump_exp_label_val);
+    Value jump_vd1_val = InsertValueDataToAll(jump_vd1);
+    InsertValueDataToBlock(jump_vd1, jump_vd1_val);
+
+    InsertValueDataToBlock(jump_exp_label_vd, jump_exp_label_val);
 
     ValueData jump_vd2 = ValueData(-1, "jump", exp_label_val, 0);
-    InsertValuedata(jump_vd2);
+    Value jump_vd2_val = InsertValueDataToAll(jump_vd2);
+    InsertValueDataToBlock(jump_vd2, jump_vd2_val);
 
-    InsertValuedata(end_label_vd, end_label_val); 
+    InsertValueDataToBlock(end_label_vd, end_label_val); 
 
     //恢复循环信息
     //loop_data.erase(loop_data.begin()+loop_data.size()-1);
@@ -679,8 +704,9 @@ Value NumberAST::DumpKoopa() {
     exp_val = num;
     //不需要分配新的值。
     ValueData vd = ValueData(-1, "number", lhs_value, rhs_value, 0, ident);
-    Value this_value = InsertValuedata(vd);
-    return this_value;
+    Value val = InsertValueDataToAll(vd);
+    InsertValueDataToBlock(vd, val);
+    return val;
 }
 
 
@@ -714,17 +740,22 @@ Value UnaryExpAST::DumpKoopa() {
         }
 
         ValueData vd = AllocateValueData(ops[unaryop->mode], lhs_value, rhs_value);
-        Value this_value = InsertValuedata(vd);
-        return this_value;
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val;
     }
     else if (mode == 2) {
         if (ident == "getint" || ident == "getch") {
             ValueData vd = AllocateValueData("call", 0, 0, 0, ident);
-            return InsertValuedata(vd);
+            Value val = InsertValueDataToAll(vd);
+            InsertValueDataToBlock(vd, val);
+            return val;
         }
         if (ident == "starttime" || ident == "stoptime") {
             ValueData vd = ValueData(-1, "call", 0, 0, 0, ident);
-            return InsertValuedata(vd);
+            Value val = InsertValueDataToAll(vd);
+            InsertValueDataToBlock(vd, val);
+            return val;
         }
 
 
@@ -737,7 +768,9 @@ Value UnaryExpAST::DumpKoopa() {
         else {
             vd = AllocateValueData("call", 0, 0, 0, func_name);
         }
-        return InsertValuedata(vd);
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val;
     }
     else if (mode == 3) {
         if (ident == "getarray") {
@@ -747,7 +780,9 @@ Value UnaryExpAST::DumpKoopa() {
             }
             ValueData vd = ValueData(-1, "call", 0, 0, 0, ident);
             vd.parameters = temp_vec;
-            return InsertValuedata(vd);
+            Value val = InsertValueDataToAll(vd);
+            InsertValueDataToBlock(vd, val);
+            return val;
         }
 
         if (ident == "putint" || ident == "putch" || ident == "putarray") {
@@ -757,7 +792,9 @@ Value UnaryExpAST::DumpKoopa() {
             }
             ValueData vd = ValueData(-1, "call", 0, 0, 0, ident);
             vd.parameters = temp_vec;
-            return InsertValuedata(vd);
+            Value val = InsertValueDataToAll(vd);
+            InsertValueDataToBlock(vd, val);
+            return val;
         }
 
         std::string func_name = ident + "_function";
@@ -775,7 +812,9 @@ Value UnaryExpAST::DumpKoopa() {
             vd = AllocateValueData("call", 0, 0, 0, func_name);
         }
         vd.parameters = temp_vec;
-        return InsertValuedata(vd);
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val;
     }
     //never reached.
     
@@ -836,8 +875,9 @@ Value MulExpAST::DumpKoopa()  {
         }
 
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
-        Value this_value = InsertValuedata(vd);
-        return this_value;
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val;
     }
 }
 
@@ -859,8 +899,9 @@ Value AddExpAST::DumpKoopa()  {
             exp_val = addexp->exp_val - mulexp->exp_val;
         }
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
-        Value this_value = InsertValuedata(vd);
-        return this_value;
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val;
     }
 }
 
@@ -889,8 +930,9 @@ Value RelExpAST::DumpKoopa() {
         }
 
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
-        Value this_value = InsertValuedata(vd);
-        return this_value;        
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val;  
     }
 }
 
@@ -913,8 +955,9 @@ Value EqExpAST::DumpKoopa() {
         }
 
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
-        Value this_value = InsertValuedata(vd);
-        return this_value;        
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val;       
     }
 }
 
@@ -993,9 +1036,10 @@ Value LAndExpAST::DumpKoopa() {
     
         if (!(*vi).second.is_const_variable) {
             //变量
-             ValueData vd = AllocateValueData("load", lhs_value, rhs_value, 0, ident_id);
-             Value this_value = InsertValuedata(vd);
-             return this_value;   
+            ValueData vd = AllocateValueData("load", lhs_value, rhs_value, 0, ident_id);
+            Value val = InsertValueDataToAll(vd);
+            InsertValueDataToBlock(vd, val);
+            return val;
         }
         return 0;
         //按位与或实现逻辑与或。
@@ -1006,13 +1050,13 @@ Value LAndExpAST::DumpKoopa() {
         //Value lhs_value = landexp->DumpKoopa();
         //Value rhs_value = eqexp->DumpKoopa();
         //ValueData vd_zero = AllocateValueData("number", 0, 0);
-        //Value vd_zero_value = InsertValuedata(vd_zero);
+        //Value vd_zero_value = InsertValueDataToBlock(vd_zero);
         //ValueData vd_l = AllocateValueData("ne", lhs_value, vd_zero_value);
-        //Value vd_l_value = InsertValuedata(vd_l);
+        //Value vd_l_value = InsertValueDataToBlock(vd_l);
         //ValueData vd_r = AllocateValueData("ne", rhs_value, vd_zero_value);
-        //Value vd_r_value = InsertValuedata(vd_r);
+        //Value vd_r_value = InsertValueDataToBlock(vd_r);
         //ValueData vd = AllocateValueData("and", vd_l_value, vd_r_value);
-        //Value this_value = InsertValuedata(vd);
+        //Value this_value = InsertValueDataToBlock(vd);
         //return this_value;        
     }
 }
@@ -1096,22 +1140,23 @@ Value LOrExpAST::DumpKoopa() {
     
         if (!(*vi).second.is_const_variable) {
             //变量
-             ValueData vd = AllocateValueData("load", lhs_value, rhs_value, 0, ident_id);
-             Value this_value = InsertValuedata(vd);
-             return this_value;   
+            ValueData vd = AllocateValueData("load", lhs_value, rhs_value, 0, ident_id);
+            Value val = InsertValueDataToAll(vd);
+            InsertValueDataToBlock(vd, val);
+            return val;   
         }
         return 0;
         //Value lhs_value = lorexp->DumpKoopa();
         //Value rhs_value = landexp->DumpKoopa();
         //为数字0, vd_l, vd_r分配一个数据结构。采用随机数作为value.
         //ValueData vd_zero = AllocateValueData("number", 0, 0);
-        //Value vd_zero_value = InsertValuedata(vd_zero);
+        //Value vd_zero_value = InsertValueDataToBlock(vd_zero);
         //ValueData vd_l = AllocateValueData("ne", lhs_value, vd_zero_value);
-        //Value vd_l_value = InsertValuedata(vd_l);
+        //Value vd_l_value = InsertValueDataToBlock(vd_l);
         //ValueData vd_r = AllocateValueData("ne", rhs_value, vd_zero_value);
-        //Value vd_r_value = InsertValuedata(vd_r);
+        //Value vd_r_value = InsertValueDataToBlock(vd_r);
         //ValueData vd = AllocateValueData("or", vd_l_value, vd_r_value);
-        //Value this_value = InsertValuedata(vd);
+        //Value this_value = InsertValueDataToBlock(vd);
         //return this_value;        
     }
 }
@@ -1186,7 +1231,8 @@ Value VarDefAST::DumpKoopa() {
         }
         if (mode == 0) { //无赋值
             ValueData vd_alloc = ValueData(-1, "alloc", 0, 0, 0, ident_id);
-            InsertValuedata(vd_alloc);
+            Value vd_alloc_value = InsertValueDataToAll(vd_alloc);
+            InsertValueDataToBlock(vd_alloc, vd_alloc_value);
             symbol_table[scope_num][basic_block_num[scope_num]].insert(std::make_pair(ident_id,
                                                          SymbolInfo(0, 0, false, false, false)));
         }
@@ -1194,9 +1240,11 @@ Value VarDefAST::DumpKoopa() {
             Value lhs = initval->DumpKoopa();
             
             ValueData vd_alloc = ValueData(-1, "alloc", 0, 0, 0, ident_id, initval->exp_val);
-            InsertValuedata(vd_alloc);
+            Value vd_alloc_value = InsertValueDataToAll(vd_alloc);
+            InsertValueDataToBlock(vd_alloc, vd_alloc_value);
             ValueData vd_store = ValueData(-1, "store", lhs, 0, 0,ident_id);
-            InsertValuedata(vd_store);
+            Value vd_store_value = InsertValueDataToAll(vd_store);
+            InsertValueDataToBlock(vd_store, vd_store_value);
             symbol_table[scope_num][basic_block_num[scope_num]].insert(std::make_pair(ident_id,
                                                          SymbolInfo(lhs, initval->exp_val, false, false, false)));
         }
@@ -1217,7 +1265,8 @@ Value VarDefAST::DumpKoopa() {
         }
         print_ins = true;
         ValueData vd_alloc = ValueData(-1, "globalalloc", 0, 0, 0, ident_id, init);
-        InsertValuedata(vd_alloc);
+        Value vd_alloc_value = InsertValueDataToAll(vd_alloc);
+        InsertValueDataToBlock(vd_alloc, vd_alloc_value);
         print_ins = false;
     }
 
@@ -1253,16 +1302,18 @@ Value LValAST::DumpKoopa() {
     if (!(*vi).second.is_const_variable) {
         //变量
         ValueData vd = AllocateValueData("load", lhs_value, rhs_value, 0, (*vi).first);
-        Value this_value = InsertValuedata(vd);
-        return this_value;   
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val;
     }
 
     else {
         //常量不需要分配新的值。
         //宛如number。需要新的数据结构但并不需要新的临时标号。
         ValueData vd = ValueData(-1, "lval", lhs_value, rhs_value, 0, (*vi).first);
-        Value this_value = InsertValuedata(vd);
-        return this_value;   
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+        return val; 
     }
     return 0;
 }
@@ -1310,11 +1361,13 @@ void change_varvalue_in_symbol_table(std::string &var_name, Value cur_value) {
 }
 
 void enter_block() {
+    PrintInstruction();
     basic_block_num[scope_num]++;
     symbol_table[scope_num].push_back(std::unordered_map<std::string, SymbolInfo>());
     loop_broken_or_continued[scope_num].push_back(false);
 }
 void leave_block() {
+    PrintInstruction();
     symbol_table[scope_num].erase(symbol_table[scope_num].begin() + basic_block_num[scope_num]);
     loop_broken_or_continued[scope_num].erase(loop_broken_or_continued[scope_num].begin() + basic_block_num[scope_num]);
     basic_block_num[scope_num]--;

@@ -20,7 +20,8 @@ class ValueData;
 typedef long Value;
 
 //将键值对插入unordered_map,将键插入vector: insts
-Value InsertValuedata(ValueData, Value);
+void InsertValueDataToBlock(ValueData, Value);
+Value InsertValueDataToAll(ValueData, Value);
 
 class ValueData{
 public:
