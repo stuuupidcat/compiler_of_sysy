@@ -923,16 +923,16 @@ Value RelExpAST::DumpKoopa() {
         Value rhs_value = addexp->DumpKoopa();
 
         if (mode == 1) {
-            exp_val = relexp->exp_val < addexp->exp_val;
+            exp_val = (relexp->exp_val < addexp->exp_val);
         }
         else if (mode == 2) {
-            exp_val = relexp->exp_val > addexp->exp_val;
+            exp_val = (relexp->exp_val > addexp->exp_val);
         }
         else if (mode == 3) {
-            exp_val = relexp->exp_val <= addexp->exp_val;
+            exp_val = (relexp->exp_val <= addexp->exp_val);
         }
         else if (mode == 4) {
-            exp_val = relexp->exp_val >= addexp->exp_val;
+            exp_val = (relexp->exp_val >= addexp->exp_val);
         }
 
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
@@ -1030,8 +1030,8 @@ Value LAndExpAST::DumpKoopa() {
 
         //short circuit logic and.
         exp_val = 0;
-        if (exp_val != 0) {
-            exp_val = landexp->exp_val != 0;
+        if (eqexp1->eqexp->exp_val != 0) {
+            exp_val = eqexp2->eqexp->exp_val != 0;
         }
 
         //返回__short_circuit_result的值.
@@ -1134,8 +1134,8 @@ Value LOrExpAST::DumpKoopa() {
 
         //short circuit logic or.
         exp_val = 1;
-        if (exp_val == 0) {
-            exp_val = landexp->exp_val != 0;
+        if (eqexp1->eqexp->exp_val == 0) {
+            exp_val = eqexp2->eqexp->exp_val != 0;
         }
         
         //返回__short_circuit_result的值.
