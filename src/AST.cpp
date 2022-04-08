@@ -136,7 +136,7 @@ std::string ValueData::format() {
     if (jump_cond != 0) {
         jump_cond_vd = all_insts[jump_cond];
     }
-    if (symbol_name != "" && inst_type != "call") {
+    if (symbol_name != "") {
         for (int i = basic_block_num[scope_num]; i>=0; --i) {
             auto iter = symbol_table[scope_num][i].find(symbol_name);
             if (iter != symbol_table[scope_num][i].end()) {
@@ -149,12 +149,12 @@ std::string ValueData::format() {
             vi = (*iter).second;
         }
     }
-    if (inst_type == "call") {
-        auto iter = symbol_table[0][0].find(symbol_name);
-        if (iter != symbol_table[0][0].end()) {
-            vi = (*iter).second;
-        }
-    }
+    //if (inst_type == "call") {
+    //    auto iter = symbol_table[0][0].find(symbol_name);
+    //    if (iter != symbol_table[0][0].end()) {
+    //        vi = (*iter).second;
+    //    }
+    //}
 
     /////////////////////////////////////////////////////////////////////////////////
     if (inst_type == "call") {
@@ -871,7 +871,13 @@ Value MulExpAST::DumpKoopa()  {
             //exp_val = mulexp->exp_val / unaryexp->exp_val;
         }
         else if (mode == 3) {
-            exp_val = mulexp->exp_val % unaryexp->exp_val;
+            if (exp_val != 0) {
+                exp_val = mulexp->exp_val % unaryexp->exp_val;
+            }
+            else {
+                exp_val = 0;
+            }
+            //exp_val = mulexp->exp_val % unaryexp->exp_val;
         }
 
         ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
