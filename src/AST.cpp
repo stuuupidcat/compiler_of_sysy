@@ -1181,10 +1181,10 @@ Value DeclAST::DumpKoopa() {
 
 Value ConstDeclAST::DumpKoopa() {
     for (auto& constdef: constdefs) {
-        print_ins = false;
+        //print_ins = false;
         constdef->DumpKoopa();
     }
-    print_ins = true;
+    //print_ins = true;
     return 0;
 }
 
