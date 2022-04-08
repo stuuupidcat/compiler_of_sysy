@@ -731,14 +731,15 @@ Value UnaryExpAST::DumpKoopa() {
         Value lhs_value = 0;
         Value rhs_value = unaryexp->DumpKoopa();
 
-        if (mode == 0) {
+        if (unaryop->mode == 0) {
             exp_val = unaryexp->exp_val;
         }
-        else if (mode == 1) {
+        else if (unaryop->mode == 1) {
             exp_val = -(unaryexp->exp_val);
         }
-        else if (mode == 2) {
+        else if (unaryop->mode == 2) {
             exp_val = !(unaryexp->exp_val);
+            //std::cout << "here!" << exp_val;
         }
 
         ValueData vd = AllocateValueData(ops[unaryop->mode], lhs_value, rhs_value);

@@ -7,8 +7,82 @@ decl @putarray(i32, *i32)
 decl @starttime()
 decl @stoptime()
 
+fun @move_function(@x :i32, @y :i32) {
+%entry:
+  @x_1 = alloc i32
+  store @x, @x_1
+  @y_1 = alloc i32
+  store @y, @y_1
+  %0 = load @x_1
+  call @putint(%0)
+  call @putch(32)
+  %1 = load @y_1
+  call @putint(%1)
+  call @putch(44)
+  call @putch(32)
+  ret 
+}
+
+fun @hanoi_function(@n :i32, @one :i32, @two :i32, @three :i32) {
+%entry:
+  @n_1 = alloc i32
+  store @n, @n_1
+  @one_1 = alloc i32
+  store @one, @one_1
+  @two_1 = alloc i32
+  store @two, @two_1
+  @three_1 = alloc i32
+  store @three, @three_1
+  %0 = load @n_1
+  %1 = eq %0, 1
+  br %1, %L0, %L1
+%L0:
+  %2 = load @one_1
+  %3 = load @three_1
+  call @move_function(%2, %3)
+  jump %L2
+%L1:
+  %4 = load @n_1
+  %5 = sub %4, 1
+  %6 = load @one_1
+  %7 = load @three_1
+  %8 = load @two_1
+  call @hanoi_function(%5, %6, %7, %8)
+  %9 = load @one_1
+  %10 = load @three_1
+  call @move_function(%9, %10)
+  %11 = load @n_1
+  %12 = sub %11, 1
+  %13 = load @two_1
+  %14 = load @one_1
+  %15 = load @three_1
+  call @hanoi_function(%12, %13, %14, %15)
+  jump %L2
+%L2:
+  ret 
+}
+
 fun @main(): i32 {
 %entry:
+  %0 = call @getint()
+  @n_1 = alloc i32
+  store %0, @n_1
+  jump %L3
+%L3:
+  %1 = load @n_1
+  %2 = gt %1, 0
+  br %2, %L4, %L6
+%L4:
+  %3 = call @getint()
+  call @hanoi_function(%3, 1, 2, 3)
+  call @putch(10)
+  %4 = load @n_1
+  %5 = sub %4, 1
+  store %5, @n_1
+  jump %L5
+%L5:
+  jump %L3
+%L6:
   ret 0
 }
 

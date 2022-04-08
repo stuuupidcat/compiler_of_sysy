@@ -28,7 +28,7 @@
             }
         ],
         "preLaunchTask": "Build compiler",
-        "postDebugTask": "Show results"
+        "postDebugTask": "Run Koopa"
     },
     {
         "name": "riscv debug",
