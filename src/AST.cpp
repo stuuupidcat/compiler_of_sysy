@@ -137,6 +137,11 @@ std::string ValueData::format() {
                 vi = (*iter).second;
             }
         }
+
+        auto iter = symbol_table[0][0].find(symbol_name);
+        if (iter != symbol_table[0][0].end()) {
+            vi = (*iter).second;
+        }
     }
     if (inst_type == "call") {
         auto iter = symbol_table[0][0].find(symbol_name);
@@ -185,7 +190,7 @@ std::string ValueData::format() {
             res = lhs_vd.format();
         }
         else {
-            res = std::to_string(initializer);
+            res = std::to_string(vi.exp_val);
         }
     }
 
@@ -392,6 +397,7 @@ Value BlockAST::DumpKoopa()   {
         blockitem->DumpKoopa();
         
     }
+
     leave_block();
     return 0;
 }
@@ -707,7 +713,7 @@ Value UnaryExpAST::DumpKoopa() {
             exp_val = !(unaryexp->exp_val);
         }
 
-        ValueData vd = AllocateValueData(ops[unaryop->mode], lhs_value, rhs_value, exp_val);
+        ValueData vd = AllocateValueData(ops[unaryop->mode], lhs_value, rhs_value);
         Value this_value = InsertValuedata(vd);
         return this_value;
     }
@@ -829,7 +835,7 @@ Value MulExpAST::DumpKoopa()  {
             exp_val = mulexp->exp_val % unaryexp->exp_val;
         }
 
-        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value, exp_val);
+        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
         Value this_value = InsertValuedata(vd);
         return this_value;
     }
@@ -852,7 +858,7 @@ Value AddExpAST::DumpKoopa()  {
         else {
             exp_val = addexp->exp_val - mulexp->exp_val;
         }
-        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value, exp_val);
+        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
         Value this_value = InsertValuedata(vd);
         return this_value;
     }
@@ -882,7 +888,7 @@ Value RelExpAST::DumpKoopa() {
             exp_val = relexp->exp_val >= addexp->exp_val;
         }
 
-        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value, exp_val);
+        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
         Value this_value = InsertValuedata(vd);
         return this_value;        
     }
@@ -906,7 +912,7 @@ Value EqExpAST::DumpKoopa() {
             exp_val = (eqexp->exp_val != relexp->exp_val);
         }
 
-        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value, exp_val);
+        ValueData vd = AllocateValueData(ops[mode], lhs_value, rhs_value);
         Value this_value = InsertValuedata(vd);
         return this_value;        
     }
@@ -1246,7 +1252,7 @@ Value LValAST::DumpKoopa() {
 
     if (!(*vi).second.is_const_variable) {
         //变量
-        ValueData vd = AllocateValueData("load", lhs_value, rhs_value, 0, (*vi).first, exp_val);
+        ValueData vd = AllocateValueData("load", lhs_value, rhs_value, 0, (*vi).first);
         Value this_value = InsertValuedata(vd);
         return this_value;   
     }
@@ -1254,7 +1260,7 @@ Value LValAST::DumpKoopa() {
     else {
         //常量不需要分配新的值。
         //宛如number。需要新的数据结构但并不需要新的临时标号。
-        ValueData vd = ValueData(-1, "lval", lhs_value, rhs_value, 0, "", exp_val);
+        ValueData vd = ValueData(-1, "lval", lhs_value, rhs_value, 0, (*vi).first);
         Value this_value = InsertValuedata(vd);
         return this_value;   
     }
