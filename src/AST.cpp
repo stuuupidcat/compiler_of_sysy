@@ -331,9 +331,11 @@ Value CompUnitAST::DumpKoopa()  {
     temp_sign_num.resize(100);
     for (auto &val: temp_sign_num)
         val = 0;
-    print_ins = false;
-    for (auto& decl: decls)
+    
+    for (auto& decl: decls) {
+        print_ins = false;
         decl->DumpKoopa();
+    }
     print_ins = true;
     PrintInstruction();
     //函数名字插入到符号表中。
@@ -1178,8 +1180,8 @@ Value DeclAST::DumpKoopa() {
 }
 
 Value ConstDeclAST::DumpKoopa() {
-    print_ins = false;
     for (auto& constdef: constdefs) {
+        print_ins = false;
         constdef->DumpKoopa();
     }
     print_ins = true;
