@@ -26,7 +26,7 @@ std::vector<std::unordered_map<std::string, int>> symbolname_cnt;
 
 //循环的信息。
 std::vector<LoopData> loop_data;
-std::vector<std::vector<bool>> loop_broken_or_continued;
+//std::vector<std::vector<bool>> loop_broken_or_continued;
 
 //编译期求值
 bool print_ins = true;
@@ -59,6 +59,7 @@ LoopData::LoopData(Value exp_label_value_, Value true_label_value_, Value jump_e
 void PrintInstruction() {
     int instruction_num = block_values.size();
     int i = 0;
+find_label:
     if (need_label) {
         for (; i < instruction_num; ++i) {
             auto vd = block_insts[block_values[i]];
@@ -72,7 +73,7 @@ void PrintInstruction() {
     
     for (; i < instruction_num; ++i) {
         auto vd = block_insts[block_values[i]];
-        if (vd.inst_type == "return" || vd.inst_type == "break" || vd.inst_type == "continue") {     
+        if (vd.inst_type == "return" || vd.inst_type == "break" || vd.inst_type == "continue" || vd.inst_type == "jump" || vd.inst_type == "br") {     
             std::cout << "  "  << vd.format();    
             //while (vd.inst_type != "label" && i < instruction_num) {
             //    i++;
@@ -83,7 +84,7 @@ void PrintInstruction() {
             //continue;
             //return;
             need_label = true;
-            break;
+            goto find_label;
         }
         //要调到循环结尾的jump_exp_label 不用
         if (vd.inst_type == "label") {
@@ -315,20 +316,20 @@ Value CompUnitAST::DumpKoopa()  {
 
 
 
-    symbol_table.resize(100);
+    symbol_table.resize(1000);
     for (auto &val: symbol_table)
-        val.resize(100);
+        val.resize(1000);
 
-    loop_broken_or_continued.resize(100);
-    for (auto &val: loop_broken_or_continued)
-        val.resize(100);
-    symbolname_cnt.resize(100);
+    //loop_broken_or_continued.resize(100);
+    //for (auto &val: loop_broken_or_continued)
+    //    val.resize(100);
+    symbolname_cnt.resize(1000);
 
-    basic_block_num.resize(100);
+    basic_block_num.resize(1000);
     for (auto &val: basic_block_num)
         val = 0;
     
-    temp_sign_num.resize(100);
+    temp_sign_num.resize(1000);
     for (auto &val: temp_sign_num)
         val = 0;
     
@@ -389,7 +390,7 @@ Value FuncDefAST::DumpKoopa()   {
     std::cout << " {" << std::endl;
     std::cout << "%entry:" << std::endl;
     need_label = false;
-    enter_block();
+    //enter_block();
 
     for (auto& vardecl: vardecls) {
         vardecl->DumpKoopa();
@@ -402,7 +403,7 @@ Value FuncDefAST::DumpKoopa()   {
     InsertValueDataToBlock(vd, val);
     PrintInstruction();
 
-    leave_block();
+    //leave_block();
 
     std::cout << '}' << std::endl << std::endl;
     return 0;
@@ -499,8 +500,8 @@ Value StmtAST::DumpKoopa() {
         return whilestmt->DumpKoopa();
     }
     else if (mode == 8) {
-        if (!loop_broken_or_continued[scope_num][basic_block_num[scope_num]]) {
-            loop_broken_or_continued[scope_num][basic_block_num[scope_num]] = true;
+        //if (!loop_broken_or_continued[scope_num][basic_block_num[scope_num]]) {
+            //loop_broken_or_continued[scope_num][basic_block_num[scope_num]] = true;
             ValueData break_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
             Value break_label_val = InsertValueDataToAll(break_label_vd);
 
@@ -515,16 +516,12 @@ Value StmtAST::DumpKoopa() {
             Value jump_vd2_val = InsertValueDataToAll(jump_vd2);
             InsertValueDataToBlock(jump_vd2, jump_vd2_val);
 
-            //loop_data.erase(loop_data.end()-1);
-            
-            //test
-            //loop_data.pop_back();
-        }
+        //}
         return 0;
     }
     else if (mode == 9) {
-        if (!loop_broken_or_continued[scope_num][basic_block_num[scope_num]]) {
-            loop_broken_or_continued[scope_num][basic_block_num[scope_num]] = true;
+        //if (!loop_broken_or_continued[scope_num][basic_block_num[scope_num]]) {
+            //loop_broken_or_continued[scope_num][basic_block_num[scope_num]] = true;
             ValueData ct_label_vd = ValueData(-1, "label", 0, 0, 0, "%L"+std::to_string(label_num++));
             Value ct_label_val = InsertValueDataToAll(ct_label_vd);
 
@@ -540,7 +537,7 @@ Value StmtAST::DumpKoopa() {
 
             //不需要更新循环信息
             return 0;
-        }
+        //}
         
     }
     return 0;
@@ -1378,11 +1375,11 @@ void enter_block() {
     PrintInstruction();
     basic_block_num[scope_num]++;
     symbol_table[scope_num].push_back(std::unordered_map<std::string, SymbolInfo>());
-    loop_broken_or_continued[scope_num].push_back(false);
+    //loop_broken_or_continued[scope_num].push_back(false);
 }
 void leave_block() {
     PrintInstruction();
     symbol_table[scope_num].erase(symbol_table[scope_num].begin() + basic_block_num[scope_num]);
-    loop_broken_or_continued[scope_num].erase(loop_broken_or_continued[scope_num].begin() + basic_block_num[scope_num]);
+    //loop_broken_or_continued[scope_num].erase(loop_broken_or_continued[scope_num].begin() + basic_block_num[scope_num]);
     basic_block_num[scope_num]--;
 }
