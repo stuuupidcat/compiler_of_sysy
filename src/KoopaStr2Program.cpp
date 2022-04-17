@@ -7,6 +7,13 @@ int t_reg_num = 0;
 
 int riscv_label_num = 0;
 std::unordered_map<void*, int> inst_result;
+std::string cur_function_name;
+
+int stack_usage;
+
+int R = 0;
+int S = 0;
+int A = 0;
 
 /*InsResult::InsResult(void* ins_pointer_, int reg_num_) {
   ins_pointer = ins_pointer_;
@@ -16,8 +23,6 @@ std::unordered_map<void*, int> inst_result;
 
 // 访问 raw program
 void Visit(const koopa_raw_program_t &program) {
-   
-  std::cout << "  .text" << std::endl;
   
   // 访问所有全局变量
   Visit(program.values);
@@ -52,21 +57,41 @@ void Visit(const koopa_raw_slice_t &slice) {
 
 // 访问函数
 void Visit(const koopa_raw_function_t &func) {
-  std::cout << "  .global " << func->name+1 << "\n";
+  if (func->bbs.len == 0) {
+    // 函数声明, 不需要生成代码
+    return;
+  }
+  cur_function_name = func->name+1;
+  std::cout << "\n  .text" << std::endl;
+  std::cout << "  .globl " << func->name+1 << "\n";
   std::cout << func->name+1 << ":" << std::endl;
 
-  int stack_usage = CountInsts(func->bbs);
+  R = 0;
+  S = 0;
+  A = 0;
+  CountRSA(func->bbs);
+  stack_usage = R + S + A;
   stack_usage = ((stack_usage*4 + 15) / 16)*16;
-  cur_avaliable_pos = 0;
   
-  std::cout << "  li    " << "t0, " << stack_usage << "\n";
-  std::cout << "  add   sp, sp, t0\n\n"; 
+  //这个要考虑参数个数，等会看看在哪能找到。 
+  cur_avaliable_pos = A*4;
+  
+  std::cout << "  li    " << "t0, " << -stack_usage << "\n";
+  std::cout << "  add   sp, sp, t0\n";
+  //保存ra
+  if (R != 0) {
+    std::cout << "  sw    ra, " << stack_usage-4 << "(sp)\n";
+  } 
   // 访问所有基本块
   Visit(func->bbs);
-  std::cout << std::endl;
-  std::cout << "end:" << std::endl; 
+  //避免重名
+  std::cout << func->name+1 << "_end:" << std::endl; 
+  //恢复ra
+  if (R != 0) {
+    std::cout << "  lw    ra, " << stack_usage-4 << "(sp)\n";
+  }
   std::cout << "  li    t0, " << stack_usage << "\n";
-  std::cout << "  sub   sp, sp, t0\n"; 
+  std::cout << "  add   sp, sp, t0\n"; 
   std::cout << "  ret"  << std::endl;
 }
 
@@ -75,8 +100,10 @@ void Visit(const koopa_raw_basic_block_t &bb) {
   // 执行一些其他的必要操作
   // ...
   // 访问所有指令
-  std::cout << bb->name+1 << ":" << std::endl;
-    Visit(bb->insts);
+  if (strcmp(bb->name+1, "entry") != 0) {
+    std::cout << bb->name+1 << ":" << std::endl;
+  }
+  Visit(bb->insts);
 }
 
 // 访问指令
@@ -100,7 +127,7 @@ int Visit(const koopa_raw_value_t &value) {
       visit_instruction_result = Visit(kind.data.binary);
       break;
     case KOOPA_RVT_ALLOC:
-      visit_instruction_result = Visit(kind.data.global_alloc);
+      visit_instruction_result = Visit(kind.data.global_alloc, "");
       break;
     case KOOPA_RVT_LOAD:
       visit_instruction_result = Visit(kind.data.load);
@@ -114,6 +141,15 @@ int Visit(const koopa_raw_value_t &value) {
     case KOOPA_RVT_JUMP:
       visit_instruction_result = Visit(kind.data.jump);
       break;
+    case KOOPA_RVT_CALL:
+      visit_instruction_result = Visit(kind.data.call);
+      break;
+    case KOOPA_RVT_FUNC_ARG_REF:
+      visit_instruction_result = Visit(kind.data.func_arg_ref);
+      break;
+    case KOOPA_RVT_GLOBAL_ALLOC:
+      visit_instruction_result = Visit(kind.data.global_alloc, value->name+1);
+      break;
     default:
       // 其他类型暂时遇不到
       assert(false);
@@ -121,8 +157,99 @@ int Visit(const koopa_raw_value_t &value) {
   return visit_instruction_result;
 }
 
+int Visit(const koopa_raw_func_arg_ref_t &func_arg_ref) {
+  int res = 0;
+  if (func_arg_ref.index <= 7) {
+    res = -1-func_arg_ref.index;
+    //用负数表明存储在寄存器中。
+    //-1->a0, -2->a1, -3->a2, -4->a3, -5->a4, -6->a5, -7->a6, -8->a7
+  }
+  else {
+    res = 4*(func_arg_ref.index-8) + stack_usage;
+  }
+  return res;
+}
+
+int Visit(const koopa_raw_call_t &call) {
+  bool executed = IsExecuted((void*)&call);
+  //执行过。
+  if (executed) {
+    //std::string res = "t"+std::to_string(AddReg());
+    int pos = inst_result[(void*)&call];
+    //std::cout << "  lw    " << res << ", " << pos << "(sp)\n";     
+    //res = std::to_string(inst_result[(void*)&bi]) + "(sp)";
+    return pos;
+  }
+  // 访问 call 指令
+  // 访问所有参数
+  Visit(call.args);
+  // 将参数存到他们该去的地方，寄存器，栈的。
+  for (size_t i = 0; i < call.args.len; ++i) {
+    auto ptr = reinterpret_cast<koopa_raw_value_t>(call.args.buffer[i]);
+    const auto &kind = ptr->kind;
+    int inst_pos = 0;
+    switch (kind.tag) {
+      //case KOOPA_RVT_RETURN:
+      //  // 访问 return 指令
+      //  inst_pos = inst_result[(void *)&kind.data.ret];
+      //  break;
+      case KOOPA_RVT_INTEGER:
+        // 访问 integer 指令
+        inst_pos = inst_result[(void *)&kind.data.integer];
+        break;
+      case KOOPA_RVT_BINARY:
+        // 访问二元运算符指令
+        inst_pos = inst_result[(void *)&kind.data.binary];
+        break;
+      //case KOOPA_RVT_ALLOC:
+      //  inst_pos = inst_result[(void *)&kind.data.global_alloc];
+      //  break;
+      case KOOPA_RVT_LOAD:
+        inst_pos = inst_result[(void *)&kind.data.load];
+        break;
+      //case KOOPA_RVT_STORE:
+      //  inst_pos = inst_result[(void *)&kind.data.store];
+      //  break;
+      //case KOOPA_RVT_BRANCH:
+      //  inst_pos = inst_result[(void *)&kind.data.branch];
+      //  break;
+      //case KOOPA_RVT_JUMP:
+      //  inst_pos = inst_result[(void *)&kind.data.jump];
+      //  break;
+      case KOOPA_RVT_CALL:
+        inst_pos = inst_result[(void *)&kind.data.call];
+        break;
+      //case KOOPA_RVT_FUNC_ARG_REF:
+      //  inst_pos = inst_result[(void *)&kind.data.func_arg_ref];
+      //  break;
+      default:
+        // 其他类型暂时遇不到
+        assert(false);
+    }
+    
+    if (i <= 7) {
+      std::cout << "  lw    " << "a" << i << ", " << inst_pos << "(sp)\n";
+    }
+    else {
+      std::string tempreg = "t" + std::to_string(AddReg());
+      std::cout << "  lw    " << tempreg << ", " << inst_pos << "(sp)\n";
+      std::cout << "  sw    " << tempreg << ", " << 4*(i-8)<< "(sp)\n";
+    }
+  }
+
+  std::cout << "  call " << call.callee->name+1 << std::endl;
+  //将函数的返回值保存在栈帧中，
+  int res_pos = StoreInsToMap((void *) &call);
+  std::cout << "  sw    a0, " << res_pos << "(sp)" << std::endl;
+  return res_pos;
+}
+
 void Visit(const koopa_raw_return_t &ret) {
   //是否是寄存器。
+  if (ret.value == 0) {
+    std::cout << "  j     "<< cur_function_name << "_end\n";
+    return;
+  }
   int pos = Visit(ret.value);
   std::string stack_pos = std::to_string(pos) + "(sp)";
   std::cout << "  lw    a0, ";
@@ -131,7 +258,7 @@ void Visit(const koopa_raw_return_t &ret) {
   //有了“已经执行的指令的map”，我们会找到那个指令的结果所使用的寄存器。
   //恰好就可以将返回值打印出来。 
   std::cout << stack_pos << std::endl;
-  std::cout << "  j     end\n";
+  std::cout << "  j     "<< cur_function_name << "_end\n";
 }
 
 int Visit(const koopa_raw_integer_t &integer) {
@@ -141,12 +268,11 @@ int Visit(const koopa_raw_integer_t &integer) {
   //mode == 1, 想要将值0返回为x_0;
   std::string res, reg_name;
   int32_t value = integer.value;
-  void *pt = (void *)(long)value;
   int pos;
   reg_name = "t"+std::to_string(AddReg());
   //bool executed = IsExecuted(pt);
   //if (!executed) {
-    pos = StoreInsToMap(pt);
+    pos = StoreInsToMap((void *) &integer);
     std::cout << "  li    " << reg_name << ", " << value << std::endl;
     std::cout << "  sw    " << reg_name << ", " << pos << "(sp)\n";
   //}
@@ -164,9 +290,9 @@ int Visit (const koopa_raw_binary_t& bi) {
   bool executed = IsExecuted((void*)&bi);
   //执行过。
   if (executed) {
-    std::string res = "t"+std::to_string(AddReg());
+    //std::string res = "t"+std::to_string(AddReg());
     int pos = inst_result[(void*)&bi];
-    std::cout << "  lw    " << res << ", " << pos << "(sp)\n";     
+    //std::cout << "  lw    " << res << ", " << pos << "(sp)\n";     
     //res = std::to_string(inst_result[(void*)&bi]) + "(sp)";
     return pos;
   }
@@ -258,16 +384,27 @@ int Visit (const koopa_raw_load_t& lw) {
   //执行过。
   if (executed) {
     return inst_result[(void*)&lw];
-    
   } 
   else {
-    int pos = StoreInsToMap((void *)&lw);
-    std::string src = std::to_string(Visit(lw.src)) + "(sp)";
-    std::string reg_name = "t"+std::to_string(AddReg());
-    std::cout << "  lw    " << reg_name << ", " << src << std::endl;
-    std::cout << "  sw    " << reg_name << ", " << std::to_string(pos) + "(sp)\n";
-    //std::string res = std::to_string(pos) + "(sp)";
-    return pos;
+    if (lw.src->kind.tag == KOOPA_RVT_ALLOC) {
+      int pos = StoreInsToMap((void *)&lw);
+      std::string src = std::to_string(Visit(lw.src)) + "(sp)";
+      std::string reg_name = "t"+std::to_string(AddReg());
+      std::cout << "  lw    " << reg_name << ", " << src << std::endl;
+      std::cout << "  sw    " << reg_name << ", " << std::to_string(pos) + "(sp)\n";
+      //std::string res = std::to_string(pos) + "(sp)";
+      return pos;
+    }
+    else { //全局变量。
+      int pos = StoreInsToMap((void *)&lw);
+      std::string src = std::to_string(Visit(lw.src)) + "(sp)";
+      std::string reg_name = "t"+std::to_string(AddReg());
+      std::cout << "  la    " << reg_name << ", " << lw.src->name+1 << std::endl;
+      std::cout << "  lw    " << reg_name << ", 0(" << reg_name << ')' << std::endl;
+      std::cout << "  sw    " << reg_name << ", " << std::to_string(pos) + "(sp)\n";
+      //std::string res = std::to_string(pos) + "(sp)";
+      return pos;
+    }
   }
   return 0;
 }
@@ -308,24 +445,64 @@ int Visit(const koopa_raw_jump_t& jmp) {
 
 //store指令
 int Visit (const koopa_raw_store_t& sw) {
-  std::string reg_name = "t"+std::to_string(AddReg());
-  std::string load_pos = std::to_string(Visit(sw.value)) + "(sp)";
-  std::string store_pos = std::to_string(Visit(sw.dest)) + "(sp)";
-  std::cout << "  lw    " << reg_name << ", " << load_pos << std::endl;
-  std::cout << "  sw    " << reg_name << ", " << store_pos << std::endl;
+  int var_pos = Visit(sw.dest); //var_pos = -1为全局变量
+  std::string store_pos;
+  std::string addr_reg = "t" + std::to_string(AddReg());
+  if (var_pos == -1) { //全局变量
+    std::cout << "  la    " << addr_reg << ", " << sw.dest->name+1 << std::endl;
+    store_pos = "0(" + addr_reg + ")";
+  }
+  else { //局部变量
+    store_pos = std::to_string(var_pos) + "(sp)";
+
+  }
+  if (sw.value->kind.tag == KOOPA_RVT_FUNC_ARG_REF) {//如果是函数参数的引用
+    int value_pos = Visit(sw.value);
+    if (value_pos < 0) {//存在寄存器中 
+      std::cout << "  sw    " << "a"+std::to_string(-1-value_pos) << ", " << store_pos << std::endl;
+    } else { //存放在栈中
+      std::string reg_name = "t"+std::to_string(AddReg());
+      std::cout << "  lw    " << reg_name << ", " << std::to_string(value_pos) + "(sp)" << std::endl;
+      std::cout << "  sw    " << reg_name << ", " << store_pos << std::endl;
+    } 
+  }
+  else {
+    std::string reg_name = "t"+std::to_string(AddReg());
+    std::string load_pos = std::to_string(Visit(sw.value)) + "(sp)";
+    std::cout << "  lw    " << reg_name << ", " << load_pos << std::endl;
+    std::cout << "  sw    " << reg_name << ", " << store_pos << std::endl;
+  }
+
   return 0;
 }
 
-int Visit  (const koopa_raw_global_alloc_t& alloc) {
-  bool executed = IsExecuted((void*)&alloc);
-  //执行过。
-  if (executed) {
-    return inst_result[(void*)&alloc];
-  } else {
-    int pos = StoreInsToMap((void *)&alloc);
-    //std::string res = std::to_string(pos) + "(sp)";
-    return pos;
+int Visit  (const koopa_raw_global_alloc_t& alloc, std::string name) {
+  if (name == "") {
+    bool executed = IsExecuted((void*)&alloc);
+    //执行过。
+    if (executed) {
+      return inst_result[(void*)&alloc];
+    } else {
+      int pos = StoreInsToMap((void *)&alloc);
+      //std::string res = std::to_string(pos) + "(sp)";
+      return pos;
+    }
   }
+  else { //全局变量。
+    bool executed = IsExecuted((void*)&alloc);
+    //执行过。
+    if (executed) {
+      return -1;
+    } else {
+      inst_result.insert(std::make_pair((void *)&alloc, -1));
+      std::cout << "  .data\n";
+      std::cout << "  .globl " << name << "\n";
+      std::cout << name << ":\n";
+      std::cout << "  .word " << alloc.init->kind.data.integer.value << std::endl << std::endl;;
+      return -1; //-1表示全局变量
+    }
+  }
+  
   return 0;
 }
 
@@ -377,31 +554,39 @@ int StoreInsToMap(void* inst_pt) {
 //  return res;
 //}
 
-int CountInsts(const koopa_raw_slice_t& slice) {
-  int res = 0;
+void CountRSA(const koopa_raw_slice_t& slice) {
   for (size_t i = 0; i < slice.len; ++i) {
     auto ptr = slice.buffer[i];
     // 根据 slice 的 kind 决定将 ptr 视作何种元素
     switch (slice.kind) {
       case KOOPA_RSIK_BASIC_BLOCK:
         // 访问基本块
-        res += CountInsts(reinterpret_cast<koopa_raw_basic_block_t>(ptr));
+        CountRSA(reinterpret_cast<koopa_raw_basic_block_t>(ptr));
         break;
       case KOOPA_RSIK_VALUE:
         // 访问指令
-        res += 1;
+        // 好像有什么东西没有处理，指令是否有结果要存储。
+        CountRSA(reinterpret_cast<koopa_raw_value_t>(ptr));
         break;
       default:
         break;
     }
   }
-  return res;
+  return;
 }
 
-int CountInsts (const koopa_raw_basic_block_t& bb) {
-  int res = 0;
-  res += CountInsts(bb->insts);
-  return res;
+void CountRSA (const koopa_raw_basic_block_t& bb) {
+  CountRSA(bb->insts);
+}
+
+void CountRSA (const koopa_raw_value_t& inst) {
+  S += 1; //數字都存在了棧上。
+  if (inst->kind.tag == KOOPA_RVT_CALL) {
+    S += inst->kind.data.call.args.len; //多给点。
+    R = 1;
+    int arg_num = inst->kind.data.call.args.len;
+    A = (arg_num-8 > A) ? arg_num-8 : A;
+  }
 }
 
 

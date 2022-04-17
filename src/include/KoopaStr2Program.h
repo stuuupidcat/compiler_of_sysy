@@ -7,6 +7,8 @@
 #include <string.h>
 #include <vector>
 #include <unordered_map>
+#include <algorithm>
+#include <cmath>
 
 #include "koopa.h"
 
@@ -21,13 +23,16 @@ int  Visit       (const koopa_raw_binary_t&);
 void Visit       (const koopa_raw_return_t&);
 int  Visit         (const koopa_raw_load_t&);
 int  Visit        (const koopa_raw_store_t&);
-int  Visit (const koopa_raw_global_alloc_t&);
+int  Visit (const koopa_raw_global_alloc_t&, std::string);
 int  Visit       (const koopa_raw_branch_t&);
 int  Visit         (const koopa_raw_jump_t&);
+int  Visit         (const koopa_raw_call_t&);
+int  Visit (const koopa_raw_func_arg_ref_t&);
 
-int CountInsts       (const koopa_raw_slice_t&);
-int CountInsts (const koopa_raw_basic_block_t&);
-int CountInsts       (const koopa_raw_value_t&);
+void CountRSA       (const koopa_raw_slice_t&);
+void CountRSA (const koopa_raw_basic_block_t&);
+void CountRSA       (const koopa_raw_value_t&);
+
 
 void KoopaStrToProgram(const char *);
 bool IsExecuted(void *);
