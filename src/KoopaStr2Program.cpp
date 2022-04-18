@@ -229,6 +229,7 @@ InstResPos Visit(const koopa_raw_call_t &call) {
   arg_index = 0;
   Visit(call.args);
   save_args = false;
+  
 
   std::cout << "  call " << call.callee->name+1 << std::endl;
   //将函数的返回值保存在栈帧中，
