@@ -18,9 +18,8 @@ int R = 0;
 int S = 0;
 int A = 0;
 
-InstResPos::InstResPos(int mode_, int pos_, bool global_var_ = false) {
+InstResPos::InstResPos(int mode_, int pos_) {
         mode = mode_;
-        global_var = global_var_;
         if (mode == 0) {
             format = std::to_string(pos_) + "(sp)";
             on_stack = true;
@@ -34,7 +33,7 @@ InstResPos::InstResPos(int mode_, int pos_, bool global_var_ = false) {
             on_stack = false;
         }
         else if (mode == 3) {
-
+          global_var = true;
         }
         else {
             assert(false);
@@ -485,7 +484,7 @@ InstResPos Visit  (const koopa_raw_global_alloc_t& alloc, std::string name) {
     if (executed) {
       return inst_result[(void*)&alloc];
     } else {
-      InstResPos pos = InstResPos(3, 0, true);
+      InstResPos pos = InstResPos(3, 0);
       inst_result.insert(std::make_pair((void *)&alloc, pos));
       std::cout << "  .data\n";
       std::cout << "  .globl " << name << "\n";

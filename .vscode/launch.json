@@ -28,6 +28,32 @@
             }
         ],
         "preLaunchTask": "Build compiler",
+        "postDebugTask": "Show results"
+    },
+    {
+        "name": "koopa run",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "/root/compiler/build/compiler",
+        "args": ["-koopa",
+                 "./debug/input/hello.c",
+                 "-o",
+                 "./debug/output/test.s"
+                ],
+        "stopAtEntry": false,
+        "cwd": "/root/compiler/",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "MIDebuggerPath": "/usr/local/bin/gdb",
+        "setupCommands": [
+            {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            }
+        ],
+        "preLaunchTask": "Build compiler",
         "postDebugTask": "Run Koopa"
     },
     {
@@ -55,6 +81,32 @@
         ],
         "preLaunchTask": "Build compiler",
         "postDebugTask":"Show results"
+    },
+    {
+        "name": "riscv run",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "/root/compiler/build/compiler",
+        "args": ["-riscv",
+                 "./debug/input/hello.c",
+                 "-o",
+                 "./debug/output/test.s"
+                ],
+        "stopAtEntry": false,
+        "cwd": "/root/compiler/",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "MIDebuggerPath": "/usr/local/bin/gdb",
+        "setupCommands": [
+            {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            }
+        ],
+        "preLaunchTask": "Build compiler",
+        "postDebugTask":"Run riscv"
     },
       {
           "type": "venus",

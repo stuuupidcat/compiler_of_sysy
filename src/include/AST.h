@@ -34,24 +34,32 @@ public:
     //"add/sub/mil/mod"   -> 二元操作。
     //"return"            -> 右操作数为返回值的二元操作。
     std::string inst_type;
-    
     //利用lhs,rhs去unordered_map中查找对应的ValueData.
     //只有一个操作数的用lhs.
     Value lhs, rhs;
-    
     Value jump_cond=0;
-
     //load指令中变量的名字。
     //函数的名字
     std::string symbol_name;
-
     //调用函数的参数
     std::vector<Value> parameters;
-
     //alloc的初始化器
     int initializer;
-
     ValueData(int, std::string, Value, Value, Value, std::string, int);
+
+    //for array allocation;
+    int arr_dim = 0; //array dimensions != 0
+    std::vector<int> arr_sizes;
+    std::vector<int> arr_item_exp_algoresults;
+    //std::vector<Value> arr_item_values;
+    ValueData(std::string, std::string, int, std::vector<int>, std::vector<int>);
+
+    //for getelemptr
+    //如果offset是-1的话，用offsetvalue寻找符号
+    //否则offset直接获得整数。
+    int offset = -1;
+    Value offset_value = 0;
+    ValueData(int, std::string, std::string, int, Value);
     ValueData() = default;
     
     std::string format();
@@ -69,7 +77,7 @@ public:
 
 //分配ValueData。增加temp_sign_num。
 ValueData AllocateValueData(int, std::string&, Value, Value, std::string);
-
+ValueData AllocateValueData(std::string, std::string, int, Value);
 //各种指令的输出
 void PrintInstruction();
 //,以及符号表的删除。
@@ -80,24 +88,45 @@ class BaseAST {
 public:
     virtual ~BaseAST() = default;
     virtual Value DumpKoopa() = 0;
+    //处理不同作用域当中的重复变量。 
+    void CalIdentID();
     int mode = 0;
     //变量的名字
     std::string ident;
     //变量通过下标处理后的名字。
     std::string ident_id;
+
+    //子ast们的value值。
+    std::vector<Value> subast_values;
     
     //作为一个算数表达式的结果。
-    int exp_val;
+    int exp_algoresult;
+    std::vector<int> exp_algoresults;
+
+    //判断是数组还是指针
+    bool is_left = false; 
 };  
 
 class SymbolInfo {
 public:
+    //for variable
     Value value;
-    int exp_val;
+    int exp_algoresult; //global
     bool is_const_variable = false;
-    bool is_function = false;
+    SymbolInfo(Value, int, bool);
+    
+    //for function
     bool is_void_function = false;
-    SymbolInfo(Value, int,  bool, bool, bool);
+    SymbolInfo(bool);
+    
+    //for array
+    int arr_dims = 0;
+    std::vector<int> arr_size;
+    //for const array
+    //SymbolInfo(int, std::vector<int>);
+    //for array
+    SymbolInfo(int, std::vector<int>);
+
     SymbolInfo() = default;
 };
 
@@ -333,19 +362,20 @@ public:
     virtual Value DumpKoopa()  override;
 };
 
-//ConstDef ::= IDENT "=" ConstInitVal;
+//ConstDef ::= IDENT ["[" ConstExp "]"] "=" ConstInitVal;
 class ConstDefAST : public BaseAST {
 public:
-
+    std::unique_ptr<BaseAST> constexp;
     std::unique_ptr<BaseAST> constinitval;
 
     virtual Value DumpKoopa()  override;
 };
 
-//ConstInitVal ::= ConstExp;
+//ConstInitVal  ::= ConstExp | "{" [ConstExp {"," ConstExp}] "}";
 class ConstInitValAST: public BaseAST {
 public:
     std::unique_ptr<BaseAST> constexp;
+    std::vector<std::unique_ptr<BaseAST>> constexps;
 
     virtual Value DumpKoopa()  override;
 };
@@ -359,11 +389,11 @@ public:
     virtual Value DumpKoopa()  override;
 };
 
-//LVal ::= IDENT;
+//LVal ::= IDENT ["[" Exp "]"];
 class LValAST : public BaseAST {
 public:
     //ast->ident = *unique_ptr<string>($n);
-
+    std::unique_ptr<BaseAST> exp;
     virtual Value DumpKoopa()  override;
 };
 
@@ -383,18 +413,23 @@ public:
     virtual Value DumpKoopa()  override;
 };
 
-//VarDef        ::= IDENT | IDENT "=" InitVal;
+//VarDef        ::= IDENT ["[" ConstExp "]"]
+//              | IDENT ["[" ConstExp "]"] "=" InitVal;
+//mode = 0变量有赋值，1变量没有赋值
+//mode = 2数组有赋值，3数组没有赋值
 class VarDefAST : public BaseAST {
 public:
+    std::unique_ptr<BaseAST> constexp;
     std::unique_ptr<BaseAST> initval;
 
     virtual Value DumpKoopa()  override;
 };
 
-//InitVal ::= Exp;
+//InitVal::= Exp | "{" [Exp {"," Exp}] "}";
 class InitValAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> exp;
+    std::vector<std::unique_ptr<BaseAST>> exps;
 
     virtual Value DumpKoopa()  override;
 };

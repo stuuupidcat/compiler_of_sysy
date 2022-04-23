@@ -56,9 +56,9 @@ using namespace std;
 %type <ast_val> Exp UnaryExp PrimaryExp UnaryOp ConstExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp MulExp AddExp
 %type <ast_val> ConstDef ConstInitVal BlockItems BlockItem LVal             
-%type <ast_val> VarDef InitVal IfStmt WhileStmt
-%type <ast_val> FuncFParams FuncFParam Decl ConstDecl VarDecl
-%type <param_val> FuncRParams
+%type <ast_val> VarDef InitVal IfStmt WhileStmt InitValItems
+%type <ast_val> FuncFParams FuncFParam Decl ConstDecl VarDecl ConstInitValItems
+%type <param_val> FuncRParams 
 
 //https://stackoverflow.com/questions/12731922/reforming-the-grammar-to-remove-shift-reduce-conflict-in-if-then-else
 // Precedences go increasing, so "then" < "else".
@@ -248,6 +248,7 @@ Stmt
     auto ast = new StmtAST();
     ast->mode = 3;
     ast->lval = unique_ptr<BaseAST>($1);
+    ast->lval->is_left = true; /
     ast->exp = unique_ptr<BaseAST>($3);
     $$ = ast;
   }
@@ -577,15 +578,47 @@ ConstDef
     auto ast = new ConstDefAST();
     ast->ident = *unique_ptr<string>($1);
     ast->constinitval = unique_ptr<BaseAST>($3);
+    ast->mode = 0;
     $$ = ast;
   }
+  | IDENT '[' ConstExp ']' ASSIGN ConstInitVal {
+    auto ast = new ConstDefAST();
+    ast->ident = *unique_ptr<string>($1);
+    ast->constexp = unique_ptr<BaseAST>($3);
+    ast->constinitval = unique_ptr<BaseAST>($6);
+    ast->mode = 1;
+    $$ = ast;
+  } 
   ;
 
+//ConstInitVal  ::= ConstExp | "{" [ConstExp {"," ConstExp}] "}";
 ConstInitVal  
   :ConstExp {
     auto ast = new ConstInitValAST();
+    ast->mode = 0;
     ast->constexp = unique_ptr<BaseAST>($1);
     $$ = ast;
+  }
+  | '{' '}' {
+    auto ast = new ConstInitValAST();
+    ast->mode = 1;
+    $$ = ast;
+  }
+  | '{' ConstInitValItems '}' {
+    $$ = $2;
+  }
+  ;
+
+ConstInitValItems
+  : ConstExp {
+    auto ast = new ConstInitValAST();
+    ast->mode = 1;
+    ast->constexps.push_back(unique_ptr<BaseAST>($1));
+    $$ = ast;
+  }
+  | ConstInitValItems ',' ConstExp {
+    ((ConstInitValAST*)$$)->constexps.push_back(unique_ptr<BaseAST>($3));
+    //$$ = ast;
   }
   ;
 
@@ -607,7 +640,15 @@ BlockItem
 LVal
   :IDENT %prec lval{
     auto ast = new LValAST();
+    ast->mode = 0;
     ast->ident = *unique_ptr<string>($1);
+    $$ = ast;
+  }
+  | IDENT '[' Exp ']' {
+    auto ast = new LValAST();
+    ast->mode = 1;
+    ast->ident = *unique_ptr<string>($1);
+    ast->exp = unique_ptr<BaseAST>($3);
     $$ = ast;
   }
   ;
@@ -630,12 +671,21 @@ VarDecl
     //$$ = ast;
   }
   ;
-
 VarDef
   : IDENT {
     auto ast = new VarDefAST();
     ast->mode = 0;
     ast->ident = *unique_ptr<string>($1);
+    $$ = ast;
+  }
+  | IDENT '[' ConstExp ']' {
+    auto ast = new VarDefAST();
+    ast->mode = 2;
+    ast->ident = *unique_ptr<string>($1);
+    ast->constexp = unique_ptr<BaseAST>($3);
+    auto initval = new InitValAST();
+    initval->mode = 1;
+    ast->initval = unique_ptr<BaseAST>(initval);
     $$ = ast;
   }
   | IDENT ASSIGN InitVal {
@@ -645,15 +695,46 @@ VarDef
     ast->initval = unique_ptr<BaseAST>($3);
     $$ = ast;
   }
+  | IDENT '[' ConstExp ']' ASSIGN InitVal {
+    auto ast = new VarDefAST();
+    ast->mode = 3;
+    ast->ident = *unique_ptr<string>($1);
+    ast->constexp = unique_ptr<BaseAST>($3);
+    ast->initval = unique_ptr<BaseAST>($6);
+    $$ = ast;
+  }
   ;
 
 InitVal 
   : Exp  {
     auto ast = new InitValAST();
+    ast->mode = 0;
     ast->exp = unique_ptr<BaseAST>($1);
     $$ = ast;
   }
+  | '{' '}' {
+    auto ast = new InitValAST();
+    ast->mode = 1;
+    $$ = ast;
+  }
+  | '{' InitValItems '}' {
+    $$ = $2;
+  }
   ;
+
+InitValItems
+  : Exp {
+    auto ast = new InitValAST();
+    ast->mode = 1;
+    ast->exps.push_back(unique_ptr<BaseAST>($1));
+    $$ = ast;
+  }
+  | InitValItems ',' Exp {
+    ((InitValAST*)$$)->exps.push_back(unique_ptr<BaseAST>($3));
+    //$$ = ast;
+  }
+  ;
+
 
 
 %%

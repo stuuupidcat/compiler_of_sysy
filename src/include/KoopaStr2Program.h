@@ -19,11 +19,11 @@ public:
     //mode = 2 ->on a-register
     //mode = 3 ->a global var
     int mode = 0;
-    bool on_stack = false;
-    bool global_var = false;
+    bool on_stack = false; //mode = 0
+    bool global_var = false; //mode = 3
     int pos = 0;
     std::string format;
-    InstResPos(int, int, bool);
+    InstResPos(int, int);
     InstResPos() = default;
 };
 
