@@ -64,3 +64,5 @@ InstResult StoreInsToMap(void *inst_pt, int type_size = 4, bool is_pointer_ = fa
 int AddReg(); 
 
 int CalTypeSize(const koopa_raw_type_t&);
+
+std::string MoreThan2048(int);

@@ -28,7 +28,7 @@ InstResult::InstResult(std::string mode_, int pos_, int type_size_) {
         } else if (mode_ == "global") {
             mode = 3;
         }
-
+        pos = pos_;
         type_size = type_size_;
         if (mode == 0) {
             format = std::to_string(pos_) + "(sp)";
@@ -188,14 +188,26 @@ InstResult Visit(const koopa_raw_value_t &value) {
       // 其他类型暂时遇不到
       assert(false);
   }
-  if (save_args) {
+  if (save_args) { //
     if (visit_instruction_result.on_stack) { //存在栈上
       if (arg_index <= 7) {
-        std::cout << "  lw    " << "a" << arg_index << ", " << visit_instruction_result.format << std::endl;
+        if (visit_instruction_result.pos < 2048) {
+          std::cout << "  lw    " << "a" << arg_index << ", " << visit_instruction_result.format << std::endl;
+        }
+        else {
+          std::string tempreg = MoreThan2048(visit_instruction_result.pos);
+          std::cout << "  lw    " << "a" << arg_index << ", 0(" << tempreg << ")\n";
+        }
       }
       else {
         std::string tempreg = "t" + std::to_string(AddReg());
-        std::cout << "  lw    " << tempreg << ", " << visit_instruction_result.format << std::endl;
+        if (visit_instruction_result.pos < 2048) {
+          std::cout << "  lw    " << tempreg << ", " << visit_instruction_result.format << std::endl;
+        }
+        else {
+          std::string tempreg = MoreThan2048(visit_instruction_result.pos);
+          std::cout << "  lw    " << tempreg << ", 0(" << tempreg << ")\n";
+        }
         std::cout << "  sw    " << tempreg << ", " << 4*(arg_index-8)<< "(sp)\n";
       }
     }
@@ -234,7 +246,14 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
     }
     else { //%6 = getelemptr @arr_1, %5
       InstResult index_pos = Visit(get_elem_ptr.index);
-      std::cout << "  lw    " << offset_reg << ", " << index_pos.format << std::endl;
+      if (index_pos.pos < 2048) {
+        std::cout << "  lw    " << offset_reg << ", " << index_pos.format << std::endl;
+      } 
+      else {
+        std::string tempreg = MoreThan2048(index_pos.pos);
+        std::cout << "  mv    " << offset_reg << ", " << tempreg << std::endl;
+      }
+      
     }
 
     std::string four_reg = "t" + std::to_string(AddReg());
@@ -244,7 +263,14 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
     std::cout << "  add   " << stack_pos_reg << ", " << stack_pos_reg << ", " << offset_reg << std::endl;
     //保存结果。
     InstResult result = StoreInsToMap((void*)&get_elem_ptr, 4, true);
-    std::cout << "  sw    " << stack_pos_reg << ", " << result.format << std::endl;
+    if (result.pos < 2048) {
+      std::cout << "  sw    " << stack_pos_reg << ", " << result.format << std::endl;
+    }
+    else {
+      std::string tempreg = MoreThan2048(result.pos);
+      std::cout << "  sw    " << stack_pos_reg << ", 0(" << tempreg << ")" << std::endl;
+    }
+    
     return result;
   } 
   else if (src_pos.global_var) {
@@ -258,7 +284,14 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
     }
     else { //%6 = getelemptr @arr_1, %5
       InstResult index_pos = Visit(get_elem_ptr.index);
-      std::cout << "  lw    " << offset_reg << ", " << index_pos.format << std::endl;
+      if (index_pos.pos < 2048) {
+        std::cout << "  lw    " << offset_reg << ", " << index_pos.format << std::endl;
+      }
+      else {
+        std::string tempreg = MoreThan2048(index_pos.pos);
+        std::cout << "  lw    " << offset_reg << ", 0(" << tempreg << ")" << std::endl;
+      }
+      
     }
     std::string four_reg = "t" + std::to_string(AddReg());
     std::cout << "  li    " << four_reg << ", 4" << std::endl;
@@ -267,7 +300,13 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
     std::cout << "  add   " << global_arr_addr_reg << ", " << global_arr_addr_reg << ", " << offset_reg << std::endl;
     //保存结果。
     InstResult result = StoreInsToMap((void*)&get_elem_ptr, 4, true);
-    std::cout << "  sw    " << global_arr_addr_reg << ", " << result.format << std::endl;
+    if (result.pos < 2048) {
+      std::cout << "  sw    " << global_arr_addr_reg << ", " << result.format << std::endl;
+    }
+    else {
+      std::string tempreg = MoreThan2048(result.pos);
+      std::cout << "  sw    " << global_arr_addr_reg << ", 0(" << tempreg << ")" << std::endl;
+    }
     return result;
   }
   else {
@@ -309,10 +348,16 @@ InstResult Visit(const koopa_raw_call_t &call) {
   save_args = false;
   
 
-  std::cout << "  call " << call.callee->name+1 << std::endl;
+  std::cout << "  call  " << call.callee->name+1 << std::endl;
   //将函数的返回值保存在栈帧中，
   InstResult res_pos = StoreInsToMap((void *) &call);
-  std::cout << "  sw    a0, " << res_pos.format << std::endl;
+  if (res_pos.pos < 2048) {
+    std::cout << "  sw    " << "a0" << ", " << res_pos.format << std::endl;
+  }
+  else {
+    std::string tempreg = MoreThan2048(res_pos.pos);
+    std::cout << "  sw    " << "a0" << ", 0(" << tempreg << ")" << std::endl;
+  }
   return res_pos;
 }
 
@@ -324,7 +369,13 @@ void Visit(const koopa_raw_return_t &ret) {
   }
   InstResult pos = Visit(ret.value);
   if (pos.on_stack) {
-    std::cout << "  lw    a0, " << pos.format << std::endl;
+    if (pos.pos < 2048) {
+      std::cout << "  lw    " << "a0" << ", " << pos.format << std::endl;
+    }
+    else {
+      std::string tempreg = MoreThan2048(pos.pos);
+      std::cout << "  lw    " << "a0" << ", 0(" << tempreg << ")" << std::endl;
+    }
   }
   else {
     std::cout << "  mv    a0, " << pos.format << std::endl;
@@ -365,13 +416,25 @@ InstResult Visit (const koopa_raw_binary_t& bi) {
   InstResult left_inst_pos = Visit(bi.lhs);
   InstResult right_inst_pos = Visit(bi.rhs);
   if (left_inst_pos.on_stack) {
-    std::cout << "  lw    " << left_reg_name << ", " << left_inst_pos.format << std::endl;
+    if (left_inst_pos.pos < 2048) {
+      std::cout << "  lw    " << left_reg_name << ", " << left_inst_pos.format << std::endl;
+    }
+    else {
+      std::string tempreg = MoreThan2048(left_inst_pos.pos);
+      std::cout << "  lw    " << left_reg_name << ", 0(" << tempreg << ")" << std::endl;
+    }
   }
   else {
     left_reg_name = left_inst_pos.format;
   }
   if (right_inst_pos.on_stack) {
-    std::cout << "  lw    " << right_reg_name << ", " << right_inst_pos.format << std::endl;
+    if (right_inst_pos.pos < 2048) {
+      std::cout << "  lw    " << right_reg_name << ", " << right_inst_pos.format << std::endl;
+    }
+    else {
+      std::string tempreg = MoreThan2048(right_inst_pos.pos);
+      std::cout << "  lw    " << right_reg_name << ", 0(" << tempreg << ")" << std::endl;
+    }
   }
   else {
     right_reg_name = right_inst_pos.format;
@@ -447,7 +510,13 @@ InstResult Visit (const koopa_raw_binary_t& bi) {
       break;
   }
   InstResult pos = StoreInsToMap((void*)&bi);
-  std::cout << "  sw    " << reg_name << ", " << pos.format << std::endl;
+  if (pos.pos < 2048) {
+    std::cout << "  sw    " << reg_name << ", " << pos.format << std::endl;
+  }
+  else {
+    std::string tempreg = MoreThan2048(pos.pos);
+    std::cout << "  sw    " << reg_name << ", 0(" << tempreg << ")" << std::endl;
+  }
   return pos;
 }
 
@@ -464,10 +533,22 @@ InstResult Visit (const koopa_raw_load_t& lw) {
       InstResult src_pos = Visit(lw.src); //src结果的存储位置。
       if (src_pos.on_stack) {
         std::string reg_name = "t"+std::to_string(AddReg());
-        std::cout << "  lw    " << reg_name << ", " << src_pos.format << std::endl;
-        std::cout << "  sw    " << reg_name << ", " << pos.format << std::endl;
+        if (src_pos.pos < 2048) {
+          std::cout << "  lw    " << reg_name << ", " << src_pos.format << std::endl;
+        }
+        else {
+          std::string tempreg = MoreThan2048(src_pos.pos);
+          std::cout << "  lw    " << reg_name << ", 0(" << tempreg << ")" << std::endl;
+        }
+        if (pos.pos < 2048) {
+          std::cout << "  sw    " << reg_name << ", " << pos.format << std::endl;
+        }
+        else {
+          std::string tempreg = MoreThan2048(pos.pos);
+          std::cout << "  sw    " << reg_name << ", 0(" << tempreg << ")" << std::endl;
+        }
       }
-      else {
+      else { //在寄存器上。
         std::cout << "  sw    " << src_pos.format << ", " << pos.format << std::endl;
       }
       return pos;
@@ -478,18 +559,34 @@ InstResult Visit (const koopa_raw_load_t& lw) {
       if (src_pos.is_pointer) { //全局数组
         std::string reg_a = "t"+std::to_string(AddReg());
         std::string reg_b = "t"+std::to_string(AddReg());
-  
-        std::cout << "  lw    " << reg_a << ", " << src_pos.format << std::endl;
+        if (src_pos.pos < 2048) {
+          std::cout << "  lw    " << reg_a << ", " << src_pos.format << std::endl;
+        }
+        else {
+          std::string tempreg = MoreThan2048(src_pos.pos);
+          std::cout << "  lw    " << reg_a << ", 0(" << tempreg << ")" << std::endl;
+        }
         std::cout << "  lw    " << reg_b << ", 0(" << reg_a << ")" << std::endl;
-        std::cout << "  sw    " << reg_b << ", " << pos.format << std::endl;
+        if (pos.pos < 2048) {
+          std::cout << "  sw    " << reg_b << ", " << pos.format << std::endl;
+        }
+        else {
+          std::string tempreg = MoreThan2048(pos.pos);
+          std::cout << "  sw    " << reg_b << ", 0(" << tempreg << ")" << std::endl;
+        }
         return pos;
       }
       else { //全局变量
-        InstResult pos = StoreInsToMap((void *)&lw);
         std::string reg_name = "t"+std::to_string(AddReg());
         std::cout << "  la    " << reg_name << ", " << lw.src->name+1 << std::endl;
         std::cout << "  lw    " << reg_name << ", 0(" << reg_name << ')' << std::endl;
-        std::cout << "  sw    " << reg_name << ", " << pos.format << std::endl;
+        if (pos.pos < 2048) {
+          std::cout << "  sw    " << reg_name << ", " << pos.format << std::endl;
+        }
+        else {
+          std::string tempreg = MoreThan2048(pos.pos);
+          std::cout << "  sw    " << reg_name << ", 0(" << tempreg << ")" << std::endl;
+        }
         //std::string res = std::to_string(pos) + "(sp)";
         return pos;
       }
@@ -509,18 +606,37 @@ void Visit (const koopa_raw_store_t& sw) {
     store_pos = "0(" + addr_reg + ")";
   }
   else if (var_pos.is_pointer) { //指针存放在var_pos.format的指针中。
-    std::cout << "  lw    " << addr_reg << ", " << var_pos.format << std::endl;
+    if (var_pos.pos < 2048) {
+      std::cout << "  lw    " << addr_reg << ", " << var_pos.format << std::endl;
+    }
+    else {
+      std::string tempreg = MoreThan2048(var_pos.pos);
+      std::cout << "  lw    " << addr_reg << ", 0(" << tempreg << ")" << std::endl;
+    }
     store_pos = "0(" + addr_reg + ")";
   }
   else { //局部变量
-    store_pos = var_pos.format;
+    if (var_pos.pos < 2048) {
+      store_pos = var_pos.format;
+    }
+    else {
+      std::string tempreg = MoreThan2048(var_pos.pos);
+      store_pos = "0(" + tempreg + ")";
+    }
+
   }
 
   if (sw.value->kind.tag == KOOPA_RVT_FUNC_ARG_REF) {//如果是函数参数的引用
     InstResult value_pos = Visit(sw.value);
     if (value_pos.on_stack) {//存在栈中。
       std::string reg_name = "t"+std::to_string(AddReg());
-      std::cout << "  lw    " << reg_name << ", " << value_pos.format << std::endl;
+      if (value_pos.pos < 2048) {
+        std::cout << "  lw    " << reg_name << ", " << value_pos.format << std::endl;
+      }
+      else {
+        std::string tempreg = MoreThan2048(value_pos.pos);
+        std::cout << "  lw    " << reg_name << ", 0(" << tempreg << ")" << std::endl;
+      }
       std::cout << "  sw    " << reg_name << ", " << store_pos << std::endl;
     } else { //存放在寄存器中。
       std::cout << "  sw    " << value_pos.format << ", " << store_pos << std::endl;
@@ -531,7 +647,13 @@ void Visit (const koopa_raw_store_t& sw) {
     std::string reg_name = "t"+std::to_string(AddReg());
 
     if (value_pos.on_stack) {
-      std::cout << "  lw    " << reg_name << ", " << value_pos.format << std::endl;
+      if (value_pos.pos < 2048) {
+        std::cout << "  lw    " << reg_name << ", " << value_pos.format << std::endl;
+      }
+      else {
+        std::string tempreg = MoreThan2048(value_pos.pos);
+        std::cout << "  lw    " << reg_name << ", 0(" << tempreg << ")" << std::endl;
+      }
       std::cout << "  sw    " << reg_name << ", " << store_pos << std::endl;
     }
     else {
@@ -545,7 +667,13 @@ void Visit(const koopa_raw_branch_t& br) {
   InstResult cond_pos = Visit(br.cond);
   if (cond_pos.on_stack) {
     std::string reg = "t"+std::to_string(AddReg());
-    std::cout << "  lw    " << reg << ", " << cond_pos.format << std::endl;
+    if (cond_pos.pos < 2048) {
+      std::cout << "  lw    " << reg << ", " << cond_pos.format << std::endl;
+    }
+    else {
+      std::string tempreg = MoreThan2048(cond_pos.pos);
+      std::cout << "  lw    " << reg << ", 0(" << tempreg << ")" << std::endl;
+    }
     std::cout << "  bnez  " << reg << ", " << br.true_bb->name+1 <<  std::endl;
     std::cout << "  j     " << br.false_bb->name+1 << std::endl;
   }
@@ -732,3 +860,9 @@ int CalTypeSize (const koopa_raw_type_t& ty) {
   return res;
 }
 
+std::string MoreThan2048(int offset) {
+  std::string res = "t" + std::to_string(AddReg());
+  std::cout << "  li    " << res << ", " << offset << std::endl;
+  std::cout << "  add   " << res << ", " << res << ", sp" << std::endl;
+  return res;
+}
