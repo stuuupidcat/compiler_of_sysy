@@ -57,6 +57,10 @@ void BaseAST::CalIdentID() {
 //To block之前必须toall
 Value InsertValueDataToAll(ValueData valuedata) {
     Value val = random();
+    //冲突
+    while (all_insts.find(val) != all_insts.end()) {
+        val = random();
+    }
     all_insts.insert(std::make_pair(val, valuedata));
     all_values.push_back(val);
     return val;
@@ -293,6 +297,9 @@ std::string ValueData::format() {
         res += "@" + symbol_name + "\n";
     }
     else if (inst_type == "storetotemp") {
+        if (rhs_vd.no == 7674) {
+            std::cout << std::endl;
+        }
         res = "store ";
         if (lhs_vd.inst_type == "number" || lhs_vd.inst_type == "lval") {
             res += lhs_vd.format() + ", ";
@@ -403,6 +410,7 @@ ValueData::ValueData(int no_, std::string inst_type_, std::string symbol_name_,i
 }
 
 Value CompUnitAST::DumpKoopa()  {
+    srand(time(NULL));
     std::cout << "decl @getint(): i32\n";
     std::cout << "decl @getch(): i32\n";
     std::cout << "decl @getarray(*i32): i32\n";
