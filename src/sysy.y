@@ -248,7 +248,7 @@ Stmt
     auto ast = new StmtAST();
     ast->mode = 3;
     ast->lval = unique_ptr<BaseAST>($1);
-    ast->lval->is_left = true; /
+    ast->lval->is_left = true; 
     ast->exp = unique_ptr<BaseAST>($3);
     $$ = ast;
   }
