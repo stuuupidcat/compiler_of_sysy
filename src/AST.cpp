@@ -42,6 +42,81 @@ void InsertValueDataToBlock(ValueData valuedata, Value allocated_val) {
     }
 }
 
+//记得清零。
+int make_aggregate_pt = 0;
+int braces_pt = 1;
+ArrayInitVal* MakeAggregate(std::vector<int>& exp_algoresults, std::vector<Value>& subast_values, std::string& braces) {
+    auto res = new Aggregate();
+    res->mode = 1; //aggregate
+    //找到连续的integer值。
+    while (make_aggregate_pt < subast_values.size() && braces_pt < braces.size() - 1) {
+        if (braces[braces_pt] == '{') {
+            braces_pt++;
+            auto agg = MakeAggregate(exp_algoresults, subast_values, braces);
+            res->values.push_back(std::unique_ptr<ArrayInitVal>(agg));
+        }
+        else if (braces[braces_pt] == '}') {
+            braces_pt++;
+            break;
+        }
+        else {
+            auto int_val = new Integer();
+            int_val->mode = 0;
+            int_val->value = subast_values[make_aggregate_pt];
+            int_val->algoresult = exp_algoresults[make_aggregate_pt];
+
+            res->values.push_back(std::unique_ptr<ArrayInitVal>(int_val));
+            make_aggregate_pt++;
+            braces_pt++;
+        }
+    }
+    return res;
+}
+
+
+void Fill(std::vector<Value>& array_initval_values, std::vector<int>& array_initval_algoresult, Aggregate* aggregate, std::vector<int>& nums, int already_filled, int should_fill_num) {
+    int aggregate_pt = 0; //对aggregate的指针；
+    int cur_filled_num = 0; //当前已经填充的数量。
+    while (aggregate_pt < aggregate->values.size()) {
+        if (aggregate->values[aggregate_pt]->mode == 0) { //遇见了一个整数，int[2][3][4], 把整数都填完。
+            while ( aggregate_pt < aggregate->values.size() && aggregate->values[aggregate_pt]->mode == 0) {
+                auto ptr = (Integer *)(aggregate->values[aggregate_pt].get());
+                array_initval_values.push_back(ptr->value);
+                array_initval_algoresult.push_back(ptr->algoresult);
+                cur_filled_num++;
+                aggregate_pt++;
+            }
+        } 
+        else {
+            int will_fill_num = 0;
+            std::vector<int> sub_nums;
+            for (int i = nums.size() - 2; i >= 0; i--) { //-2是因为nums[nums.size() - 1]是数组的大小。
+                if (cur_filled_num % nums[i] == 0) {
+                    will_fill_num = nums[i];
+                    for (int j = 0; j <= i; j++) {
+                        sub_nums.push_back(nums[j]); //只递归一个子集。
+                    }
+                    break;
+                }
+            }
+            Fill(array_initval_values, array_initval_algoresult, (Aggregate *)(aggregate->values[aggregate_pt].get()), sub_nums, already_filled+cur_filled_num, will_fill_num);
+            cur_filled_num += will_fill_num;
+            aggregate_pt++;
+        }
+    }
+    auto zero = new NumberAST();
+    zero->num = 0;
+    Value zero_val = zero->DumpKoopa();
+    //把剩下的填充。
+    for (int i = cur_filled_num; i < should_fill_num; i++) {
+        array_initval_values.push_back(zero_val);
+        array_initval_algoresult.push_back(0);
+    }
+
+}
+
+
+
 void BaseAST::CalIdentID() {
     auto iter = symbolname_cnt[scope_num].find(ident);
     if (iter == symbolname_cnt[scope_num].end()) {
@@ -297,9 +372,6 @@ std::string ValueData::format() {
         res += "@" + symbol_name + "\n";
     }
     else if (inst_type == "storetotemp") {
-        if (rhs_vd.no == 7674) {
-            std::cout << std::endl;
-        }
         res = "store ";
         if (lhs_vd.inst_type == "number" || lhs_vd.inst_type == "lval") {
             res += lhs_vd.format() + ", ";
@@ -336,7 +408,12 @@ std::string ValueData::format() {
     }
     else if (inst_type == "global_array_alloc") {
         res = "global @" + symbol_name + " = alloc [i32, ";
-        res += std::to_string(arr_sizes[0]) + "], {";
+        //calculate the mul of the arr_sizes
+        int mul = 1;
+        for (int i = 0; i < arr_sizes.size(); i++) {
+            mul *= arr_sizes[i];
+        }
+        res += std::to_string(mul) + "], {";
         int init_len = arr_item_exp_algoresults.size();
         for (int i = 0; i < init_len; i++) {
             if (i != 0)
@@ -350,7 +427,11 @@ std::string ValueData::format() {
     }
     else if (inst_type == "local_array_alloc") {
         res = "@" + symbol_name + " = alloc [i32, ";
-        res += std::to_string(arr_sizes[0]) + "]\n";
+        int mul = 1;
+        for (int i = 0; i < arr_sizes.size(); i++) {
+            mul *= arr_sizes[i];
+        }
+        res += std::to_string(mul) + "]\n";
     }
     else if (inst_type == "getelemptr") {
         if (offset != -1) {
@@ -1136,6 +1217,7 @@ Value LAndExpAST::DumpKoopa() {
 
         //result = rhs_value != 0;
         auto lval = new LValAST();
+        lval->mode = 0;
         lval->ident = vardef1->ident;
         auto stmt = new StmtAST();
         stmt->mode = 3;
@@ -1237,6 +1319,7 @@ Value LOrExpAST::DumpKoopa() {
 
         //result = rhs_value != 0;
         auto lval = new LValAST();
+        lval->mode = 0;
         lval->ident = vardef1->ident;
         auto stmt = new StmtAST();
         stmt->mode = 3;
@@ -1328,40 +1411,58 @@ Value ConstDefAST::DumpKoopa() {
                                                     SymbolInfo(exp_value, constinitval->exp_algoresult, true)));
     }
     else if (mode == 1) { //数组
-        //IDENT [ ConstExp ] "=" ConstInitVal;
+        //IDENT [ ConstExp ]...[ ConstExp ] "=" ConstInitVal;
         if (scope_num != 0) { //要算数的，
             print_ins = true;
         }
-        constexp->DumpKoopa();
-        int array_size = constexp->exp_algoresult;
+        for (auto& constexp: constexps) {
+            constexp->DumpKoopa();
+            exp_algoresults.push_back(constexp->exp_algoresult);
+        }
+        //数组的大小。
+        std::vector<int> array_sizes = exp_algoresults;
         constinitval->DumpKoopa();
 
-        int init_size = constinitval->exp_algoresults.size();
-        //补全零，为了契合store的输入。
-        auto zero = new NumberAST();  
-        zero->num = 0;
-        Value zero_val = zero->DumpKoopa();
-        for (int i = 1; i <= array_size - init_size; ++i) {
-            constinitval->exp_algoresults.push_back(zero->exp_algoresult);
-            constinitval->subast_values.push_back(zero_val);
-        }
+        //我们有什么：
+        //array_sizes, 一个vector, 每个元素是数组的维度
+        //将constinitval转换为一个指向constinitvalast的指针。
+        auto constinitval_ptr = (ConstInitValAST*)constinitval.get();
 
-        ValueData vd;
+        make_aggregate_pt = 0;
+        braces_pt = 1;
+        auto aggregate = std::unique_ptr<ArrayInitVal>(MakeAggregate(constinitval_ptr->exp_algoresults, constinitval_ptr->subast_values, constinitval_ptr->braces));  
+        auto aggregate_pt = (Aggregate*)aggregate.get();
+        
+        std::vector<Value> array_initval_values;
+        std::vector<int> array_initval_algoresults;
+
+        std::vector<int> nums; //各个维度的数目。
+        int array_dim = array_sizes.size();
+        int mul = 1;
+        for (int i = array_dim - 1; i >= 0; --i) {
+            mul *= array_sizes[i];
+            nums.push_back(mul);
+        }
+        //填充数组。
+        Fill(array_initval_values, array_initval_algoresults, aggregate_pt, nums, 0, nums[nums.size() - 1]);
+        //TODO
+        //...
+        //TODO END
+        
         //要打印数组的声明
         //处理局部同名变量
         if (scope_num != 0) {
             CalIdentID();
-            std::vector<int> array_sizes;
-            array_sizes.push_back(array_size);
-            vd = ValueData("local_array_alloc", ident_id, 1, array_sizes, constinitval->exp_algoresults);
+            //最后一个参数没啥用。
+            ValueData vd = ValueData("local_array_alloc", ident_id, 1, array_sizes, array_initval_algoresults);
             Value vd_value = InsertValueDataToAll(vd);
             InsertValueDataToBlock(vd, vd_value);
-
-            for (int i = 0; i < array_size; ++i) {
+            
+            for (int i = 0; i < mul; ++i) {
                 ValueData get_ptr_vd = AllocateValueData("getelemptr", ident_id, i, 0);
                 Value get_ptr_vd_value = InsertValueDataToAll(get_ptr_vd);
                 InsertValueDataToBlock(get_ptr_vd, get_ptr_vd_value);
-                ValueData store_vd = ValueData(-1, "storetotemp", constinitval->subast_values[i], get_ptr_vd_value);
+                ValueData store_vd = ValueData(-1, "storetotemp", array_initval_values[i], get_ptr_vd_value);
                 Value store_vd_value = InsertValueDataToAll(store_vd);
                 InsertValueDataToBlock(store_vd, store_vd_value); 
             }
@@ -1369,17 +1470,13 @@ Value ConstDefAST::DumpKoopa() {
         else {
             print_ins = true;
             ident_id = ident + '_' + "global";
-            std::vector<int> array_sizes;
-            array_sizes.push_back(array_size);
-            vd = ValueData("global_array_alloc", ident_id, 1, array_sizes, constinitval->exp_algoresults);
+            ValueData vd = ValueData("global_array_alloc", ident_id, 1, array_sizes, array_initval_algoresults);
             Value vd_value = InsertValueDataToAll(vd);
             InsertValueDataToBlock(vd, vd_value);
             print_ins = false;
         }
     
         //将符号插入到符号表中。
-        std::vector<int> array_sizes;
-        array_sizes.push_back(array_size);
         symbol_table[scope_num][basic_block_num[scope_num]].insert(std::make_pair(ident_id,
                                                     SymbolInfo(1, array_sizes)));
         print_ins = false;
@@ -1393,8 +1490,8 @@ Value VarDefAST::DumpKoopa() {
     //计算exp的值
     //store
     //处理同名变量
-    print_ins = true;
     if (mode <= 1) { //变量
+        print_ins = true;
         if (scope_num != 0) {
             CalIdentID();
             if (mode == 0) { //无赋值
@@ -1440,40 +1537,60 @@ Value VarDefAST::DumpKoopa() {
     }
 
     else { //数组
-        if (scope_num == 0) {
-            print_ins = false;
+        if (scope_num != 0) { //要算数的，
+            print_ins = true;
         }
-        constexp->DumpKoopa();
-        int array_size = constexp->exp_algoresult;
-        if (mode == 3) //存在初始值
+        for (auto& constexp: constexps) {
+            constexp->DumpKoopa();
+            exp_algoresults.push_back(constexp->exp_algoresult);
+        }
+        //数组的大小。
+        std::vector<int> array_sizes = exp_algoresults;
+        initval->DumpKoopa();
             initval->DumpKoopa(); 
-        //没有初始值时，initval是一个存在但值的指针
-        int init_size = initval->exp_algoresults.size();
-        //补全零，为了契合store的输入。
-        auto zero = new NumberAST();  
-        zero->num = 0;
-        Value zero_val = zero->DumpKoopa();
-        for (int i = 1; i <= array_size - init_size; ++i) {
-            initval->exp_algoresults.push_back(zero->exp_algoresult);
-            initval->subast_values.push_back(zero_val);
+        initval->DumpKoopa();
+            initval->DumpKoopa(); 
+        initval->DumpKoopa();
+
+        //the initialization of the array.
+        auto initval_ptr = (InitValAST*)initval.get();
+
+        //将数组转换为聚合类型和整数的集合。
+        make_aggregate_pt = 0;
+        braces_pt = 1;
+        auto aggregate = std::unique_ptr<ArrayInitVal>(MakeAggregate(initval_ptr->exp_algoresults, initval_ptr->subast_values, initval_ptr->braces));  
+        auto aggregate_pt = (Aggregate*)aggregate.get();
+        
+        std::vector<Value> array_initval_values;
+        std::vector<int> array_initval_algoresults;
+
+        std::vector<int> nums; //各个维度的数目。
+        int array_dim = array_sizes.size();
+        int mul = 1;
+        for (int i = array_dim - 1; i >= 0; --i) {
+            mul *= array_sizes[i];
+            nums.push_back(mul);
         }
-        ValueData vd;
+        //填充数组。
+        Fill(array_initval_values, array_initval_algoresults, aggregate_pt, nums, 0, nums[nums.size() - 1]);
+        //TODO
+        //...
+        //TODO END
+        
         //要打印数组的声明
         //处理局部同名变量
-        print_ins = true;
         if (scope_num != 0) {
             CalIdentID();
-            std::vector<int> array_sizes;
-            array_sizes.push_back(array_size);
-            vd = ValueData("local_array_alloc", ident_id, 1, array_sizes, initval->exp_algoresults);
+            //最后一个参数没啥用。
+            ValueData vd = ValueData("local_array_alloc", ident_id, 1, array_sizes, array_initval_algoresults);
             Value vd_value = InsertValueDataToAll(vd);
             InsertValueDataToBlock(vd, vd_value);
-
-            for (int i = 0; i < array_size; ++i) {
+            
+            for (int i = 0; i < mul; ++i) {
                 ValueData get_ptr_vd = AllocateValueData("getelemptr", ident_id, i, 0);
                 Value get_ptr_vd_value = InsertValueDataToAll(get_ptr_vd);
                 InsertValueDataToBlock(get_ptr_vd, get_ptr_vd_value);
-                ValueData store_vd = ValueData(-1, "storetotemp", initval->subast_values[i], get_ptr_vd_value);
+                ValueData store_vd = ValueData(-1, "storetotemp", array_initval_values[i], get_ptr_vd_value);
                 Value store_vd_value = InsertValueDataToAll(store_vd);
                 InsertValueDataToBlock(store_vd, store_vd_value); 
             }
@@ -1481,17 +1598,13 @@ Value VarDefAST::DumpKoopa() {
         else {
             print_ins = true;
             ident_id = ident + '_' + "global";
-            std::vector<int> array_sizes;
-            array_sizes.push_back(array_size);
-            vd = ValueData("global_array_alloc", ident_id, 1, array_sizes, initval->exp_algoresults);
+            ValueData vd = ValueData("global_array_alloc", ident_id, 1, array_sizes, array_initval_algoresults);
             Value vd_value = InsertValueDataToAll(vd);
             InsertValueDataToBlock(vd, vd_value);
             print_ins = false;
         }
     
         //将符号插入到符号表中。
-        std::vector<int> array_sizes;
-        array_sizes.push_back(array_size);
         symbol_table[scope_num][basic_block_num[scope_num]].insert(std::make_pair(ident_id,
                                                     SymbolInfo(1, array_sizes)));
     }
@@ -1555,13 +1668,46 @@ Value LValAST::DumpKoopa() {
         }
     }
     else { //数组的解引用
-        Value res;
-        Value val = exp->DumpKoopa();
         auto vi = find_var_in_symbol_table(ident);
         ident_id = (*vi).first;
         SymbolInfo si = (*vi).second;
+        std::vector<int> nums;
+        
+        int mul = 1;
+        for (int i = si.arr_size.size() - 1; i >= 0; --i) {
+            mul *= si.arr_size[i];
+            nums.push_back(mul);
+        }
 
-        ValueData ptr_vd = AllocateValueData("getelemptr", ident_id, -1, val);
+        for (auto& exp: exps) {
+            subast_values.push_back(exp->DumpKoopa());
+            exp_algoresults.push_back(exp->exp_algoresult);
+        }
+        
+        //如何计算数组的偏移量。
+        //怎么还一个正的一个反的。
+        //a[2][3][4]
+        //subast_values为[2, 3, 4]
+        //nums为[4, 12, 24]
+        Value res = subast_values[subast_values.size() - 1];
+        for (int i = 0; i < exps.size()-1; ++i) {
+            auto temp = new NumberAST();
+            temp->num = nums[i];
+            Value temp_val = temp->DumpKoopa();
+
+            ValueData vd = AllocateValueData("mul", temp_val, subast_values[subast_values.size()-2-i]);
+            Value mul_val = InsertValueDataToAll(vd);
+            InsertValueDataToBlock(vd, mul_val);
+
+            ValueData vd2 = AllocateValueData("add", res, mul_val);
+            Value add_val = InsertValueDataToAll(vd2);
+            InsertValueDataToBlock(vd2, add_val);
+
+            res = add_val;
+        }
+        
+
+        ValueData ptr_vd = AllocateValueData("getelemptr", ident_id, -1, res);
         Value ptr_vd_value = InsertValueDataToAll(ptr_vd);
         InsertValueDataToBlock(ptr_vd, ptr_vd_value);
         //如果在赋值号左侧返回指针
@@ -1642,3 +1788,5 @@ void leave_block() {
     //loop_broken_or_continued[scope_num].erase(loop_broken_or_continued[scope_num].begin() + basic_block_num[scope_num]);
     basic_block_num[scope_num]--;
 }
+
+

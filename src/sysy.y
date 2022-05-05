@@ -37,7 +37,11 @@ using namespace std;
   std::string *str_val;
   int int_val;
   BaseAST *ast_val;
+  std::vector<BaseAST*> *ast_vec_val;
   FuncRParamsAST *param_val;
+
+  ArrayInitValAST *array_init_val;
+  
 }
 
 
@@ -56,13 +60,27 @@ using namespace std;
 %type <ast_val> Exp UnaryExp PrimaryExp UnaryOp ConstExp
 %type <ast_val> RelExp EqExp LAndExp LOrExp MulExp AddExp
 %type <ast_val> ConstDef ConstInitVal BlockItems BlockItem LVal             
-%type <ast_val> VarDef InitVal IfStmt WhileStmt InitValItems
-%type <ast_val> FuncFParams FuncFParam Decl ConstDecl VarDecl ConstInitValItems
+%type <ast_val> VarDef InitVal IfStmt WhileStmt 
+%type <ast_val> FuncFParams FuncFParam Decl ConstDecl VarDecl 
+
+//{"[" ConstExp "]"}
+%type <ast_vec_val> ConstExpsWithBrackets
+//{"[" Exp "]"}
+%type <ast_vec_val> ExpsWithBrackets
+
+%type <array_init_val> ArrayInitVal
+%type <array_init_val> ArrayInitValItems
+//"{" ConstInitVal {"," ConstInitVal} "}";
+%type <ast_vec_val> ConstExps
+
 %type <param_val> FuncRParams 
 
 //https://stackoverflow.com/questions/12731922/reforming-the-grammar-to-remove-shift-reduce-conflict-in-if-then-else
 // Precedences go increasing, so "then" < "else".
 // 越靠下的见到 优先shift
+%precedence EXP
+%precedence COMMA
+
 %precedence THEN
 %precedence ELSE
 
@@ -71,6 +89,8 @@ using namespace std;
 
 %precedence lval
 %precedence '(' ')'
+
+%left ','
 
 %start CompUnit
 
@@ -573,19 +593,23 @@ ConstDecl
   }
   ;
 
+//ConstDef ::= IDENT {"[" ConstExp "]"} "=" ConstInitVal;
 ConstDef
-  :IDENT ASSIGN ConstInitVal {
+  : IDENT ASSIGN ConstInitVal {
     auto ast = new ConstDefAST();
     ast->ident = *unique_ptr<string>($1);
     ast->constinitval = unique_ptr<BaseAST>($3);
     ast->mode = 0;
     $$ = ast;
   }
-  | IDENT '[' ConstExp ']' ASSIGN ConstInitVal {
+  | IDENT ConstExpsWithBrackets ASSIGN ConstInitVal {
     auto ast = new ConstDefAST();
     ast->ident = *unique_ptr<string>($1);
-    ast->constexp = unique_ptr<BaseAST>($3);
-    ast->constinitval = unique_ptr<BaseAST>($6);
+    //???
+    for (auto &pt: *$2) {
+      ast->constexps.push_back(unique_ptr<BaseAST>(pt));
+    }
+    ast->constinitval = unique_ptr<BaseAST>($4);
     ast->mode = 1;
     $$ = ast;
   } 
@@ -599,28 +623,15 @@ ConstInitVal
     ast->constexp = unique_ptr<BaseAST>($1);
     $$ = ast;
   }
-  | '{' '}' {
+  | ArrayInitVal {
     auto ast = new ConstInitValAST();
     ast->mode = 1;
+    for (auto &pt: $1->constexps) {
+      ast->constexps.push_back(unique_ptr<BaseAST>(pt));
+    }
+    ast->braces = $1->braces;
     $$ = ast;
   }
-  | '{' ConstInitValItems '}' {
-    $$ = $2;
-  }
-  ;
-
-ConstInitValItems
-  : ConstExp {
-    auto ast = new ConstInitValAST();
-    ast->mode = 1;
-    ast->constexps.push_back(unique_ptr<BaseAST>($1));
-    $$ = ast;
-  }
-  | ConstInitValItems ',' ConstExp {
-    ((ConstInitValAST*)$$)->constexps.push_back(unique_ptr<BaseAST>($3));
-    //$$ = ast;
-  }
-  ;
 
 BlockItem
   :Decl {
@@ -644,11 +655,13 @@ LVal
     ast->ident = *unique_ptr<string>($1);
     $$ = ast;
   }
-  | IDENT '[' Exp ']' {
+  | IDENT ExpsWithBrackets {
     auto ast = new LValAST();
     ast->mode = 1;
     ast->ident = *unique_ptr<string>($1);
-    ast->exp = unique_ptr<BaseAST>($3);
+    for (auto &pt: *$2) {
+      ast->exps.push_back(unique_ptr<BaseAST>(pt));
+    }
     $$ = ast;
   }
   ;
@@ -678,11 +691,14 @@ VarDef
     ast->ident = *unique_ptr<string>($1);
     $$ = ast;
   }
-  | IDENT '[' ConstExp ']' {
+  | IDENT ConstExpsWithBrackets {
     auto ast = new VarDefAST();
     ast->mode = 2;
     ast->ident = *unique_ptr<string>($1);
-    ast->constexp = unique_ptr<BaseAST>($3);
+    for (auto &pt: *$2) {
+      ast->constexps.push_back(unique_ptr<BaseAST>(pt));
+    }
+    //相当于用大括号初始化。
     auto initval = new InitValAST();
     initval->mode = 1;
     ast->initval = unique_ptr<BaseAST>(initval);
@@ -695,12 +711,14 @@ VarDef
     ast->initval = unique_ptr<BaseAST>($3);
     $$ = ast;
   }
-  | IDENT '[' ConstExp ']' ASSIGN InitVal {
+  | IDENT ConstExpsWithBrackets ASSIGN InitVal {
     auto ast = new VarDefAST();
     ast->mode = 3;
     ast->ident = *unique_ptr<string>($1);
-    ast->constexp = unique_ptr<BaseAST>($3);
-    ast->initval = unique_ptr<BaseAST>($6);
+    for (auto &pt: *$2) {
+      ast->constexps.push_back(unique_ptr<BaseAST>(pt));
+    }
+    ast->initval = unique_ptr<BaseAST>($4);
     $$ = ast;
   }
   ;
@@ -712,26 +730,113 @@ InitVal
     ast->exp = unique_ptr<BaseAST>($1);
     $$ = ast;
   }
-  | '{' '}' {
+  | ArrayInitVal {
     auto ast = new InitValAST();
     ast->mode = 1;
+    for (auto &pt: $1->constexps) {
+      ast->exps.push_back(unique_ptr<BaseAST>(pt));
+    }
+    ast->braces = $1->braces;
     $$ = ast;
   }
-  | '{' InitValItems '}' {
+  ;
+
+ConstExpsWithBrackets:
+  '[' ConstExp ']' {
+    auto vec = new vector<BaseAST*>();
+    vec->push_back($2);
+    $$ = vec;
+  }
+  | ConstExpsWithBrackets '[' ConstExp ']'{
+    ($1)->push_back($3);
+  }
+  ;
+
+ExpsWithBrackets:
+  '[' Exp ']' {
+    auto vec = new vector<BaseAST*>();
+    vec->push_back($2);
+    $$ = vec;
+  }
+  | ExpsWithBrackets '[' Exp ']' {
+    ($1)->push_back($3);
+  }
+  ;
+
+//ConstInitVal  ::= ConstExp | "{" [ConstInitVal {"," ConstInitVal}] "}";
+//"{" [ConstInitVal {"," ConstInitVal}] "}";
+//中间的出现零次或一次的部分单独处理，变为
+//"{" ConstInitVal {"," ConstInitVal} "}";
+//我们将其中的每一项都拆分为一个constexp外面可以拥有一个或者多个大括号。
+
+//没有处理括号层数的属性。
+
+ArrayInitVal:
+  '{' '}' {
+    auto ast = new ArrayInitValAST();
+    ast->braces = "{}";
+    $$ = ast;
+  }
+  | '{' ArrayInitValItems '}' {
+    ($2)->braces = '{' +  ($2)->braces + '}';
     $$ = $2;
   }
   ;
 
-InitValItems
-  : Exp {
-    auto ast = new InitValAST();
-    ast->mode = 1;
-    ast->exps.push_back(unique_ptr<BaseAST>($1));
+ArrayInitValItems:
+  ConstExp %prec EXP{
+    auto ast = new ArrayInitValAST();
+    ast->constexps.push_back($1);
+    ast->braces = 'e';
     $$ = ast;
   }
-  | InitValItems ',' Exp {
-    ((InitValAST*)$$)->exps.push_back(unique_ptr<BaseAST>($3));
-    //$$ = ast;
+  | ConstExp ',' ArrayInitVal  %prec COMMA{
+    ($3)->constexps.insert(($3)->constexps.begin(), $1);
+    ($3)->braces = 'e' + ($3)->braces;
+    $$ = $3;
+  }
+  | ConstExps %prec EXP{
+    auto ast = new ArrayInitValAST();
+    for (auto &pt: *$1) {
+      ast->constexps.push_back(pt);
+      ast->braces += 'e';
+    }
+    
+    $$ = ast;
+  }
+  | ConstExps ',' ArrayInitVal  %prec COMMA{ 
+    for (int i = $1->size() - 1; i >= 0; i--) {
+      ($3)->constexps.insert(($3)->constexps.begin(), $1->at(i));
+      ($3)->braces = 'e' + ($3)->braces;
+    }
+    $$ = $3;
+  }
+  | ArrayInitVal {
+    $$ = $1;
+  }
+  | ArrayInitValItems ',' ConstExp {
+    ($1)->constexps.push_back($3);
+    ($1)->braces += 'e';
+  }
+  | ArrayInitValItems ',' ArrayInitVal  {
+    for (auto &pt: $3->constexps) {
+      ($1)->constexps.push_back(pt);
+      
+    }
+    ($1)->braces += ($3)->braces;
+    $$ = $1;
+  }
+
+ConstExps:
+  ConstExp ',' ConstExp  {
+    auto vec = new vector<BaseAST*>();
+    vec->push_back($1);
+    vec->push_back($3);
+    $$ = vec;
+  }
+  | ConstExps ',' ConstExp {
+    ($1)->push_back($3);
+    $$ = $1;
   }
   ;
 

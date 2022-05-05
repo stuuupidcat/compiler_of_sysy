@@ -362,20 +362,25 @@ public:
     virtual Value DumpKoopa()  override;
 };
 
-//ConstDef ::= IDENT ["[" ConstExp "]"] "=" ConstInitVal;
+//ConstDef ::= IDENT {"[" ConstExp "]"} "=" ConstInitVal;
+//mode = 0 变量
+//mode = 1 数组
 class ConstDefAST : public BaseAST {
 public:
-    std::unique_ptr<BaseAST> constexp;
+    std::vector<std::unique_ptr<BaseAST>> constexps;
     std::unique_ptr<BaseAST> constinitval;
 
     virtual Value DumpKoopa()  override;
 };
 
-//ConstInitVal  ::= ConstExp | "{" [ConstExp {"," ConstExp}] "}";
+//ConstInitVal  ::= ConstExp | "{" [ConstInitVal {"," ConstInitVal}] "}";
+//mode = 0 变量
+//mode = 1 数组
 class ConstInitValAST: public BaseAST {
 public:
     std::unique_ptr<BaseAST> constexp;
     std::vector<std::unique_ptr<BaseAST>> constexps;
+    std::string braces;
 
     virtual Value DumpKoopa()  override;
 };
@@ -389,11 +394,11 @@ public:
     virtual Value DumpKoopa()  override;
 };
 
-//LVal ::= IDENT ["[" Exp "]"];
+//LVal  ::= IDENT {"[" Exp "]"};
 class LValAST : public BaseAST {
 public:
     //ast->ident = *unique_ptr<string>($n);
-    std::unique_ptr<BaseAST> exp;
+    std::vector<std::unique_ptr<BaseAST>> exps;
     virtual Value DumpKoopa()  override;
 };
 
@@ -413,23 +418,25 @@ public:
     virtual Value DumpKoopa()  override;
 };
 
-//VarDef        ::= IDENT ["[" ConstExp "]"]
-//              | IDENT ["[" ConstExp "]"] "=" InitVal;
-//mode = 0变量有赋值，1变量没有赋值
-//mode = 2数组有赋值，3数组没有赋值
+//VarDef  ::= IDENT {"[" ConstExp "]"}
+//         | IDENT {"[" ConstExp "]"} "=" InitVal;
+//mode = 0变量无赋值，1变量有赋值
+//mode = 2数组无赋值，3数组有赋值
 class VarDefAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> constexp;
+    std::vector<std::unique_ptr<BaseAST>> constexps;
     std::unique_ptr<BaseAST> initval;
 
     virtual Value DumpKoopa()  override;
 };
 
-//InitVal::= Exp | "{" [Exp {"," Exp}] "}";
+//InitVal ::= Exp | "{" [InitVal {"," InitVal}] "}";
 class InitValAST : public BaseAST {
 public:
     std::unique_ptr<BaseAST> exp;
     std::vector<std::unique_ptr<BaseAST>> exps;
+    std::string braces;
 
     virtual Value DumpKoopa()  override;
 };
@@ -438,3 +445,28 @@ public:
 std::unordered_map<std::string, SymbolInfo>::iterator find_var_in_symbol_table(std::string&);
 void change_varvalue_in_symbol_table(std::string&, Value);
 
+class ArrayInitValAST {
+public:
+    std::vector<BaseAST *> constexps;
+    std::string braces;
+};
+
+//数组的初始化列表。
+class ArrayInitVal {
+public:
+    int mode; //mode = 0 integer, mode = 1 aggregate
+};
+
+class Integer: public ArrayInitVal {
+public:
+    Value value;
+    int algoresult;
+};
+
+class Aggregate: public ArrayInitVal {
+public:
+    std::vector<std::unique_ptr<ArrayInitVal>> values;
+};
+
+ArrayInitVal* MakeAggregate(std::vector<int>&, std::vector<Value>&, std::string&);
+void Fill(std::vector<Value>&, std::vector<int>&, Aggregate*, std::vector<int>&, int, int);

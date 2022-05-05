@@ -225,4 +225,31 @@ int main() {
 
 编译期求值实现。
 
-riscv- load store的修改，新的参数引用的处理。-1表明全局变量，负数表明寄存器的位置。
+riscv- load store的修改，新的参数引用的处理。-1表明全局变量，负数表明寄存器的位置。x
+
+symbolinfo的引用
+
+随机数bug
+//COOMA EXP移入规约冲突
+State 67
+
+   90 ArrayInitValItems: ConstExp .
+   95                  | ConstExp . ',' ArrayInitVal
+   97 ConstExps: ConstExp . ',' ConstExp
+
+    ','  shift, and go to state 105 （reduce using 90）
+
+    $default  reduce using rule 90 (ArrayInitValItems)
+
+State 70
+
+   92 ArrayInitValItems: ConstExps .
+   93                  | ConstExps . ',' ArrayInitVal
+   98 ConstExps: ConstExps . ',' ConstExp
+
+    ','  shift, and go to state 108 (reduce using 92)
+
+    $default  reduce using rule 92 (ArrayInitValItems)
+
+
+.get方法
