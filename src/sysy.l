@@ -19,7 +19,7 @@ using namespace std;
 WhiteSpace    [ \t\n\r]*
 LineComment   \/\/[^\n\r]*[\t\n\r]*
 /* from the Dragon book*/
-BlockComment  \/\*([^*"]*|".*"|\*+[^/])*\*\/
+BlockComment  \/\*[^*]*\*+([^*/][^*]*\*+)*\/
 
 /* 标识符 */
 Identifier    [a-zA-Z_][a-zA-Z0-9_]*
