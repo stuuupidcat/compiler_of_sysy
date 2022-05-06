@@ -82,8 +82,8 @@ void InsertValueDataToBlock(ValueData valuedata, Value allocated_val) {
     if (print_ins) {
         block_insts.insert(std::make_pair(allocated_val, valuedata));
         block_values.push_back(allocated_val);
-        all_insts.insert(std::make_pair(allocated_val, valuedata));
-        all_values.push_back(allocated_val);
+        //all_insts.insert(std::make_pair(allocated_val, valuedata));
+        //all_values.push_back(allocated_val);
     }
 }
 
