@@ -677,9 +677,22 @@ Value FuncDefAST::DumpKoopa()   {
     PrintInstruction();
 
     block -> DumpKoopa();
-    ValueData vd = ValueData(-1, "return", 0, 0, 0, "", 0);
-    Value val = InsertValueDataToAll(vd);
-    InsertValueDataToBlock(vd, val);
+    //void
+    if (mode == 0 || mode == 1) {
+        ValueData vd = ValueData(-1, "return", 0, 0, 0, "", 0);
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+    }
+    //int
+    else {  
+        auto zero = new NumberAST();
+        zero->num = 0;
+        Value zero_val = zero->DumpKoopa();
+        ValueData vd = ValueData(-1, "return", zero_val, 0);
+        Value val = InsertValueDataToAll(vd);
+        InsertValueDataToBlock(vd, val);
+    } 
+    
     PrintInstruction();
 
     //leave_block();

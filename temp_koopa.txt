@@ -7,7 +7,7 @@ decl @putarray(i32, *i32)
 decl @starttime()
 decl @stoptime()
 
-global @buf_global = alloc [[i32, 100], 2], {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+global @buf_global = alloc [[i32, 100], 2], {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
 fun @merge_sort_function(@l :i32, @r :i32) {
 %entry:
   @l_1 = alloc i32
@@ -64,129 +64,117 @@ fun @merge_sort_function(@l :i32, @r :i32) {
   br %23, %L3, %L5
 %L3:
   %24 = load @i_1
-  %25 = mul 100,0
-  %26 = add %24, %25
-  %27 = getelemptr @buf_global, %26
-  %28 = load %27
-  %29 = load @j_1
-  %30 = mul 100,0
-  %31 = add %29, %30
-  %32 = getelemptr @buf_global, %31
-  %33 = load %32
-  %34 = lt %28, %33
-  br %34, %L8, %L9
+  %25 = getelemptr @buf_global, 0
+  %26 = getelemptr %25, %24
+  %27 = load %26
+  %28 = load @j_1
+  %29 = getelemptr @buf_global, 0
+  %30 = getelemptr %29, %28
+  %31 = load %30
+  %32 = lt %27, %31
+  br %32, %L8, %L9
 %L8:
-  %35 = load @k_1
-  %36 = mul 100,1
-  %37 = add %35, %36
-  %38 = getelemptr @buf_global, %37
-  %39 = load @i_1
-  %40 = mul 100,0
-  %41 = add %39, %40
-  %42 = getelemptr @buf_global, %41
-  %43 = load %42
-  store %43, %38
-  %44 = load @i_1
-  %45 = add %44, 1
-  store %45, @i_1
+  %33 = load @k_1
+  %34 = getelemptr @buf_global, 1
+  %35 = getelemptr %34, %33
+  %36 = load @i_1
+  %37 = getelemptr @buf_global, 0
+  %38 = getelemptr %37, %36
+  %39 = load %38
+  store %39, %35
+  %40 = load @i_1
+  %41 = add %40, 1
+  store %41, @i_1
   jump %L10
 %L9:
-  %46 = load @k_1
-  %47 = mul 100,1
-  %48 = add %46, %47
-  %49 = getelemptr @buf_global, %48
-  %50 = load @j_1
-  %51 = mul 100,0
-  %52 = add %50, %51
-  %53 = getelemptr @buf_global, %52
-  %54 = load %53
-  store %54, %49
-  %55 = load @j_1
-  %56 = add %55, 1
-  store %56, @j_1
+  %42 = load @k_1
+  %43 = getelemptr @buf_global, 1
+  %44 = getelemptr %43, %42
+  %45 = load @j_1
+  %46 = getelemptr @buf_global, 0
+  %47 = getelemptr %46, %45
+  %48 = load %47
+  store %48, %44
+  %49 = load @j_1
+  %50 = add %49, 1
+  store %50, @j_1
   jump %L10
 %L10:
-  %57 = load @k_1
-  %58 = add %57, 1
-  store %58, @k_1
+  %51 = load @k_1
+  %52 = add %51, 1
+  store %52, @k_1
   jump %L4
 %L4:
   jump %L2
 %L5:
   jump %L11
 %L11:
-  %59 = load @i_1
-  %60 = load @mid_1
-  %61 = lt %59, %60
-  br %61, %L12, %L14
+  %53 = load @i_1
+  %54 = load @mid_1
+  %55 = lt %53, %54
+  br %55, %L12, %L14
 %L12:
-  %62 = load @k_1
-  %63 = mul 100,1
-  %64 = add %62, %63
-  %65 = getelemptr @buf_global, %64
-  %66 = load @i_1
-  %67 = mul 100,0
-  %68 = add %66, %67
-  %69 = getelemptr @buf_global, %68
-  %70 = load %69
-  store %70, %65
-  %71 = load @i_1
-  %72 = add %71, 1
-  store %72, @i_1
-  %73 = load @k_1
-  %74 = add %73, 1
-  store %74, @k_1
+  %56 = load @k_1
+  %57 = getelemptr @buf_global, 1
+  %58 = getelemptr %57, %56
+  %59 = load @i_1
+  %60 = getelemptr @buf_global, 0
+  %61 = getelemptr %60, %59
+  %62 = load %61
+  store %62, %58
+  %63 = load @i_1
+  %64 = add %63, 1
+  store %64, @i_1
+  %65 = load @k_1
+  %66 = add %65, 1
+  store %66, @k_1
   jump %L13
 %L13:
   jump %L11
 %L14:
   jump %L15
 %L15:
-  %75 = load @j_1
-  %76 = load @r_1
-  %77 = lt %75, %76
-  br %77, %L16, %L18
+  %67 = load @j_1
+  %68 = load @r_1
+  %69 = lt %67, %68
+  br %69, %L16, %L18
 %L16:
-  %78 = load @k_1
-  %79 = mul 100,1
-  %80 = add %78, %79
-  %81 = getelemptr @buf_global, %80
-  %82 = load @j_1
-  %83 = mul 100,0
-  %84 = add %82, %83
-  %85 = getelemptr @buf_global, %84
-  %86 = load %85
-  store %86, %81
-  %87 = load @j_1
-  %88 = add %87, 1
-  store %88, @j_1
-  %89 = load @k_1
-  %90 = add %89, 1
-  store %90, @k_1
+  %70 = load @k_1
+  %71 = getelemptr @buf_global, 1
+  %72 = getelemptr %71, %70
+  %73 = load @j_1
+  %74 = getelemptr @buf_global, 0
+  %75 = getelemptr %74, %73
+  %76 = load %75
+  store %76, %72
+  %77 = load @j_1
+  %78 = add %77, 1
+  store %78, @j_1
+  %79 = load @k_1
+  %80 = add %79, 1
+  store %80, @k_1
   jump %L17
 %L17:
   jump %L15
 %L18:
   jump %L19
 %L19:
-  %91 = load @l_1
-  %92 = load @r_1
-  %93 = lt %91, %92
-  br %93, %L20, %L22
+  %81 = load @l_1
+  %82 = load @r_1
+  %83 = lt %81, %82
+  br %83, %L20, %L22
 %L20:
-  %94 = load @l_1
-  %95 = mul 100,0
-  %96 = add %94, %95
-  %97 = getelemptr @buf_global, %96
-  %98 = load @l_1
-  %99 = mul 100,1
-  %100 = add %98, %99
-  %101 = getelemptr @buf_global, %100
-  %102 = load %101
-  store %102, %97
-  %103 = load @l_1
-  %104 = add %103, 1
-  store %104, @l_1
+  %84 = load @l_1
+  %85 = getelemptr @buf_global, 0
+  %86 = getelemptr %85, %84
+  %87 = load @l_1
+  %88 = getelemptr @buf_global, 1
+  %89 = getelemptr %88, %87
+  %90 = load %89
+  store %90, %86
+  %91 = load @l_1
+  %92 = add %91, 1
+  store %92, @l_1
   jump %L21
 %L21:
   jump %L19
@@ -197,14 +185,16 @@ fun @merge_sort_function(@l :i32, @r :i32) {
 fun @main(): i32 {
 %entry:
   %0 = getelemptr @buf_global, 0
-  %1 = call @getarray(%0)
+  %1 = getelemptr %0, 0
+  %2 = call @getarray(%1)
   @n_1 = alloc i32
-  store %1, @n_1
-  %2 = load @n_1
-  call @merge_sort_function(0, %2)
+  store %2, @n_1
   %3 = load @n_1
-  %4 = getelemptr @buf_global, 0
-  call @putarray(%3, %4)
+  call @merge_sort_function(0, %3)
+  %4 = load @n_1
+  %5 = getelemptr @buf_global, 0
+  %6 = getelemptr %5, 0
+  call @putarray(%4, %6)
   ret 0
 }
 
