@@ -1826,7 +1826,7 @@ ARRAY:
             
 
             //部分维度的数组指针。补全一个0获得其首元素的指针。
-            if (exps.size() < si.arr_dims) {
+            if (calculating_params && exps.size() < si.arr_dims) {
                 is_left = true;
                 auto zero = new NumberAST();
                 zero->num = 0;
@@ -1858,7 +1858,7 @@ ARRAY:
                 exp_algoresults.push_back(exp->exp_algoresult);
             }
 
-            if (calculating_params) { //如果在计算参数，那么要补全一个0，来得到一个getelemptr的值。
+            if (calculating_params && exps.size() < si.arr_dims) { //如果在计算参数，那么要补全一个0，来得到一个getelemptr的值。
                 is_left = true;
                 auto zero = new NumberAST();
                 zero->num = 0;
