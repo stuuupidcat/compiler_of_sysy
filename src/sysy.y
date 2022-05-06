@@ -136,19 +136,7 @@ FuncDef
     ast->funcfparams = unique_ptr<BaseAST>($4);
     ast->block = unique_ptr<BaseAST>($6);
 
-    auto vardecl = new VarDeclAST();
-
-    for (auto& param : ((FuncFParamsAST*)$4)->funcfparams) {
-        auto number = new NumberAST();
-        number->ident = param->ident;
-        
-        auto vardef = new VarDefAST();
-        vardef->ident = param->ident;
-        vardef->initval = unique_ptr<BaseAST>(number);
-        vardef->mode = 1;
-        vardecl->vardefs.push_back(unique_ptr<BaseAST>(vardef));
-    }
-    ast->vardecls.push_back(unique_ptr<BaseAST>(vardecl));
+    
     $$ = ast;
   }
   | INT IDENT '(' ')' Block {
@@ -164,20 +152,6 @@ FuncDef
     ast->ident = *unique_ptr<string>($2);
     ast->funcfparams = unique_ptr<BaseAST>($4);
     ast->block = unique_ptr<BaseAST>($6);
-
-    auto vardecl = new VarDeclAST();
-
-    for (auto& param : ((FuncFParamsAST*)$4)->funcfparams) {
-        auto number = new NumberAST();
-        number->ident = param->ident;
-        
-        auto vardef = new VarDefAST();
-        vardef->ident = param->ident;
-        vardef->initval = unique_ptr<BaseAST>(number);
-        vardef->mode = 1;
-        vardecl->vardefs.push_back(unique_ptr<BaseAST>(vardef));
-    }
-    ast->vardecls.push_back(unique_ptr<BaseAST>(vardecl));
     $$ = ast;
   }
   ;
@@ -194,11 +168,29 @@ FuncFParams
   }
   ;
 
-//FuncFParam  ::= INT IDENT;
 FuncFParam
   : INT IDENT {
     auto ast = new FuncFParamAST();
+    ast->mode = 0;
     ast->ident = *unique_ptr<string>($2);
+    $$ = ast;
+  }
+  | INT IDENT '[' ']' {
+    auto ast = new FuncFParamAST();
+    ast->mode = 1;
+    ast->arr_pt_dim = 1;
+    ast->ident = *unique_ptr<string>($2);
+    $$ = ast;
+  }
+  | INT IDENT '[' ']' ConstExpsWithBrackets {
+    auto ast = new FuncFParamAST();
+    ast->mode = 2;
+    ast->arr_pt_dim = 1;
+    ast->ident = *unique_ptr<string>($2);
+    for (auto &pt: *$5) {
+      ast->constexps.push_back(unique_ptr<BaseAST>(pt));
+      ast->arr_pt_dim++;
+    }
     $$ = ast;
   }
   ;

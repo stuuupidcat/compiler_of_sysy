@@ -18,6 +18,8 @@ std::unordered_map<Value, ValueData> all_insts;
 std::vector<Value> block_values;
 std::vector<Value> all_values;
 
+//当前所处函数的名字。
+std::string cur_func_name;
 
 //符号表。下标为当前的(scope_num, block_num)
 std::vector<std::vector<std::unordered_map<std::string, SymbolInfo>>> symbol_table; 
@@ -32,6 +34,49 @@ std::vector<LoopData> loop_data;
 bool print_ins = true;
 //需要输出一个标签
 bool need_label = false;
+
+bool calculating_params = false;
+
+ValueData AllocateValueData(std::string inst_type_, Value lhs_, Value rhs_, Value jump_cond_ = 0, std::string name_="", int initializer_=0) {
+    ValueData vd = {temp_sign_num[scope_num], inst_type_, lhs_, rhs_, jump_cond_, name_, initializer_};
+    if (print_ins)
+        temp_sign_num[scope_num]++;
+    return vd;
+}
+
+ValueData AllocateValueData(std::string inst_type_, std::string symbol_name_,int offset, Value offset_value_) {
+    ValueData vd = {temp_sign_num[scope_num], inst_type_, symbol_name_, offset, offset_value_};
+    if (print_ins)
+        temp_sign_num[scope_num]++;
+    return vd;
+}
+
+ValueData::ValueData(int no_, std::string inst_type_, Value lhs_, Value rhs_, Value jump_cond_ = 0, std::string symbol_name_ = "", int initializer_ = 0) {
+    no = no_;
+    inst_type = inst_type_;
+    lhs = lhs_;
+    rhs = rhs_;
+    jump_cond = jump_cond_;
+    symbol_name = symbol_name_;
+    initializer = initializer_;
+}
+
+ValueData::ValueData(std::string inst_type_, std::string symbol_name_, int arr_dim_, std::vector<int> arr_sizes_, std::vector<int> arr_item_exp_algoresults_) {
+    inst_type = inst_type_;
+    symbol_name = symbol_name_;
+    arr_dim = arr_dim_;
+    arr_sizes = arr_sizes_;
+    arr_item_exp_algoresults = arr_item_exp_algoresults_;
+    //arr_item_values = arr_item_values_;
+}
+
+ValueData::ValueData(int no_, std::string inst_type_, std::string symbol_name_,int offset_, Value offset_value_) {
+    no = no_;
+    inst_type = inst_type_;
+    symbol_name = symbol_name_;
+    offset = offset_;
+    offset_value = offset_value_;
+}
 
 void InsertValueDataToBlock(ValueData valuedata, Value allocated_val) {
     if (print_ins) {
@@ -115,6 +160,58 @@ void Fill(std::vector<Value>& array_initval_values, std::vector<int>& array_init
 
 }
 
+
+int initvals_pt = 0;
+std::string GlobalArrayInit(std::vector<int>& initvals, std::vector<int>& vec_dims, int vec_dims_pt) {
+    std::string res;
+    if (vec_dims_pt == vec_dims.size() - 1) {
+        for (int i = 0; i < vec_dims[vec_dims_pt]; i++) {
+            if (i == 0) {
+                res += std::to_string(initvals[initvals_pt]);
+                initvals_pt++;
+            }
+            else {
+                res += ", " + std::to_string(initvals[initvals_pt]);
+                initvals_pt++;
+            }
+        }
+
+    }
+    else {
+        for (int i = 0; i < vec_dims[vec_dims_pt]; i++) {
+            if (i == 0) {
+                res += GlobalArrayInit(initvals, vec_dims, vec_dims_pt + 1);
+            }
+            else {
+                res += ", " + GlobalArrayInit(initvals, vec_dims, vec_dims_pt + 1);
+            }
+        }
+    }
+    return "{" + res + "}";
+}
+
+//复用initvals_pt;
+void LocalArrayInit(std::vector<Value>& initvals, std::vector<int>& vec_dims, int vec_dims_pt, std::string ident_id) {
+    if (vec_dims_pt == vec_dims.size() - 1) {
+        for (int i = 0; i < vec_dims[vec_dims_pt]; i++) {
+            ValueData get_ptr_vd = AllocateValueData("getelemptr", ident_id, i, 0);
+            Value get_ptr_vd_value = InsertValueDataToAll(get_ptr_vd);
+            InsertValueDataToBlock(get_ptr_vd, get_ptr_vd_value);
+            ValueData store_vd = ValueData(-1, "storetotemp", initvals[initvals_pt], get_ptr_vd_value);
+            initvals_pt++;
+            Value store_vd_value = InsertValueDataToAll(store_vd);
+            InsertValueDataToBlock(store_vd, store_vd_value); 
+        }
+    }
+    else {
+        for (int i = 0; i < vec_dims[vec_dims_pt]; i++) {
+            ValueData get_ptr_vd = AllocateValueData("getelemptr", ident_id, i, 0);
+            Value get_ptr_vd_value = InsertValueDataToAll(get_ptr_vd);
+            InsertValueDataToBlock(get_ptr_vd, get_ptr_vd_value);
+            LocalArrayInit(initvals, vec_dims, vec_dims_pt + 1, "%" + std::to_string(get_ptr_vd.no));
+        }
+    }
+}
 
 
 void BaseAST::CalIdentID() {
@@ -204,9 +301,10 @@ SymbolInfo::SymbolInfo(bool is_void_function_) {
 }
 
 //for array
-SymbolInfo::SymbolInfo(int arr_dims_, std::vector<int> arr_size_) {
+SymbolInfo::SymbolInfo(int arr_dims_, std::vector<int> arr_size_, bool is_array_pt_) {
     arr_dims = arr_dims_;
     arr_size = arr_size_;
+    is_array_pt = is_array_pt_;
 }
 
 
@@ -352,10 +450,15 @@ std::string ValueData::format() {
             res += "%" + std::to_string(rhs_vd.no) + "\n";
         }
     }
-    //指令类型为alloc
-    else if (inst_type == "alloc") {
+    //指令类型为alloc // alloc+type
+    else if (inst_type.find("alloc") != std::string::npos && (inst_type.size() == 5 || inst_type[5] == '*')) {
         //定义且赋值
-        res = "@" + symbol_name + " = alloc i32\n";
+        if (inst_type.size() == 5) {
+            res = "@" + symbol_name + " = alloc i32\n";
+        }
+        else {
+            res = "@" + symbol_name + " = alloc " + inst_type.substr(5) + "\n";
+        }
     }
     else if (inst_type == "globalalloc") {
         res = "global @" + symbol_name + " = alloc i32, " + std::to_string(initializer) + "\n";
@@ -407,88 +510,51 @@ std::string ValueData::format() {
         res = symbol_name + ":\n";
     }
     else if (inst_type == "global_array_alloc") {
-        res = "global @" + symbol_name + " = alloc [i32, ";
-        //calculate the mul of the arr_sizes
-        int mul = 1;
-        for (int i = 0; i < arr_sizes.size(); i++) {
-            mul *= arr_sizes[i];
-        }
-        res += std::to_string(mul) + "], {";
-        int init_len = arr_item_exp_algoresults.size();
-        for (int i = 0; i < init_len; i++) {
-            if (i != 0)
-                res += ", ";
-            res += std::to_string(arr_item_exp_algoresults[i]);
-        }
-        for (int i = 1; i <= arr_sizes[0] - init_len; i++) {
-            res += ", 0";
-        }
-        res += "}\n";
+        res = "global @" + symbol_name + " = alloc ";
+        res += ArrayType(arr_sizes, 0); 
+        res += ", ";
+        
+        initvals_pt = 0;
+        res += GlobalArrayInit(arr_item_exp_algoresults, arr_sizes, initvals_pt);
+        res += "\n";
     }
     else if (inst_type == "local_array_alloc") {
-        res = "@" + symbol_name + " = alloc [i32, ";
-        int mul = 1;
-        for (int i = 0; i < arr_sizes.size(); i++) {
-            mul *= arr_sizes[i];
-        }
-        res += std::to_string(mul) + "]\n";
+        res = "@" + symbol_name + " = alloc ";
+        res += ArrayType(arr_sizes, 0) + "\n";; 
     }
     else if (inst_type == "getelemptr") {
+        if (symbol_name[0] != '%') {
+            symbol_name = "@" + symbol_name;
+        } 
+
         if (offset != -1) {
-            res = "%" + std::to_string(no) + " = getelemptr @" + symbol_name + ", " + std::to_string(offset) + "\n";
+            res = "%" + std::to_string(no) + " = getelemptr " + symbol_name + ", " + std::to_string(offset) + "\n";
         }
         else {
             if (offset_vd.inst_type == "number" || offset_vd.inst_type == "lval") {
-                res = "%" + std::to_string(no) + " = getelemptr @" + symbol_name + ", " + offset_vd.format() + "\n";
+                res = "%" + std::to_string(no) + " = getelemptr " + symbol_name + ", " + offset_vd.format() + "\n";
             }
             else {
-                res = "%" + std::to_string(no) + " = getelemptr @" + symbol_name + ", %" + std::to_string(offset_vd.no) + "\n";
+                res = "%" + std::to_string(no) + " = getelemptr " + symbol_name + ", %" + std::to_string(offset_vd.no) + "\n";
+            }
+        }
+    }
+    else if (inst_type == "getptr") {
+        if (offset != -1) {
+            res = "%" + std::to_string(no) + " = getptr @" + symbol_name + ", " + std::to_string(offset) + "\n";
+        }
+        else {
+            if (offset_vd.inst_type == "number" || offset_vd.inst_type == "lval") {
+                res = "%" + std::to_string(no) + " = getptr " + symbol_name + ", " + offset_vd.format() + "\n";
+            }
+            else {
+                res = "%" + std::to_string(no) + " = getptr " + symbol_name + ", %" + std::to_string(offset_vd.no) + "\n";
             }
         }
     }
     return res;
 }
 
-ValueData AllocateValueData(std::string inst_type_, Value lhs_, Value rhs_, Value jump_cond_ = 0, std::string name_="", int initializer_=0) {
-    ValueData vd = {temp_sign_num[scope_num], inst_type_, lhs_, rhs_, jump_cond_, name_, initializer_};
-    if (print_ins)
-        temp_sign_num[scope_num]++;
-    return vd;
-}
-
-ValueData AllocateValueData(std::string inst_type_, std::string symbol_name_,int offset, Value offset_value_) {
-    ValueData vd = {temp_sign_num[scope_num], inst_type_, symbol_name_, offset, offset_value_};
-    if (print_ins)
-        temp_sign_num[scope_num]++;
-    return vd;
-}
-
-ValueData::ValueData(int no_, std::string inst_type_, Value lhs_, Value rhs_, Value jump_cond_ = 0, std::string symbol_name_ = "", int initializer_ = 0) {
-    no = no_;
-    inst_type = inst_type_;
-    lhs = lhs_;
-    rhs = rhs_;
-    jump_cond = jump_cond_;
-    symbol_name = symbol_name_;
-    initializer = initializer_;
-}
-
-ValueData::ValueData(std::string inst_type_, std::string symbol_name_, int arr_dim_, std::vector<int> arr_sizes_, std::vector<int> arr_item_exp_algoresults_) {
-    inst_type = inst_type_;
-    symbol_name = symbol_name_;
-    arr_dim = arr_dim_;
-    arr_sizes = arr_sizes_;
-    arr_item_exp_algoresults = arr_item_exp_algoresults_;
-    //arr_item_values = arr_item_values_;
-}
-
-ValueData::ValueData(int no_, std::string inst_type_, std::string symbol_name_,int offset_, Value offset_value_) {
-    no = no_;
-    inst_type = inst_type_;
-    symbol_name = symbol_name_;
-    offset = offset_;
-    offset_value = offset_value_;
-}
 
 Value CompUnitAST::DumpKoopa()  {
     srand(time(NULL));
@@ -557,6 +623,7 @@ Value CompUnitAST::DumpKoopa()  {
 Value FuncDefAST::DumpKoopa()   {
     std::cout << "fun ";
     std::cout << "@" << ident_id;
+    cur_func_name = ident_id;
 
     //函数参数。
     std::cout << '(';
@@ -578,6 +645,31 @@ Value FuncDefAST::DumpKoopa()   {
     std::cout << "%entry:" << std::endl;
     need_label = false;
     //enter_block();
+    if (mode == 1 || mode == 3) {
+        auto vardecl = new VarDeclAST();
+        for (auto& param : ((FuncFParamsAST*)funcfparams.get())->funcfparams){
+            //number的ident不为空时直接输出这个名字。
+            //number的num正好表示个数组维度。
+            auto number = new NumberAST();
+            number->ident = param->ident;
+            auto pt = (FuncFParamAST*)(param.get());
+            number->num = pt->constexps.size()+1;
+            number->exp_algoresults.push_back(1);
+            for (auto &constexp : pt->constexps) {
+                number->exp_algoresults.push_back(constexp->exp_algoresult);
+            }
+        
+            auto vardef = new VarDefAST();
+            vardef->ident = param->ident;
+            vardef->type = param->type;
+            vardef->initval = std::unique_ptr<BaseAST>(number);
+            if (param->mode == 0)
+                vardef->mode = 1; //普通变量
+            else vardef->mode = 5; //数组参数
+            vardecl->vardefs.push_back(std::unique_ptr<BaseAST>(vardef));
+        }
+        vardecls.push_back(std::unique_ptr<BaseAST>(vardecl));
+    }
 
     for (auto& vardecl: vardecls) {
         vardecl->DumpKoopa();
@@ -620,19 +712,50 @@ Value FuncFParamsAST::DumpKoopa()   {
     return 0;
 }
 
+std::string ArrayType(std::vector<int>& vec, int pt) {
+    std::string res;
+    if (pt == vec.size() - 1) {
+        res = "[i32, " + std::to_string(vec[pt]) + "]";
+    }
+    else {
+        res = "[" + ArrayType(vec, pt+1) + ", " + std::to_string(vec[pt]) + "]";
+    }
+    return res;
+}
+
 Value FuncFParamAST::DumpKoopa()   {
     //将符号插入到符号表中。
     //不用 本质上是数字
-                
-    std::cout << "@" << ident << " :i32";
+    if (mode == 0) {
+        std::cout << "@" << ident << " :i32";
+        type = "i32";
+    }
+    else if (mode == 1) { //..., int a[], ...
+        std::cout << "@" << ident << " :*i32";
+        type = "*i32";
+    }
+    else if (mode == 2) { //..., int a[][2][3], ...
+        bool print_ins_cp = print_ins;
+        print_ins = false;
+        for (auto &constexp: constexps) {
+            constexp->DumpKoopa();
+            exp_algoresults.push_back(constexp->exp_algoresult);
+        }
+        print_ins = print_ins_cp;
+        type = "*" + ArrayType(exp_algoresults, 0);
+        std::cout << "@" << ident << " :" << type;
+    }
+    else {}
     return 0;
 }
 
+
 Value FuncRParamsAST::DumpKoopa()   {
-    std::vector<Value> res;
+    calculating_params = true;
     for (auto &exp: exps) {
         exp->DumpKoopa();
     }
+    calculating_params = false;
     return 0;
 }
 
@@ -979,10 +1102,14 @@ Value UnaryExpAST::DumpKoopa() {
     else if (mode == 3) {
         if (ident == "getarray") {
             std::vector<Value> temp_vec;
+
+            calculating_params = true;
             for (auto& exp: funcrparams->exps) {
                 temp_vec.push_back(exp->DumpKoopa());
             }
-            ValueData vd = ValueData(-1, "call", 0, 0, 0, ident);
+            calculating_params = false;
+
+            ValueData vd = AllocateValueData("call", 0, 0, 0, ident);
             vd.parameters = temp_vec;
             Value val = InsertValueDataToAll(vd);
             InsertValueDataToBlock(vd, val);
@@ -991,9 +1118,13 @@ Value UnaryExpAST::DumpKoopa() {
 
         if (ident == "putint" || ident == "putch" || ident == "putarray") {
             std::vector<Value> temp_vec;
+
+            calculating_params = true;
             for (auto& exp: funcrparams->exps) {
                 temp_vec.push_back(exp->DumpKoopa());
             }
+            calculating_params = false;
+
             ValueData vd = ValueData(-1, "call", 0, 0, 0, ident);
             vd.parameters = temp_vec;
             Value val = InsertValueDataToAll(vd);
@@ -1004,11 +1135,15 @@ Value UnaryExpAST::DumpKoopa() {
         std::string func_name = ident + "_function";
         SymbolInfo symbol_info = symbol_table[0][0][func_name];
         ValueData vd;
-        //vd.parameters = funcrparams->DumpKoopa();
+
         std::vector<Value> temp_vec;
+
+        calculating_params = true;
         for (auto& exp: funcrparams->exps) {
             temp_vec.push_back(exp->DumpKoopa());
         }
+        calculating_params = false;
+
         if (symbol_info.is_void_function) {
             vd = ValueData(-1, "call", 0, 0, 0, func_name);
         }
@@ -1445,9 +1580,6 @@ Value ConstDefAST::DumpKoopa() {
         }
         //填充数组。
         Fill(array_initval_values, array_initval_algoresults, aggregate_pt, nums, 0, nums[nums.size() - 1]);
-        //TODO
-        //...
-        //TODO END
         
         //要打印数组的声明
         //处理局部同名变量
@@ -1458,14 +1590,9 @@ Value ConstDefAST::DumpKoopa() {
             Value vd_value = InsertValueDataToAll(vd);
             InsertValueDataToBlock(vd, vd_value);
             
-            for (int i = 0; i < mul; ++i) {
-                ValueData get_ptr_vd = AllocateValueData("getelemptr", ident_id, i, 0);
-                Value get_ptr_vd_value = InsertValueDataToAll(get_ptr_vd);
-                InsertValueDataToBlock(get_ptr_vd, get_ptr_vd_value);
-                ValueData store_vd = ValueData(-1, "storetotemp", array_initval_values[i], get_ptr_vd_value);
-                Value store_vd_value = InsertValueDataToAll(store_vd);
-                InsertValueDataToBlock(store_vd, store_vd_value); 
-            }
+            initvals_pt = 0;
+            LocalArrayInit(array_initval_values, array_sizes, 0, ident_id);
+
         }
         else {
             print_ins = true;
@@ -1478,7 +1605,7 @@ Value ConstDefAST::DumpKoopa() {
     
         //将符号插入到符号表中。
         symbol_table[scope_num][basic_block_num[scope_num]].insert(std::make_pair(ident_id,
-                                                    SymbolInfo(1, array_sizes)));
+                                                    SymbolInfo(1, array_sizes, false)));
         print_ins = false;
     }
     return 0;
@@ -1535,6 +1662,23 @@ Value VarDefAST::DumpKoopa() {
             InsertValueDataToBlock(vd_alloc, vd_alloc_value);
         }
     }
+    else if (mode == 5) { //函数参数中的数组指针。
+        //number中存着变量名。
+        
+        print_ins = true;
+        CalIdentID();
+        Value lhs = initval->DumpKoopa();
+
+        ValueData vd_alloc = ValueData(-1, "alloc"+type, 0, 0, 0, ident_id, initval->exp_algoresult);
+        Value vd_alloc_value = InsertValueDataToAll(vd_alloc);
+        InsertValueDataToBlock(vd_alloc, vd_alloc_value);
+        ValueData vd_store = ValueData(-1, "store", lhs, 0, 0,ident_id);
+        Value vd_store_value = InsertValueDataToAll(vd_store);
+        InsertValueDataToBlock(vd_store, vd_store_value);
+        symbol_table[scope_num][basic_block_num[scope_num]].insert(std::make_pair(ident_id,
+                                                             SymbolInfo(
+                                                                 ((NumberAST*)(initval.get()))->num, ((NumberAST*)(initval.get()))->exp_algoresults, true)));
+    }
 
     else { //数组
         if (scope_num != 0) { //要算数的，
@@ -1546,10 +1690,6 @@ Value VarDefAST::DumpKoopa() {
         }
         //数组的大小。
         std::vector<int> array_sizes = exp_algoresults;
-        initval->DumpKoopa();
-            initval->DumpKoopa(); 
-        initval->DumpKoopa();
-            initval->DumpKoopa(); 
         initval->DumpKoopa();
 
         //the initialization of the array.
@@ -1573,9 +1713,6 @@ Value VarDefAST::DumpKoopa() {
         }
         //填充数组。
         Fill(array_initval_values, array_initval_algoresults, aggregate_pt, nums, 0, nums[nums.size() - 1]);
-        //TODO
-        //...
-        //TODO END
         
         //要打印数组的声明
         //处理局部同名变量
@@ -1586,14 +1723,8 @@ Value VarDefAST::DumpKoopa() {
             Value vd_value = InsertValueDataToAll(vd);
             InsertValueDataToBlock(vd, vd_value);
             
-            for (int i = 0; i < mul; ++i) {
-                ValueData get_ptr_vd = AllocateValueData("getelemptr", ident_id, i, 0);
-                Value get_ptr_vd_value = InsertValueDataToAll(get_ptr_vd);
-                InsertValueDataToBlock(get_ptr_vd, get_ptr_vd_value);
-                ValueData store_vd = ValueData(-1, "storetotemp", array_initval_values[i], get_ptr_vd_value);
-                Value store_vd_value = InsertValueDataToAll(store_vd);
-                InsertValueDataToBlock(store_vd, store_vd_value); 
-            }
+            initvals_pt = 0;
+            LocalArrayInit(array_initval_values, array_sizes, 0, ident_id);
         }
         else {
             print_ins = true;
@@ -1606,7 +1737,7 @@ Value VarDefAST::DumpKoopa() {
     
         //将符号插入到符号表中。
         symbol_table[scope_num][basic_block_num[scope_num]].insert(std::make_pair(ident_id,
-                                                    SymbolInfo(1, array_sizes)));
+                                                    SymbolInfo(array_dim, array_sizes, false)));
     }
     
 
@@ -1645,6 +1776,13 @@ Value LValAST::DumpKoopa() {
     if (mode == 0) {//普通变量 
         auto vi = find_var_in_symbol_table(ident);
         ident_id = (*vi).first;
+        
+        if ((*vi).second.arr_dims > 0) {
+            is_left = true;
+            goto ARRAY;
+        }
+
+
         Value lhs_value = (*vi).second.value;
         Value rhs_value = 0;
 
@@ -1668,59 +1806,103 @@ Value LValAST::DumpKoopa() {
         }
     }
     else { //数组的解引用
+ARRAY:
         auto vi = find_var_in_symbol_table(ident);
         ident_id = (*vi).first;
         SymbolInfo si = (*vi).second;
         std::vector<int> nums;
         
-        int mul = 1;
-        for (int i = si.arr_size.size() - 1; i >= 0; --i) {
-            mul *= si.arr_size[i];
-            nums.push_back(mul);
+        if (si.is_array_pt == false) { //是一个数组
+            int mul = 1;
+            for (int i = si.arr_size.size() - 1; i >= 0; --i) {
+                mul *= si.arr_size[i];
+                nums.push_back(mul);
+            }
+
+            for (auto& exp: exps) {
+                subast_values.push_back(exp->DumpKoopa());
+                exp_algoresults.push_back(exp->exp_algoresult);
+            }
+            
+
+            //部分维度的数组指针。补全一个0获得其首元素的指针。
+            if (exps.size() < si.arr_dims) {
+                is_left = true;
+                auto zero = new NumberAST();
+                zero->num = 0;
+                Value zero_val = zero->DumpKoopa();
+                subast_values.push_back(zero_val);
+                exp_algoresults.push_back(0);
+            }
+
+            Value res;
+            for (int i = 0; i < subast_values.size(); ++i) {
+                ValueData vd = AllocateValueData("getelemptr", ident_id, -1, subast_values[i]);
+                Value val = InsertValueDataToAll(vd);
+                InsertValueDataToBlock(vd, val);
+                ident_id = "%" + std::to_string(vd.no);
+                res = val;
+            }
+
+            if (!is_left) {
+                ValueData load_vd = AllocateValueData("load", res, 0, 0, "");
+                Value load_vd_value = InsertValueDataToAll(load_vd);
+                InsertValueDataToBlock(load_vd, load_vd_value);
+                res = load_vd_value;
+            }
+            return res;
+        }
+        else { //是一个数组指针
+            for (auto& exp: exps) {
+                subast_values.push_back(exp->DumpKoopa());
+                exp_algoresults.push_back(exp->exp_algoresult);
+            }
+
+            if (calculating_params) { //如果在计算参数，那么要补全一个0，来得到一个getelemptr的值。
+                is_left = true;
+                auto zero = new NumberAST();
+                zero->num = 0;
+                Value zero_val = zero->DumpKoopa();
+
+                subast_values.push_back(zero_val);
+                exp_algoresults.push_back(0);
+            }
+
+            ValueData loadptr_vd = AllocateValueData("load", 0, 0, 0, ident_id);
+            Value loadptr_vd_value = InsertValueDataToAll(loadptr_vd);
+            InsertValueDataToBlock(loadptr_vd, loadptr_vd_value);
+
+            ValueData getptr_vd = AllocateValueData("getptr", "%"+std::to_string(loadptr_vd.no), -1, subast_values[0]);
+            Value res = InsertValueDataToAll(getptr_vd);
+            InsertValueDataToBlock(getptr_vd, res);
+
+
+            ValueData vd;
+
+            int no = getptr_vd.no;
+            for (int i = 1; i < subast_values.size(); ++i) {
+                vd = AllocateValueData("getelemptr", "%"+std::to_string(no), -1, subast_values[i]);
+                res = InsertValueDataToAll(vd);
+                InsertValueDataToBlock(vd, res);
+                no = vd.no;
+            } 
+
+
+            if (!is_left) {
+                vd = AllocateValueData("load", res, 0, 0, "");
+                res = InsertValueDataToAll(vd);
+                InsertValueDataToBlock(vd, res);
+            }
+
+            return res;
+            
+            
+
+
+
+
         }
 
-        for (auto& exp: exps) {
-            subast_values.push_back(exp->DumpKoopa());
-            exp_algoresults.push_back(exp->exp_algoresult);
-        }
-        
-        //如何计算数组的偏移量。
-        //怎么还一个正的一个反的。
-        //a[2][3][4]
-        //subast_values为[2, 3, 4]
-        //nums为[4, 12, 24]
-        Value res = subast_values[subast_values.size() - 1];
-        for (int i = 0; i < exps.size()-1; ++i) {
-            auto temp = new NumberAST();
-            temp->num = nums[i];
-            Value temp_val = temp->DumpKoopa();
-
-            ValueData vd = AllocateValueData("mul", temp_val, subast_values[subast_values.size()-2-i]);
-            Value mul_val = InsertValueDataToAll(vd);
-            InsertValueDataToBlock(vd, mul_val);
-
-            ValueData vd2 = AllocateValueData("add", res, mul_val);
-            Value add_val = InsertValueDataToAll(vd2);
-            InsertValueDataToBlock(vd2, add_val);
-
-            res = add_val;
-        }
-        
-
-        ValueData ptr_vd = AllocateValueData("getelemptr", ident_id, -1, res);
-        Value ptr_vd_value = InsertValueDataToAll(ptr_vd);
-        InsertValueDataToBlock(ptr_vd, ptr_vd_value);
-        //如果在赋值号左侧返回指针
-        res = ptr_vd_value;
-
-        //如果在赋值号右侧返回值
-        if (!is_left) {
-            ValueData load_vd = AllocateValueData("load", ptr_vd_value, 0, 0, "");
-            Value load_vd_value = InsertValueDataToAll(load_vd);
-            InsertValueDataToBlock(load_vd, load_vd_value);
-            res = load_vd_value;
-        }
-        return res;
     }
     return 0;
 }

@@ -21,7 +21,7 @@ typedef long Value;
 
 //将键值对插入unordered_map,将键插入vector: insts
 void InsertValueDataToBlock(ValueData, Value);
-Value InsertValueDataToAll(ValueData, Value);
+Value InsertValueDataToAll(ValueData);
 
 class ValueData{
 public:
@@ -95,6 +95,8 @@ public:
     std::string ident;
     //变量通过下标处理后的名字。
     std::string ident_id;
+    
+    std::string type;
 
     //子ast们的value值。
     std::vector<Value> subast_values;
@@ -122,10 +124,11 @@ public:
     //for array
     int arr_dims = 0;
     std::vector<int> arr_size;
+    bool is_array_pt;
     //for const array
     //SymbolInfo(int, std::vector<int>);
     //for array
-    SymbolInfo(int, std::vector<int>);
+    SymbolInfo(int, std::vector<int>, bool);
 
     SymbolInfo() = default;
 };
@@ -164,9 +167,14 @@ public:
     virtual Value DumpKoopa()  override;
 };
 
-//FuncFParam  ::= BType IDENT;
+//FuncFParam  ::= BType IDENT["[" "]" {"[" ConstExp "]"}];
+//mode = 0;
+//mode = 1; []
+//mode = 2; [][1][2]
 class FuncFParamAST : public BaseAST {
 public:
+    int arr_pt_dim;
+    std::vector<std::unique_ptr<BaseAST>> constexps;
     virtual Value DumpKoopa()  override;
 };
 
@@ -470,3 +478,10 @@ public:
 
 ArrayInitVal* MakeAggregate(std::vector<int>&, std::vector<Value>&, std::string&);
 void Fill(std::vector<Value>&, std::vector<int>&, Aggregate*, std::vector<int>&, int, int);
+
+std::string ArrayType(std::vector<int>& , int);
+
+//全局数组初始化列表。
+std::string GlobalArrayInit(std::vector<int>&, std::vector<int>&, int);
+
+void LocalArrayInit(std::vector<Value>&, std::vector<int>&, int, std::string);

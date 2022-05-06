@@ -183,7 +183,8 @@ InstResult Visit(const koopa_raw_value_t &value) {
     case KOOPA_RVT_GET_ELEM_PTR:
       visit_instruction_result = Visit(kind.data.get_elem_ptr);
       break;
-
+    case KOOPA_RVT_GET_PTR:
+      break;
     default:
       // 其他类型暂时遇不到
       assert(false);
