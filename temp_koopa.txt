@@ -7,194 +7,2387 @@ decl @putarray(i32, *i32)
 decl @starttime()
 decl @stoptime()
 
-global @buf_global = alloc [[i32, 100], 2], {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}
-fun @merge_sort_function(@l :i32, @r :i32) {
+fun @init_function(@arr :*[[i32, 10], 10]) {
 %entry:
-  @l_1 = alloc i32
-  store @l, @l_1
-  @r_1 = alloc i32
-  store @r, @r_1
-  %0 = load @l_1
-  %1 = add %0, 1
-  %2 = load @r_1
-  %3 = ge %1, %2
-  br %3, %L0, %L1
-%L0:
-  ret 
-%L1:
-  %4 = load @l_1
-  %5 = load @r_1
-  %6 = add %4, %5
-  %7 = div %6, 2
-  @mid_1 = alloc i32
-  store %7, @mid_1
-  %8 = load @l_1
-  %9 = load @mid_1
-  call @merge_sort_function(%8, %9)
-  %10 = load @mid_1
-  %11 = load @r_1
-  call @merge_sort_function(%10, %11)
-  %12 = load @l_1
+  @arr_1 = alloc *[[i32, 10], 10]
+  store @arr, @arr_1
   @i_1 = alloc i32
-  store %12, @i_1
-  %13 = load @mid_1
+  store 0, @i_1
+  jump %L0
+%L0:
+  %0 = load @i_1
+  %1 = lt %0, 10
+  br %1, %L1, %L3
+%L1:
   @j_1 = alloc i32
-  store %13, @j_1
-  %14 = load @l_1
-  @k_1 = alloc i32
-  store %14, @k_1
-  jump %L2
-%L2:
-  @__short_circuit_and_result_1 = alloc i32
-  store 0, @__short_circuit_and_result_1
-  %15 = load @i_1
-  %16 = load @mid_1
-  %17 = lt %15, %16
-  %18 = ne %17, 0
-  br %18, %L6, %L7
-%L6:
-  %19 = load @j_1
-  %20 = load @r_1
-  %21 = lt %19, %20
-  %22 = ne %21, 0
-  store %22, @__short_circuit_and_result_1
-  jump %L7
-%L7:
-  %23 = load @__short_circuit_and_result_1
-  br %23, %L3, %L5
-%L3:
-  %24 = load @i_1
-  %25 = getelemptr @buf_global, 0
-  %26 = getelemptr %25, %24
-  %27 = load %26
-  %28 = load @j_1
-  %29 = getelemptr @buf_global, 0
-  %30 = getelemptr %29, %28
-  %31 = load %30
-  %32 = lt %27, %31
-  br %32, %L8, %L9
-%L8:
-  %33 = load @k_1
-  %34 = getelemptr @buf_global, 1
-  %35 = getelemptr %34, %33
-  %36 = load @i_1
-  %37 = getelemptr @buf_global, 0
-  %38 = getelemptr %37, %36
-  %39 = load %38
-  store %39, %35
-  %40 = load @i_1
-  %41 = add %40, 1
-  store %41, @i_1
-  jump %L10
-%L9:
-  %42 = load @k_1
-  %43 = getelemptr @buf_global, 1
-  %44 = getelemptr %43, %42
-  %45 = load @j_1
-  %46 = getelemptr @buf_global, 0
-  %47 = getelemptr %46, %45
-  %48 = load %47
-  store %48, %44
-  %49 = load @j_1
-  %50 = add %49, 1
-  store %50, @j_1
-  jump %L10
-%L10:
-  %51 = load @k_1
-  %52 = add %51, 1
-  store %52, @k_1
+  store 0, @j_1
   jump %L4
 %L4:
-  jump %L2
+  %2 = load @j_1
+  %3 = lt %2, 10
+  br %3, %L5, %L7
 %L5:
-  jump %L11
+  @k_1 = alloc i32
+  store 0, @k_1
+  jump %L8
+%L8:
+  %4 = load @k_1
+  %5 = lt %4, 10
+  br %5, %L9, %L11
+%L9:
+  %6 = load @i_1
+  %7 = load @j_1
+  %8 = load @k_1
+  %9 = load @arr_1
+  %10 = getptr %9, %6
+  %11 = getelemptr %10, %7
+  %12 = getelemptr %11, %8
+  %13 = load @i_1
+  %14 = mul %13, 100
+  %15 = load @j_1
+  %16 = mul %15, 10
+  %17 = add %14, %16
+  %18 = load @k_1
+  %19 = add %17, %18
+  store %19, %12
+  %20 = load @k_1
+  %21 = add %20, 1
+  store %21, @k_1
+  jump %L10
+%L10:
+  jump %L8
 %L11:
-  %53 = load @i_1
-  %54 = load @mid_1
-  %55 = lt %53, %54
-  br %55, %L12, %L14
-%L12:
-  %56 = load @k_1
-  %57 = getelemptr @buf_global, 1
-  %58 = getelemptr %57, %56
-  %59 = load @i_1
-  %60 = getelemptr @buf_global, 0
-  %61 = getelemptr %60, %59
-  %62 = load %61
-  store %62, %58
-  %63 = load @i_1
-  %64 = add %63, 1
-  store %64, @i_1
-  %65 = load @k_1
-  %66 = add %65, 1
-  store %66, @k_1
-  jump %L13
-%L13:
-  jump %L11
-%L14:
-  jump %L15
-%L15:
-  %67 = load @j_1
-  %68 = load @r_1
-  %69 = lt %67, %68
-  br %69, %L16, %L18
-%L16:
-  %70 = load @k_1
-  %71 = getelemptr @buf_global, 1
-  %72 = getelemptr %71, %70
-  %73 = load @j_1
-  %74 = getelemptr @buf_global, 0
-  %75 = getelemptr %74, %73
-  %76 = load %75
-  store %76, %72
-  %77 = load @j_1
-  %78 = add %77, 1
-  store %78, @j_1
-  %79 = load @k_1
-  %80 = add %79, 1
-  store %80, @k_1
-  jump %L17
-%L17:
-  jump %L15
-%L18:
-  jump %L19
-%L19:
-  %81 = load @l_1
-  %82 = load @r_1
-  %83 = lt %81, %82
-  br %83, %L20, %L22
-%L20:
-  %84 = load @l_1
-  %85 = getelemptr @buf_global, 0
-  %86 = getelemptr %85, %84
-  %87 = load @l_1
-  %88 = getelemptr @buf_global, 1
-  %89 = getelemptr %88, %87
-  %90 = load %89
-  store %90, %86
-  %91 = load @l_1
-  %92 = add %91, 1
-  store %92, @l_1
-  jump %L21
-%L21:
-  jump %L19
-%L22:
+  %22 = load @j_1
+  %23 = add %22, 1
+  store %23, @j_1
+  jump %L6
+%L6:
+  jump %L4
+%L7:
+  %24 = load @i_1
+  %25 = add %24, 1
+  store %25, @i_1
+  jump %L2
+%L2:
+  jump %L0
+%L3:
   ret 
+}
+
+fun @f1_function(@a0 :*i32, @a1 :*i32, @a2 :*i32, @a3 :*i32, @a4 :*i32, @a5 :*i32, @a6 :*i32, @a7 :*i32, @a8 :*i32, @a9 :*i32): i32 {
+%entry:
+  @a0_1 = alloc *i32
+  store @a0, @a0_1
+  @a1_1 = alloc *i32
+  store @a1, @a1_1
+  @a2_1 = alloc *i32
+  store @a2, @a2_1
+  @a3_1 = alloc *i32
+  store @a3, @a3_1
+  @a4_1 = alloc *i32
+  store @a4, @a4_1
+  @a5_1 = alloc *i32
+  store @a5, @a5_1
+  @a6_1 = alloc *i32
+  store @a6, @a6_1
+  @a7_1 = alloc *i32
+  store @a7, @a7_1
+  @a8_1 = alloc *i32
+  store @a8, @a8_1
+  @a9_1 = alloc *i32
+  store @a9, @a9_1
+  %0 = load @a0_1
+  %1 = getptr %0, 0
+  %2 = load %1
+  %3 = load @a1_1
+  %4 = getptr %3, 1
+  %5 = load %4
+  %6 = add %2, %5
+  %7 = load @a2_1
+  %8 = getptr %7, 2
+  %9 = load %8
+  %10 = add %6, %9
+  %11 = load @a3_1
+  %12 = getptr %11, 3
+  %13 = load %12
+  %14 = add %10, %13
+  %15 = load @a4_1
+  %16 = getptr %15, 4
+  %17 = load %16
+  %18 = add %14, %17
+  %19 = load @a5_1
+  %20 = getptr %19, 5
+  %21 = load %20
+  %22 = add %18, %21
+  %23 = load @a6_1
+  %24 = getptr %23, 6
+  %25 = load %24
+  %26 = add %22, %25
+  %27 = load @a7_1
+  %28 = getptr %27, 7
+  %29 = load %28
+  %30 = add %26, %29
+  %31 = load @a8_1
+  %32 = getptr %31, 8
+  %33 = load %32
+  %34 = add %30, %33
+  %35 = load @a9_1
+  %36 = getptr %35, 9
+  %37 = load %36
+  %38 = add %34, %37
+  ret %38
+}
+
+fun @f2_function(@a0 :*[i32, 10], @a1 :*i32, @a2 :i32, @a3 :*i32, @a4 :*i32, @a5 :*[[i32, 10], 10], @a6 :*i32, @a7 :*i32, @a8 :i32, @a9 :*[i32, 10]): i32 {
+%entry:
+  @a0_1 = alloc *[i32, 10]
+  store @a0, @a0_1
+  @a1_1 = alloc *i32
+  store @a1, @a1_1
+  @a2_1 = alloc i32
+  store @a2, @a2_1
+  @a3_1 = alloc *i32
+  store @a3, @a3_1
+  @a4_1 = alloc *i32
+  store @a4, @a4_1
+  @a5_1 = alloc *[[i32, 10], 10]
+  store @a5, @a5_1
+  @a6_1 = alloc *i32
+  store @a6, @a6_1
+  @a7_1 = alloc *i32
+  store @a7, @a7_1
+  @a8_1 = alloc i32
+  store @a8, @a8_1
+  @a9_1 = alloc *[i32, 10]
+  store @a9, @a9_1
+  %0 = load @a0_1
+  %1 = getptr %0, 0
+  %2 = getelemptr %1, 9
+  %3 = load %2
+  %4 = load @a1_1
+  %5 = getptr %4, 1
+  %6 = load %5
+  %7 = add %3, %6
+  %8 = load @a2_1
+  %9 = add %7, %8
+  %10 = load @a3_1
+  %11 = getptr %10, 3
+  %12 = load %11
+  %13 = add %9, %12
+  %14 = load @a4_1
+  %15 = getptr %14, 4
+  %16 = load %15
+  %17 = add %13, %16
+  %18 = load @a5_1
+  %19 = getptr %18, 5
+  %20 = getelemptr %19, 5
+  %21 = getelemptr %20, 5
+  %22 = load %21
+  %23 = add %17, %22
+  %24 = load @a6_1
+  %25 = getptr %24, 6
+  %26 = load %25
+  %27 = add %23, %26
+  %28 = load @a7_1
+  %29 = getptr %28, 7
+  %30 = load %29
+  %31 = add %27, %30
+  %32 = load @a8_1
+  %33 = add %31, %32
+  %34 = load @a9_1
+  %35 = getptr %34, 9
+  %36 = getelemptr %35, 8
+  %37 = load %36
+  %38 = add %33, %37
+  ret %38
 }
 
 fun @main(): i32 {
 %entry:
-  %0 = getelemptr @buf_global, 0
+  @arr_1 = alloc [[[i32, 10], 10], 10]
+  %0 = getelemptr @arr_1, 0
   %1 = getelemptr %0, 0
-  %2 = call @getarray(%1)
-  @n_1 = alloc i32
-  store %2, @n_1
-  %3 = load @n_1
-  call @merge_sort_function(0, %3)
-  %4 = load @n_1
-  %5 = getelemptr @buf_global, 0
-  %6 = getelemptr %5, 0
-  call @putarray(%4, %6)
+  %2 = getelemptr %1, 0
+  store 0, %2
+  %3 = getelemptr %1, 1
+  store 0, %3
+  %4 = getelemptr %1, 2
+  store 0, %4
+  %5 = getelemptr %1, 3
+  store 0, %5
+  %6 = getelemptr %1, 4
+  store 0, %6
+  %7 = getelemptr %1, 5
+  store 0, %7
+  %8 = getelemptr %1, 6
+  store 0, %8
+  %9 = getelemptr %1, 7
+  store 0, %9
+  %10 = getelemptr %1, 8
+  store 0, %10
+  %11 = getelemptr %1, 9
+  store 0, %11
+  %12 = getelemptr %0, 1
+  %13 = getelemptr %12, 0
+  store 0, %13
+  %14 = getelemptr %12, 1
+  store 0, %14
+  %15 = getelemptr %12, 2
+  store 0, %15
+  %16 = getelemptr %12, 3
+  store 0, %16
+  %17 = getelemptr %12, 4
+  store 0, %17
+  %18 = getelemptr %12, 5
+  store 0, %18
+  %19 = getelemptr %12, 6
+  store 0, %19
+  %20 = getelemptr %12, 7
+  store 0, %20
+  %21 = getelemptr %12, 8
+  store 0, %21
+  %22 = getelemptr %12, 9
+  store 0, %22
+  %23 = getelemptr %0, 2
+  %24 = getelemptr %23, 0
+  store 0, %24
+  %25 = getelemptr %23, 1
+  store 0, %25
+  %26 = getelemptr %23, 2
+  store 0, %26
+  %27 = getelemptr %23, 3
+  store 0, %27
+  %28 = getelemptr %23, 4
+  store 0, %28
+  %29 = getelemptr %23, 5
+  store 0, %29
+  %30 = getelemptr %23, 6
+  store 0, %30
+  %31 = getelemptr %23, 7
+  store 0, %31
+  %32 = getelemptr %23, 8
+  store 0, %32
+  %33 = getelemptr %23, 9
+  store 0, %33
+  %34 = getelemptr %0, 3
+  %35 = getelemptr %34, 0
+  store 0, %35
+  %36 = getelemptr %34, 1
+  store 0, %36
+  %37 = getelemptr %34, 2
+  store 0, %37
+  %38 = getelemptr %34, 3
+  store 0, %38
+  %39 = getelemptr %34, 4
+  store 0, %39
+  %40 = getelemptr %34, 5
+  store 0, %40
+  %41 = getelemptr %34, 6
+  store 0, %41
+  %42 = getelemptr %34, 7
+  store 0, %42
+  %43 = getelemptr %34, 8
+  store 0, %43
+  %44 = getelemptr %34, 9
+  store 0, %44
+  %45 = getelemptr %0, 4
+  %46 = getelemptr %45, 0
+  store 0, %46
+  %47 = getelemptr %45, 1
+  store 0, %47
+  %48 = getelemptr %45, 2
+  store 0, %48
+  %49 = getelemptr %45, 3
+  store 0, %49
+  %50 = getelemptr %45, 4
+  store 0, %50
+  %51 = getelemptr %45, 5
+  store 0, %51
+  %52 = getelemptr %45, 6
+  store 0, %52
+  %53 = getelemptr %45, 7
+  store 0, %53
+  %54 = getelemptr %45, 8
+  store 0, %54
+  %55 = getelemptr %45, 9
+  store 0, %55
+  %56 = getelemptr %0, 5
+  %57 = getelemptr %56, 0
+  store 0, %57
+  %58 = getelemptr %56, 1
+  store 0, %58
+  %59 = getelemptr %56, 2
+  store 0, %59
+  %60 = getelemptr %56, 3
+  store 0, %60
+  %61 = getelemptr %56, 4
+  store 0, %61
+  %62 = getelemptr %56, 5
+  store 0, %62
+  %63 = getelemptr %56, 6
+  store 0, %63
+  %64 = getelemptr %56, 7
+  store 0, %64
+  %65 = getelemptr %56, 8
+  store 0, %65
+  %66 = getelemptr %56, 9
+  store 0, %66
+  %67 = getelemptr %0, 6
+  %68 = getelemptr %67, 0
+  store 0, %68
+  %69 = getelemptr %67, 1
+  store 0, %69
+  %70 = getelemptr %67, 2
+  store 0, %70
+  %71 = getelemptr %67, 3
+  store 0, %71
+  %72 = getelemptr %67, 4
+  store 0, %72
+  %73 = getelemptr %67, 5
+  store 0, %73
+  %74 = getelemptr %67, 6
+  store 0, %74
+  %75 = getelemptr %67, 7
+  store 0, %75
+  %76 = getelemptr %67, 8
+  store 0, %76
+  %77 = getelemptr %67, 9
+  store 0, %77
+  %78 = getelemptr %0, 7
+  %79 = getelemptr %78, 0
+  store 0, %79
+  %80 = getelemptr %78, 1
+  store 0, %80
+  %81 = getelemptr %78, 2
+  store 0, %81
+  %82 = getelemptr %78, 3
+  store 0, %82
+  %83 = getelemptr %78, 4
+  store 0, %83
+  %84 = getelemptr %78, 5
+  store 0, %84
+  %85 = getelemptr %78, 6
+  store 0, %85
+  %86 = getelemptr %78, 7
+  store 0, %86
+  %87 = getelemptr %78, 8
+  store 0, %87
+  %88 = getelemptr %78, 9
+  store 0, %88
+  %89 = getelemptr %0, 8
+  %90 = getelemptr %89, 0
+  store 0, %90
+  %91 = getelemptr %89, 1
+  store 0, %91
+  %92 = getelemptr %89, 2
+  store 0, %92
+  %93 = getelemptr %89, 3
+  store 0, %93
+  %94 = getelemptr %89, 4
+  store 0, %94
+  %95 = getelemptr %89, 5
+  store 0, %95
+  %96 = getelemptr %89, 6
+  store 0, %96
+  %97 = getelemptr %89, 7
+  store 0, %97
+  %98 = getelemptr %89, 8
+  store 0, %98
+  %99 = getelemptr %89, 9
+  store 0, %99
+  %100 = getelemptr %0, 9
+  %101 = getelemptr %100, 0
+  store 0, %101
+  %102 = getelemptr %100, 1
+  store 0, %102
+  %103 = getelemptr %100, 2
+  store 0, %103
+  %104 = getelemptr %100, 3
+  store 0, %104
+  %105 = getelemptr %100, 4
+  store 0, %105
+  %106 = getelemptr %100, 5
+  store 0, %106
+  %107 = getelemptr %100, 6
+  store 0, %107
+  %108 = getelemptr %100, 7
+  store 0, %108
+  %109 = getelemptr %100, 8
+  store 0, %109
+  %110 = getelemptr %100, 9
+  store 0, %110
+  %111 = getelemptr @arr_1, 1
+  %112 = getelemptr %111, 0
+  %113 = getelemptr %112, 0
+  store 0, %113
+  %114 = getelemptr %112, 1
+  store 0, %114
+  %115 = getelemptr %112, 2
+  store 0, %115
+  %116 = getelemptr %112, 3
+  store 0, %116
+  %117 = getelemptr %112, 4
+  store 0, %117
+  %118 = getelemptr %112, 5
+  store 0, %118
+  %119 = getelemptr %112, 6
+  store 0, %119
+  %120 = getelemptr %112, 7
+  store 0, %120
+  %121 = getelemptr %112, 8
+  store 0, %121
+  %122 = getelemptr %112, 9
+  store 0, %122
+  %123 = getelemptr %111, 1
+  %124 = getelemptr %123, 0
+  store 0, %124
+  %125 = getelemptr %123, 1
+  store 0, %125
+  %126 = getelemptr %123, 2
+  store 0, %126
+  %127 = getelemptr %123, 3
+  store 0, %127
+  %128 = getelemptr %123, 4
+  store 0, %128
+  %129 = getelemptr %123, 5
+  store 0, %129
+  %130 = getelemptr %123, 6
+  store 0, %130
+  %131 = getelemptr %123, 7
+  store 0, %131
+  %132 = getelemptr %123, 8
+  store 0, %132
+  %133 = getelemptr %123, 9
+  store 0, %133
+  %134 = getelemptr %111, 2
+  %135 = getelemptr %134, 0
+  store 0, %135
+  %136 = getelemptr %134, 1
+  store 0, %136
+  %137 = getelemptr %134, 2
+  store 0, %137
+  %138 = getelemptr %134, 3
+  store 0, %138
+  %139 = getelemptr %134, 4
+  store 0, %139
+  %140 = getelemptr %134, 5
+  store 0, %140
+  %141 = getelemptr %134, 6
+  store 0, %141
+  %142 = getelemptr %134, 7
+  store 0, %142
+  %143 = getelemptr %134, 8
+  store 0, %143
+  %144 = getelemptr %134, 9
+  store 0, %144
+  %145 = getelemptr %111, 3
+  %146 = getelemptr %145, 0
+  store 0, %146
+  %147 = getelemptr %145, 1
+  store 0, %147
+  %148 = getelemptr %145, 2
+  store 0, %148
+  %149 = getelemptr %145, 3
+  store 0, %149
+  %150 = getelemptr %145, 4
+  store 0, %150
+  %151 = getelemptr %145, 5
+  store 0, %151
+  %152 = getelemptr %145, 6
+  store 0, %152
+  %153 = getelemptr %145, 7
+  store 0, %153
+  %154 = getelemptr %145, 8
+  store 0, %154
+  %155 = getelemptr %145, 9
+  store 0, %155
+  %156 = getelemptr %111, 4
+  %157 = getelemptr %156, 0
+  store 0, %157
+  %158 = getelemptr %156, 1
+  store 0, %158
+  %159 = getelemptr %156, 2
+  store 0, %159
+  %160 = getelemptr %156, 3
+  store 0, %160
+  %161 = getelemptr %156, 4
+  store 0, %161
+  %162 = getelemptr %156, 5
+  store 0, %162
+  %163 = getelemptr %156, 6
+  store 0, %163
+  %164 = getelemptr %156, 7
+  store 0, %164
+  %165 = getelemptr %156, 8
+  store 0, %165
+  %166 = getelemptr %156, 9
+  store 0, %166
+  %167 = getelemptr %111, 5
+  %168 = getelemptr %167, 0
+  store 0, %168
+  %169 = getelemptr %167, 1
+  store 0, %169
+  %170 = getelemptr %167, 2
+  store 0, %170
+  %171 = getelemptr %167, 3
+  store 0, %171
+  %172 = getelemptr %167, 4
+  store 0, %172
+  %173 = getelemptr %167, 5
+  store 0, %173
+  %174 = getelemptr %167, 6
+  store 0, %174
+  %175 = getelemptr %167, 7
+  store 0, %175
+  %176 = getelemptr %167, 8
+  store 0, %176
+  %177 = getelemptr %167, 9
+  store 0, %177
+  %178 = getelemptr %111, 6
+  %179 = getelemptr %178, 0
+  store 0, %179
+  %180 = getelemptr %178, 1
+  store 0, %180
+  %181 = getelemptr %178, 2
+  store 0, %181
+  %182 = getelemptr %178, 3
+  store 0, %182
+  %183 = getelemptr %178, 4
+  store 0, %183
+  %184 = getelemptr %178, 5
+  store 0, %184
+  %185 = getelemptr %178, 6
+  store 0, %185
+  %186 = getelemptr %178, 7
+  store 0, %186
+  %187 = getelemptr %178, 8
+  store 0, %187
+  %188 = getelemptr %178, 9
+  store 0, %188
+  %189 = getelemptr %111, 7
+  %190 = getelemptr %189, 0
+  store 0, %190
+  %191 = getelemptr %189, 1
+  store 0, %191
+  %192 = getelemptr %189, 2
+  store 0, %192
+  %193 = getelemptr %189, 3
+  store 0, %193
+  %194 = getelemptr %189, 4
+  store 0, %194
+  %195 = getelemptr %189, 5
+  store 0, %195
+  %196 = getelemptr %189, 6
+  store 0, %196
+  %197 = getelemptr %189, 7
+  store 0, %197
+  %198 = getelemptr %189, 8
+  store 0, %198
+  %199 = getelemptr %189, 9
+  store 0, %199
+  %200 = getelemptr %111, 8
+  %201 = getelemptr %200, 0
+  store 0, %201
+  %202 = getelemptr %200, 1
+  store 0, %202
+  %203 = getelemptr %200, 2
+  store 0, %203
+  %204 = getelemptr %200, 3
+  store 0, %204
+  %205 = getelemptr %200, 4
+  store 0, %205
+  %206 = getelemptr %200, 5
+  store 0, %206
+  %207 = getelemptr %200, 6
+  store 0, %207
+  %208 = getelemptr %200, 7
+  store 0, %208
+  %209 = getelemptr %200, 8
+  store 0, %209
+  %210 = getelemptr %200, 9
+  store 0, %210
+  %211 = getelemptr %111, 9
+  %212 = getelemptr %211, 0
+  store 0, %212
+  %213 = getelemptr %211, 1
+  store 0, %213
+  %214 = getelemptr %211, 2
+  store 0, %214
+  %215 = getelemptr %211, 3
+  store 0, %215
+  %216 = getelemptr %211, 4
+  store 0, %216
+  %217 = getelemptr %211, 5
+  store 0, %217
+  %218 = getelemptr %211, 6
+  store 0, %218
+  %219 = getelemptr %211, 7
+  store 0, %219
+  %220 = getelemptr %211, 8
+  store 0, %220
+  %221 = getelemptr %211, 9
+  store 0, %221
+  %222 = getelemptr @arr_1, 2
+  %223 = getelemptr %222, 0
+  %224 = getelemptr %223, 0
+  store 0, %224
+  %225 = getelemptr %223, 1
+  store 0, %225
+  %226 = getelemptr %223, 2
+  store 0, %226
+  %227 = getelemptr %223, 3
+  store 0, %227
+  %228 = getelemptr %223, 4
+  store 0, %228
+  %229 = getelemptr %223, 5
+  store 0, %229
+  %230 = getelemptr %223, 6
+  store 0, %230
+  %231 = getelemptr %223, 7
+  store 0, %231
+  %232 = getelemptr %223, 8
+  store 0, %232
+  %233 = getelemptr %223, 9
+  store 0, %233
+  %234 = getelemptr %222, 1
+  %235 = getelemptr %234, 0
+  store 0, %235
+  %236 = getelemptr %234, 1
+  store 0, %236
+  %237 = getelemptr %234, 2
+  store 0, %237
+  %238 = getelemptr %234, 3
+  store 0, %238
+  %239 = getelemptr %234, 4
+  store 0, %239
+  %240 = getelemptr %234, 5
+  store 0, %240
+  %241 = getelemptr %234, 6
+  store 0, %241
+  %242 = getelemptr %234, 7
+  store 0, %242
+  %243 = getelemptr %234, 8
+  store 0, %243
+  %244 = getelemptr %234, 9
+  store 0, %244
+  %245 = getelemptr %222, 2
+  %246 = getelemptr %245, 0
+  store 0, %246
+  %247 = getelemptr %245, 1
+  store 0, %247
+  %248 = getelemptr %245, 2
+  store 0, %248
+  %249 = getelemptr %245, 3
+  store 0, %249
+  %250 = getelemptr %245, 4
+  store 0, %250
+  %251 = getelemptr %245, 5
+  store 0, %251
+  %252 = getelemptr %245, 6
+  store 0, %252
+  %253 = getelemptr %245, 7
+  store 0, %253
+  %254 = getelemptr %245, 8
+  store 0, %254
+  %255 = getelemptr %245, 9
+  store 0, %255
+  %256 = getelemptr %222, 3
+  %257 = getelemptr %256, 0
+  store 0, %257
+  %258 = getelemptr %256, 1
+  store 0, %258
+  %259 = getelemptr %256, 2
+  store 0, %259
+  %260 = getelemptr %256, 3
+  store 0, %260
+  %261 = getelemptr %256, 4
+  store 0, %261
+  %262 = getelemptr %256, 5
+  store 0, %262
+  %263 = getelemptr %256, 6
+  store 0, %263
+  %264 = getelemptr %256, 7
+  store 0, %264
+  %265 = getelemptr %256, 8
+  store 0, %265
+  %266 = getelemptr %256, 9
+  store 0, %266
+  %267 = getelemptr %222, 4
+  %268 = getelemptr %267, 0
+  store 0, %268
+  %269 = getelemptr %267, 1
+  store 0, %269
+  %270 = getelemptr %267, 2
+  store 0, %270
+  %271 = getelemptr %267, 3
+  store 0, %271
+  %272 = getelemptr %267, 4
+  store 0, %272
+  %273 = getelemptr %267, 5
+  store 0, %273
+  %274 = getelemptr %267, 6
+  store 0, %274
+  %275 = getelemptr %267, 7
+  store 0, %275
+  %276 = getelemptr %267, 8
+  store 0, %276
+  %277 = getelemptr %267, 9
+  store 0, %277
+  %278 = getelemptr %222, 5
+  %279 = getelemptr %278, 0
+  store 0, %279
+  %280 = getelemptr %278, 1
+  store 0, %280
+  %281 = getelemptr %278, 2
+  store 0, %281
+  %282 = getelemptr %278, 3
+  store 0, %282
+  %283 = getelemptr %278, 4
+  store 0, %283
+  %284 = getelemptr %278, 5
+  store 0, %284
+  %285 = getelemptr %278, 6
+  store 0, %285
+  %286 = getelemptr %278, 7
+  store 0, %286
+  %287 = getelemptr %278, 8
+  store 0, %287
+  %288 = getelemptr %278, 9
+  store 0, %288
+  %289 = getelemptr %222, 6
+  %290 = getelemptr %289, 0
+  store 0, %290
+  %291 = getelemptr %289, 1
+  store 0, %291
+  %292 = getelemptr %289, 2
+  store 0, %292
+  %293 = getelemptr %289, 3
+  store 0, %293
+  %294 = getelemptr %289, 4
+  store 0, %294
+  %295 = getelemptr %289, 5
+  store 0, %295
+  %296 = getelemptr %289, 6
+  store 0, %296
+  %297 = getelemptr %289, 7
+  store 0, %297
+  %298 = getelemptr %289, 8
+  store 0, %298
+  %299 = getelemptr %289, 9
+  store 0, %299
+  %300 = getelemptr %222, 7
+  %301 = getelemptr %300, 0
+  store 0, %301
+  %302 = getelemptr %300, 1
+  store 0, %302
+  %303 = getelemptr %300, 2
+  store 0, %303
+  %304 = getelemptr %300, 3
+  store 0, %304
+  %305 = getelemptr %300, 4
+  store 0, %305
+  %306 = getelemptr %300, 5
+  store 0, %306
+  %307 = getelemptr %300, 6
+  store 0, %307
+  %308 = getelemptr %300, 7
+  store 0, %308
+  %309 = getelemptr %300, 8
+  store 0, %309
+  %310 = getelemptr %300, 9
+  store 0, %310
+  %311 = getelemptr %222, 8
+  %312 = getelemptr %311, 0
+  store 0, %312
+  %313 = getelemptr %311, 1
+  store 0, %313
+  %314 = getelemptr %311, 2
+  store 0, %314
+  %315 = getelemptr %311, 3
+  store 0, %315
+  %316 = getelemptr %311, 4
+  store 0, %316
+  %317 = getelemptr %311, 5
+  store 0, %317
+  %318 = getelemptr %311, 6
+  store 0, %318
+  %319 = getelemptr %311, 7
+  store 0, %319
+  %320 = getelemptr %311, 8
+  store 0, %320
+  %321 = getelemptr %311, 9
+  store 0, %321
+  %322 = getelemptr %222, 9
+  %323 = getelemptr %322, 0
+  store 0, %323
+  %324 = getelemptr %322, 1
+  store 0, %324
+  %325 = getelemptr %322, 2
+  store 0, %325
+  %326 = getelemptr %322, 3
+  store 0, %326
+  %327 = getelemptr %322, 4
+  store 0, %327
+  %328 = getelemptr %322, 5
+  store 0, %328
+  %329 = getelemptr %322, 6
+  store 0, %329
+  %330 = getelemptr %322, 7
+  store 0, %330
+  %331 = getelemptr %322, 8
+  store 0, %331
+  %332 = getelemptr %322, 9
+  store 0, %332
+  %333 = getelemptr @arr_1, 3
+  %334 = getelemptr %333, 0
+  %335 = getelemptr %334, 0
+  store 0, %335
+  %336 = getelemptr %334, 1
+  store 0, %336
+  %337 = getelemptr %334, 2
+  store 0, %337
+  %338 = getelemptr %334, 3
+  store 0, %338
+  %339 = getelemptr %334, 4
+  store 0, %339
+  %340 = getelemptr %334, 5
+  store 0, %340
+  %341 = getelemptr %334, 6
+  store 0, %341
+  %342 = getelemptr %334, 7
+  store 0, %342
+  %343 = getelemptr %334, 8
+  store 0, %343
+  %344 = getelemptr %334, 9
+  store 0, %344
+  %345 = getelemptr %333, 1
+  %346 = getelemptr %345, 0
+  store 0, %346
+  %347 = getelemptr %345, 1
+  store 0, %347
+  %348 = getelemptr %345, 2
+  store 0, %348
+  %349 = getelemptr %345, 3
+  store 0, %349
+  %350 = getelemptr %345, 4
+  store 0, %350
+  %351 = getelemptr %345, 5
+  store 0, %351
+  %352 = getelemptr %345, 6
+  store 0, %352
+  %353 = getelemptr %345, 7
+  store 0, %353
+  %354 = getelemptr %345, 8
+  store 0, %354
+  %355 = getelemptr %345, 9
+  store 0, %355
+  %356 = getelemptr %333, 2
+  %357 = getelemptr %356, 0
+  store 0, %357
+  %358 = getelemptr %356, 1
+  store 0, %358
+  %359 = getelemptr %356, 2
+  store 0, %359
+  %360 = getelemptr %356, 3
+  store 0, %360
+  %361 = getelemptr %356, 4
+  store 0, %361
+  %362 = getelemptr %356, 5
+  store 0, %362
+  %363 = getelemptr %356, 6
+  store 0, %363
+  %364 = getelemptr %356, 7
+  store 0, %364
+  %365 = getelemptr %356, 8
+  store 0, %365
+  %366 = getelemptr %356, 9
+  store 0, %366
+  %367 = getelemptr %333, 3
+  %368 = getelemptr %367, 0
+  store 0, %368
+  %369 = getelemptr %367, 1
+  store 0, %369
+  %370 = getelemptr %367, 2
+  store 0, %370
+  %371 = getelemptr %367, 3
+  store 0, %371
+  %372 = getelemptr %367, 4
+  store 0, %372
+  %373 = getelemptr %367, 5
+  store 0, %373
+  %374 = getelemptr %367, 6
+  store 0, %374
+  %375 = getelemptr %367, 7
+  store 0, %375
+  %376 = getelemptr %367, 8
+  store 0, %376
+  %377 = getelemptr %367, 9
+  store 0, %377
+  %378 = getelemptr %333, 4
+  %379 = getelemptr %378, 0
+  store 0, %379
+  %380 = getelemptr %378, 1
+  store 0, %380
+  %381 = getelemptr %378, 2
+  store 0, %381
+  %382 = getelemptr %378, 3
+  store 0, %382
+  %383 = getelemptr %378, 4
+  store 0, %383
+  %384 = getelemptr %378, 5
+  store 0, %384
+  %385 = getelemptr %378, 6
+  store 0, %385
+  %386 = getelemptr %378, 7
+  store 0, %386
+  %387 = getelemptr %378, 8
+  store 0, %387
+  %388 = getelemptr %378, 9
+  store 0, %388
+  %389 = getelemptr %333, 5
+  %390 = getelemptr %389, 0
+  store 0, %390
+  %391 = getelemptr %389, 1
+  store 0, %391
+  %392 = getelemptr %389, 2
+  store 0, %392
+  %393 = getelemptr %389, 3
+  store 0, %393
+  %394 = getelemptr %389, 4
+  store 0, %394
+  %395 = getelemptr %389, 5
+  store 0, %395
+  %396 = getelemptr %389, 6
+  store 0, %396
+  %397 = getelemptr %389, 7
+  store 0, %397
+  %398 = getelemptr %389, 8
+  store 0, %398
+  %399 = getelemptr %389, 9
+  store 0, %399
+  %400 = getelemptr %333, 6
+  %401 = getelemptr %400, 0
+  store 0, %401
+  %402 = getelemptr %400, 1
+  store 0, %402
+  %403 = getelemptr %400, 2
+  store 0, %403
+  %404 = getelemptr %400, 3
+  store 0, %404
+  %405 = getelemptr %400, 4
+  store 0, %405
+  %406 = getelemptr %400, 5
+  store 0, %406
+  %407 = getelemptr %400, 6
+  store 0, %407
+  %408 = getelemptr %400, 7
+  store 0, %408
+  %409 = getelemptr %400, 8
+  store 0, %409
+  %410 = getelemptr %400, 9
+  store 0, %410
+  %411 = getelemptr %333, 7
+  %412 = getelemptr %411, 0
+  store 0, %412
+  %413 = getelemptr %411, 1
+  store 0, %413
+  %414 = getelemptr %411, 2
+  store 0, %414
+  %415 = getelemptr %411, 3
+  store 0, %415
+  %416 = getelemptr %411, 4
+  store 0, %416
+  %417 = getelemptr %411, 5
+  store 0, %417
+  %418 = getelemptr %411, 6
+  store 0, %418
+  %419 = getelemptr %411, 7
+  store 0, %419
+  %420 = getelemptr %411, 8
+  store 0, %420
+  %421 = getelemptr %411, 9
+  store 0, %421
+  %422 = getelemptr %333, 8
+  %423 = getelemptr %422, 0
+  store 0, %423
+  %424 = getelemptr %422, 1
+  store 0, %424
+  %425 = getelemptr %422, 2
+  store 0, %425
+  %426 = getelemptr %422, 3
+  store 0, %426
+  %427 = getelemptr %422, 4
+  store 0, %427
+  %428 = getelemptr %422, 5
+  store 0, %428
+  %429 = getelemptr %422, 6
+  store 0, %429
+  %430 = getelemptr %422, 7
+  store 0, %430
+  %431 = getelemptr %422, 8
+  store 0, %431
+  %432 = getelemptr %422, 9
+  store 0, %432
+  %433 = getelemptr %333, 9
+  %434 = getelemptr %433, 0
+  store 0, %434
+  %435 = getelemptr %433, 1
+  store 0, %435
+  %436 = getelemptr %433, 2
+  store 0, %436
+  %437 = getelemptr %433, 3
+  store 0, %437
+  %438 = getelemptr %433, 4
+  store 0, %438
+  %439 = getelemptr %433, 5
+  store 0, %439
+  %440 = getelemptr %433, 6
+  store 0, %440
+  %441 = getelemptr %433, 7
+  store 0, %441
+  %442 = getelemptr %433, 8
+  store 0, %442
+  %443 = getelemptr %433, 9
+  store 0, %443
+  %444 = getelemptr @arr_1, 4
+  %445 = getelemptr %444, 0
+  %446 = getelemptr %445, 0
+  store 0, %446
+  %447 = getelemptr %445, 1
+  store 0, %447
+  %448 = getelemptr %445, 2
+  store 0, %448
+  %449 = getelemptr %445, 3
+  store 0, %449
+  %450 = getelemptr %445, 4
+  store 0, %450
+  %451 = getelemptr %445, 5
+  store 0, %451
+  %452 = getelemptr %445, 6
+  store 0, %452
+  %453 = getelemptr %445, 7
+  store 0, %453
+  %454 = getelemptr %445, 8
+  store 0, %454
+  %455 = getelemptr %445, 9
+  store 0, %455
+  %456 = getelemptr %444, 1
+  %457 = getelemptr %456, 0
+  store 0, %457
+  %458 = getelemptr %456, 1
+  store 0, %458
+  %459 = getelemptr %456, 2
+  store 0, %459
+  %460 = getelemptr %456, 3
+  store 0, %460
+  %461 = getelemptr %456, 4
+  store 0, %461
+  %462 = getelemptr %456, 5
+  store 0, %462
+  %463 = getelemptr %456, 6
+  store 0, %463
+  %464 = getelemptr %456, 7
+  store 0, %464
+  %465 = getelemptr %456, 8
+  store 0, %465
+  %466 = getelemptr %456, 9
+  store 0, %466
+  %467 = getelemptr %444, 2
+  %468 = getelemptr %467, 0
+  store 0, %468
+  %469 = getelemptr %467, 1
+  store 0, %469
+  %470 = getelemptr %467, 2
+  store 0, %470
+  %471 = getelemptr %467, 3
+  store 0, %471
+  %472 = getelemptr %467, 4
+  store 0, %472
+  %473 = getelemptr %467, 5
+  store 0, %473
+  %474 = getelemptr %467, 6
+  store 0, %474
+  %475 = getelemptr %467, 7
+  store 0, %475
+  %476 = getelemptr %467, 8
+  store 0, %476
+  %477 = getelemptr %467, 9
+  store 0, %477
+  %478 = getelemptr %444, 3
+  %479 = getelemptr %478, 0
+  store 0, %479
+  %480 = getelemptr %478, 1
+  store 0, %480
+  %481 = getelemptr %478, 2
+  store 0, %481
+  %482 = getelemptr %478, 3
+  store 0, %482
+  %483 = getelemptr %478, 4
+  store 0, %483
+  %484 = getelemptr %478, 5
+  store 0, %484
+  %485 = getelemptr %478, 6
+  store 0, %485
+  %486 = getelemptr %478, 7
+  store 0, %486
+  %487 = getelemptr %478, 8
+  store 0, %487
+  %488 = getelemptr %478, 9
+  store 0, %488
+  %489 = getelemptr %444, 4
+  %490 = getelemptr %489, 0
+  store 0, %490
+  %491 = getelemptr %489, 1
+  store 0, %491
+  %492 = getelemptr %489, 2
+  store 0, %492
+  %493 = getelemptr %489, 3
+  store 0, %493
+  %494 = getelemptr %489, 4
+  store 0, %494
+  %495 = getelemptr %489, 5
+  store 0, %495
+  %496 = getelemptr %489, 6
+  store 0, %496
+  %497 = getelemptr %489, 7
+  store 0, %497
+  %498 = getelemptr %489, 8
+  store 0, %498
+  %499 = getelemptr %489, 9
+  store 0, %499
+  %500 = getelemptr %444, 5
+  %501 = getelemptr %500, 0
+  store 0, %501
+  %502 = getelemptr %500, 1
+  store 0, %502
+  %503 = getelemptr %500, 2
+  store 0, %503
+  %504 = getelemptr %500, 3
+  store 0, %504
+  %505 = getelemptr %500, 4
+  store 0, %505
+  %506 = getelemptr %500, 5
+  store 0, %506
+  %507 = getelemptr %500, 6
+  store 0, %507
+  %508 = getelemptr %500, 7
+  store 0, %508
+  %509 = getelemptr %500, 8
+  store 0, %509
+  %510 = getelemptr %500, 9
+  store 0, %510
+  %511 = getelemptr %444, 6
+  %512 = getelemptr %511, 0
+  store 0, %512
+  %513 = getelemptr %511, 1
+  store 0, %513
+  %514 = getelemptr %511, 2
+  store 0, %514
+  %515 = getelemptr %511, 3
+  store 0, %515
+  %516 = getelemptr %511, 4
+  store 0, %516
+  %517 = getelemptr %511, 5
+  store 0, %517
+  %518 = getelemptr %511, 6
+  store 0, %518
+  %519 = getelemptr %511, 7
+  store 0, %519
+  %520 = getelemptr %511, 8
+  store 0, %520
+  %521 = getelemptr %511, 9
+  store 0, %521
+  %522 = getelemptr %444, 7
+  %523 = getelemptr %522, 0
+  store 0, %523
+  %524 = getelemptr %522, 1
+  store 0, %524
+  %525 = getelemptr %522, 2
+  store 0, %525
+  %526 = getelemptr %522, 3
+  store 0, %526
+  %527 = getelemptr %522, 4
+  store 0, %527
+  %528 = getelemptr %522, 5
+  store 0, %528
+  %529 = getelemptr %522, 6
+  store 0, %529
+  %530 = getelemptr %522, 7
+  store 0, %530
+  %531 = getelemptr %522, 8
+  store 0, %531
+  %532 = getelemptr %522, 9
+  store 0, %532
+  %533 = getelemptr %444, 8
+  %534 = getelemptr %533, 0
+  store 0, %534
+  %535 = getelemptr %533, 1
+  store 0, %535
+  %536 = getelemptr %533, 2
+  store 0, %536
+  %537 = getelemptr %533, 3
+  store 0, %537
+  %538 = getelemptr %533, 4
+  store 0, %538
+  %539 = getelemptr %533, 5
+  store 0, %539
+  %540 = getelemptr %533, 6
+  store 0, %540
+  %541 = getelemptr %533, 7
+  store 0, %541
+  %542 = getelemptr %533, 8
+  store 0, %542
+  %543 = getelemptr %533, 9
+  store 0, %543
+  %544 = getelemptr %444, 9
+  %545 = getelemptr %544, 0
+  store 0, %545
+  %546 = getelemptr %544, 1
+  store 0, %546
+  %547 = getelemptr %544, 2
+  store 0, %547
+  %548 = getelemptr %544, 3
+  store 0, %548
+  %549 = getelemptr %544, 4
+  store 0, %549
+  %550 = getelemptr %544, 5
+  store 0, %550
+  %551 = getelemptr %544, 6
+  store 0, %551
+  %552 = getelemptr %544, 7
+  store 0, %552
+  %553 = getelemptr %544, 8
+  store 0, %553
+  %554 = getelemptr %544, 9
+  store 0, %554
+  %555 = getelemptr @arr_1, 5
+  %556 = getelemptr %555, 0
+  %557 = getelemptr %556, 0
+  store 0, %557
+  %558 = getelemptr %556, 1
+  store 0, %558
+  %559 = getelemptr %556, 2
+  store 0, %559
+  %560 = getelemptr %556, 3
+  store 0, %560
+  %561 = getelemptr %556, 4
+  store 0, %561
+  %562 = getelemptr %556, 5
+  store 0, %562
+  %563 = getelemptr %556, 6
+  store 0, %563
+  %564 = getelemptr %556, 7
+  store 0, %564
+  %565 = getelemptr %556, 8
+  store 0, %565
+  %566 = getelemptr %556, 9
+  store 0, %566
+  %567 = getelemptr %555, 1
+  %568 = getelemptr %567, 0
+  store 0, %568
+  %569 = getelemptr %567, 1
+  store 0, %569
+  %570 = getelemptr %567, 2
+  store 0, %570
+  %571 = getelemptr %567, 3
+  store 0, %571
+  %572 = getelemptr %567, 4
+  store 0, %572
+  %573 = getelemptr %567, 5
+  store 0, %573
+  %574 = getelemptr %567, 6
+  store 0, %574
+  %575 = getelemptr %567, 7
+  store 0, %575
+  %576 = getelemptr %567, 8
+  store 0, %576
+  %577 = getelemptr %567, 9
+  store 0, %577
+  %578 = getelemptr %555, 2
+  %579 = getelemptr %578, 0
+  store 0, %579
+  %580 = getelemptr %578, 1
+  store 0, %580
+  %581 = getelemptr %578, 2
+  store 0, %581
+  %582 = getelemptr %578, 3
+  store 0, %582
+  %583 = getelemptr %578, 4
+  store 0, %583
+  %584 = getelemptr %578, 5
+  store 0, %584
+  %585 = getelemptr %578, 6
+  store 0, %585
+  %586 = getelemptr %578, 7
+  store 0, %586
+  %587 = getelemptr %578, 8
+  store 0, %587
+  %588 = getelemptr %578, 9
+  store 0, %588
+  %589 = getelemptr %555, 3
+  %590 = getelemptr %589, 0
+  store 0, %590
+  %591 = getelemptr %589, 1
+  store 0, %591
+  %592 = getelemptr %589, 2
+  store 0, %592
+  %593 = getelemptr %589, 3
+  store 0, %593
+  %594 = getelemptr %589, 4
+  store 0, %594
+  %595 = getelemptr %589, 5
+  store 0, %595
+  %596 = getelemptr %589, 6
+  store 0, %596
+  %597 = getelemptr %589, 7
+  store 0, %597
+  %598 = getelemptr %589, 8
+  store 0, %598
+  %599 = getelemptr %589, 9
+  store 0, %599
+  %600 = getelemptr %555, 4
+  %601 = getelemptr %600, 0
+  store 0, %601
+  %602 = getelemptr %600, 1
+  store 0, %602
+  %603 = getelemptr %600, 2
+  store 0, %603
+  %604 = getelemptr %600, 3
+  store 0, %604
+  %605 = getelemptr %600, 4
+  store 0, %605
+  %606 = getelemptr %600, 5
+  store 0, %606
+  %607 = getelemptr %600, 6
+  store 0, %607
+  %608 = getelemptr %600, 7
+  store 0, %608
+  %609 = getelemptr %600, 8
+  store 0, %609
+  %610 = getelemptr %600, 9
+  store 0, %610
+  %611 = getelemptr %555, 5
+  %612 = getelemptr %611, 0
+  store 0, %612
+  %613 = getelemptr %611, 1
+  store 0, %613
+  %614 = getelemptr %611, 2
+  store 0, %614
+  %615 = getelemptr %611, 3
+  store 0, %615
+  %616 = getelemptr %611, 4
+  store 0, %616
+  %617 = getelemptr %611, 5
+  store 0, %617
+  %618 = getelemptr %611, 6
+  store 0, %618
+  %619 = getelemptr %611, 7
+  store 0, %619
+  %620 = getelemptr %611, 8
+  store 0, %620
+  %621 = getelemptr %611, 9
+  store 0, %621
+  %622 = getelemptr %555, 6
+  %623 = getelemptr %622, 0
+  store 0, %623
+  %624 = getelemptr %622, 1
+  store 0, %624
+  %625 = getelemptr %622, 2
+  store 0, %625
+  %626 = getelemptr %622, 3
+  store 0, %626
+  %627 = getelemptr %622, 4
+  store 0, %627
+  %628 = getelemptr %622, 5
+  store 0, %628
+  %629 = getelemptr %622, 6
+  store 0, %629
+  %630 = getelemptr %622, 7
+  store 0, %630
+  %631 = getelemptr %622, 8
+  store 0, %631
+  %632 = getelemptr %622, 9
+  store 0, %632
+  %633 = getelemptr %555, 7
+  %634 = getelemptr %633, 0
+  store 0, %634
+  %635 = getelemptr %633, 1
+  store 0, %635
+  %636 = getelemptr %633, 2
+  store 0, %636
+  %637 = getelemptr %633, 3
+  store 0, %637
+  %638 = getelemptr %633, 4
+  store 0, %638
+  %639 = getelemptr %633, 5
+  store 0, %639
+  %640 = getelemptr %633, 6
+  store 0, %640
+  %641 = getelemptr %633, 7
+  store 0, %641
+  %642 = getelemptr %633, 8
+  store 0, %642
+  %643 = getelemptr %633, 9
+  store 0, %643
+  %644 = getelemptr %555, 8
+  %645 = getelemptr %644, 0
+  store 0, %645
+  %646 = getelemptr %644, 1
+  store 0, %646
+  %647 = getelemptr %644, 2
+  store 0, %647
+  %648 = getelemptr %644, 3
+  store 0, %648
+  %649 = getelemptr %644, 4
+  store 0, %649
+  %650 = getelemptr %644, 5
+  store 0, %650
+  %651 = getelemptr %644, 6
+  store 0, %651
+  %652 = getelemptr %644, 7
+  store 0, %652
+  %653 = getelemptr %644, 8
+  store 0, %653
+  %654 = getelemptr %644, 9
+  store 0, %654
+  %655 = getelemptr %555, 9
+  %656 = getelemptr %655, 0
+  store 0, %656
+  %657 = getelemptr %655, 1
+  store 0, %657
+  %658 = getelemptr %655, 2
+  store 0, %658
+  %659 = getelemptr %655, 3
+  store 0, %659
+  %660 = getelemptr %655, 4
+  store 0, %660
+  %661 = getelemptr %655, 5
+  store 0, %661
+  %662 = getelemptr %655, 6
+  store 0, %662
+  %663 = getelemptr %655, 7
+  store 0, %663
+  %664 = getelemptr %655, 8
+  store 0, %664
+  %665 = getelemptr %655, 9
+  store 0, %665
+  %666 = getelemptr @arr_1, 6
+  %667 = getelemptr %666, 0
+  %668 = getelemptr %667, 0
+  store 0, %668
+  %669 = getelemptr %667, 1
+  store 0, %669
+  %670 = getelemptr %667, 2
+  store 0, %670
+  %671 = getelemptr %667, 3
+  store 0, %671
+  %672 = getelemptr %667, 4
+  store 0, %672
+  %673 = getelemptr %667, 5
+  store 0, %673
+  %674 = getelemptr %667, 6
+  store 0, %674
+  %675 = getelemptr %667, 7
+  store 0, %675
+  %676 = getelemptr %667, 8
+  store 0, %676
+  %677 = getelemptr %667, 9
+  store 0, %677
+  %678 = getelemptr %666, 1
+  %679 = getelemptr %678, 0
+  store 0, %679
+  %680 = getelemptr %678, 1
+  store 0, %680
+  %681 = getelemptr %678, 2
+  store 0, %681
+  %682 = getelemptr %678, 3
+  store 0, %682
+  %683 = getelemptr %678, 4
+  store 0, %683
+  %684 = getelemptr %678, 5
+  store 0, %684
+  %685 = getelemptr %678, 6
+  store 0, %685
+  %686 = getelemptr %678, 7
+  store 0, %686
+  %687 = getelemptr %678, 8
+  store 0, %687
+  %688 = getelemptr %678, 9
+  store 0, %688
+  %689 = getelemptr %666, 2
+  %690 = getelemptr %689, 0
+  store 0, %690
+  %691 = getelemptr %689, 1
+  store 0, %691
+  %692 = getelemptr %689, 2
+  store 0, %692
+  %693 = getelemptr %689, 3
+  store 0, %693
+  %694 = getelemptr %689, 4
+  store 0, %694
+  %695 = getelemptr %689, 5
+  store 0, %695
+  %696 = getelemptr %689, 6
+  store 0, %696
+  %697 = getelemptr %689, 7
+  store 0, %697
+  %698 = getelemptr %689, 8
+  store 0, %698
+  %699 = getelemptr %689, 9
+  store 0, %699
+  %700 = getelemptr %666, 3
+  %701 = getelemptr %700, 0
+  store 0, %701
+  %702 = getelemptr %700, 1
+  store 0, %702
+  %703 = getelemptr %700, 2
+  store 0, %703
+  %704 = getelemptr %700, 3
+  store 0, %704
+  %705 = getelemptr %700, 4
+  store 0, %705
+  %706 = getelemptr %700, 5
+  store 0, %706
+  %707 = getelemptr %700, 6
+  store 0, %707
+  %708 = getelemptr %700, 7
+  store 0, %708
+  %709 = getelemptr %700, 8
+  store 0, %709
+  %710 = getelemptr %700, 9
+  store 0, %710
+  %711 = getelemptr %666, 4
+  %712 = getelemptr %711, 0
+  store 0, %712
+  %713 = getelemptr %711, 1
+  store 0, %713
+  %714 = getelemptr %711, 2
+  store 0, %714
+  %715 = getelemptr %711, 3
+  store 0, %715
+  %716 = getelemptr %711, 4
+  store 0, %716
+  %717 = getelemptr %711, 5
+  store 0, %717
+  %718 = getelemptr %711, 6
+  store 0, %718
+  %719 = getelemptr %711, 7
+  store 0, %719
+  %720 = getelemptr %711, 8
+  store 0, %720
+  %721 = getelemptr %711, 9
+  store 0, %721
+  %722 = getelemptr %666, 5
+  %723 = getelemptr %722, 0
+  store 0, %723
+  %724 = getelemptr %722, 1
+  store 0, %724
+  %725 = getelemptr %722, 2
+  store 0, %725
+  %726 = getelemptr %722, 3
+  store 0, %726
+  %727 = getelemptr %722, 4
+  store 0, %727
+  %728 = getelemptr %722, 5
+  store 0, %728
+  %729 = getelemptr %722, 6
+  store 0, %729
+  %730 = getelemptr %722, 7
+  store 0, %730
+  %731 = getelemptr %722, 8
+  store 0, %731
+  %732 = getelemptr %722, 9
+  store 0, %732
+  %733 = getelemptr %666, 6
+  %734 = getelemptr %733, 0
+  store 0, %734
+  %735 = getelemptr %733, 1
+  store 0, %735
+  %736 = getelemptr %733, 2
+  store 0, %736
+  %737 = getelemptr %733, 3
+  store 0, %737
+  %738 = getelemptr %733, 4
+  store 0, %738
+  %739 = getelemptr %733, 5
+  store 0, %739
+  %740 = getelemptr %733, 6
+  store 0, %740
+  %741 = getelemptr %733, 7
+  store 0, %741
+  %742 = getelemptr %733, 8
+  store 0, %742
+  %743 = getelemptr %733, 9
+  store 0, %743
+  %744 = getelemptr %666, 7
+  %745 = getelemptr %744, 0
+  store 0, %745
+  %746 = getelemptr %744, 1
+  store 0, %746
+  %747 = getelemptr %744, 2
+  store 0, %747
+  %748 = getelemptr %744, 3
+  store 0, %748
+  %749 = getelemptr %744, 4
+  store 0, %749
+  %750 = getelemptr %744, 5
+  store 0, %750
+  %751 = getelemptr %744, 6
+  store 0, %751
+  %752 = getelemptr %744, 7
+  store 0, %752
+  %753 = getelemptr %744, 8
+  store 0, %753
+  %754 = getelemptr %744, 9
+  store 0, %754
+  %755 = getelemptr %666, 8
+  %756 = getelemptr %755, 0
+  store 0, %756
+  %757 = getelemptr %755, 1
+  store 0, %757
+  %758 = getelemptr %755, 2
+  store 0, %758
+  %759 = getelemptr %755, 3
+  store 0, %759
+  %760 = getelemptr %755, 4
+  store 0, %760
+  %761 = getelemptr %755, 5
+  store 0, %761
+  %762 = getelemptr %755, 6
+  store 0, %762
+  %763 = getelemptr %755, 7
+  store 0, %763
+  %764 = getelemptr %755, 8
+  store 0, %764
+  %765 = getelemptr %755, 9
+  store 0, %765
+  %766 = getelemptr %666, 9
+  %767 = getelemptr %766, 0
+  store 0, %767
+  %768 = getelemptr %766, 1
+  store 0, %768
+  %769 = getelemptr %766, 2
+  store 0, %769
+  %770 = getelemptr %766, 3
+  store 0, %770
+  %771 = getelemptr %766, 4
+  store 0, %771
+  %772 = getelemptr %766, 5
+  store 0, %772
+  %773 = getelemptr %766, 6
+  store 0, %773
+  %774 = getelemptr %766, 7
+  store 0, %774
+  %775 = getelemptr %766, 8
+  store 0, %775
+  %776 = getelemptr %766, 9
+  store 0, %776
+  %777 = getelemptr @arr_1, 7
+  %778 = getelemptr %777, 0
+  %779 = getelemptr %778, 0
+  store 0, %779
+  %780 = getelemptr %778, 1
+  store 0, %780
+  %781 = getelemptr %778, 2
+  store 0, %781
+  %782 = getelemptr %778, 3
+  store 0, %782
+  %783 = getelemptr %778, 4
+  store 0, %783
+  %784 = getelemptr %778, 5
+  store 0, %784
+  %785 = getelemptr %778, 6
+  store 0, %785
+  %786 = getelemptr %778, 7
+  store 0, %786
+  %787 = getelemptr %778, 8
+  store 0, %787
+  %788 = getelemptr %778, 9
+  store 0, %788
+  %789 = getelemptr %777, 1
+  %790 = getelemptr %789, 0
+  store 0, %790
+  %791 = getelemptr %789, 1
+  store 0, %791
+  %792 = getelemptr %789, 2
+  store 0, %792
+  %793 = getelemptr %789, 3
+  store 0, %793
+  %794 = getelemptr %789, 4
+  store 0, %794
+  %795 = getelemptr %789, 5
+  store 0, %795
+  %796 = getelemptr %789, 6
+  store 0, %796
+  %797 = getelemptr %789, 7
+  store 0, %797
+  %798 = getelemptr %789, 8
+  store 0, %798
+  %799 = getelemptr %789, 9
+  store 0, %799
+  %800 = getelemptr %777, 2
+  %801 = getelemptr %800, 0
+  store 0, %801
+  %802 = getelemptr %800, 1
+  store 0, %802
+  %803 = getelemptr %800, 2
+  store 0, %803
+  %804 = getelemptr %800, 3
+  store 0, %804
+  %805 = getelemptr %800, 4
+  store 0, %805
+  %806 = getelemptr %800, 5
+  store 0, %806
+  %807 = getelemptr %800, 6
+  store 0, %807
+  %808 = getelemptr %800, 7
+  store 0, %808
+  %809 = getelemptr %800, 8
+  store 0, %809
+  %810 = getelemptr %800, 9
+  store 0, %810
+  %811 = getelemptr %777, 3
+  %812 = getelemptr %811, 0
+  store 0, %812
+  %813 = getelemptr %811, 1
+  store 0, %813
+  %814 = getelemptr %811, 2
+  store 0, %814
+  %815 = getelemptr %811, 3
+  store 0, %815
+  %816 = getelemptr %811, 4
+  store 0, %816
+  %817 = getelemptr %811, 5
+  store 0, %817
+  %818 = getelemptr %811, 6
+  store 0, %818
+  %819 = getelemptr %811, 7
+  store 0, %819
+  %820 = getelemptr %811, 8
+  store 0, %820
+  %821 = getelemptr %811, 9
+  store 0, %821
+  %822 = getelemptr %777, 4
+  %823 = getelemptr %822, 0
+  store 0, %823
+  %824 = getelemptr %822, 1
+  store 0, %824
+  %825 = getelemptr %822, 2
+  store 0, %825
+  %826 = getelemptr %822, 3
+  store 0, %826
+  %827 = getelemptr %822, 4
+  store 0, %827
+  %828 = getelemptr %822, 5
+  store 0, %828
+  %829 = getelemptr %822, 6
+  store 0, %829
+  %830 = getelemptr %822, 7
+  store 0, %830
+  %831 = getelemptr %822, 8
+  store 0, %831
+  %832 = getelemptr %822, 9
+  store 0, %832
+  %833 = getelemptr %777, 5
+  %834 = getelemptr %833, 0
+  store 0, %834
+  %835 = getelemptr %833, 1
+  store 0, %835
+  %836 = getelemptr %833, 2
+  store 0, %836
+  %837 = getelemptr %833, 3
+  store 0, %837
+  %838 = getelemptr %833, 4
+  store 0, %838
+  %839 = getelemptr %833, 5
+  store 0, %839
+  %840 = getelemptr %833, 6
+  store 0, %840
+  %841 = getelemptr %833, 7
+  store 0, %841
+  %842 = getelemptr %833, 8
+  store 0, %842
+  %843 = getelemptr %833, 9
+  store 0, %843
+  %844 = getelemptr %777, 6
+  %845 = getelemptr %844, 0
+  store 0, %845
+  %846 = getelemptr %844, 1
+  store 0, %846
+  %847 = getelemptr %844, 2
+  store 0, %847
+  %848 = getelemptr %844, 3
+  store 0, %848
+  %849 = getelemptr %844, 4
+  store 0, %849
+  %850 = getelemptr %844, 5
+  store 0, %850
+  %851 = getelemptr %844, 6
+  store 0, %851
+  %852 = getelemptr %844, 7
+  store 0, %852
+  %853 = getelemptr %844, 8
+  store 0, %853
+  %854 = getelemptr %844, 9
+  store 0, %854
+  %855 = getelemptr %777, 7
+  %856 = getelemptr %855, 0
+  store 0, %856
+  %857 = getelemptr %855, 1
+  store 0, %857
+  %858 = getelemptr %855, 2
+  store 0, %858
+  %859 = getelemptr %855, 3
+  store 0, %859
+  %860 = getelemptr %855, 4
+  store 0, %860
+  %861 = getelemptr %855, 5
+  store 0, %861
+  %862 = getelemptr %855, 6
+  store 0, %862
+  %863 = getelemptr %855, 7
+  store 0, %863
+  %864 = getelemptr %855, 8
+  store 0, %864
+  %865 = getelemptr %855, 9
+  store 0, %865
+  %866 = getelemptr %777, 8
+  %867 = getelemptr %866, 0
+  store 0, %867
+  %868 = getelemptr %866, 1
+  store 0, %868
+  %869 = getelemptr %866, 2
+  store 0, %869
+  %870 = getelemptr %866, 3
+  store 0, %870
+  %871 = getelemptr %866, 4
+  store 0, %871
+  %872 = getelemptr %866, 5
+  store 0, %872
+  %873 = getelemptr %866, 6
+  store 0, %873
+  %874 = getelemptr %866, 7
+  store 0, %874
+  %875 = getelemptr %866, 8
+  store 0, %875
+  %876 = getelemptr %866, 9
+  store 0, %876
+  %877 = getelemptr %777, 9
+  %878 = getelemptr %877, 0
+  store 0, %878
+  %879 = getelemptr %877, 1
+  store 0, %879
+  %880 = getelemptr %877, 2
+  store 0, %880
+  %881 = getelemptr %877, 3
+  store 0, %881
+  %882 = getelemptr %877, 4
+  store 0, %882
+  %883 = getelemptr %877, 5
+  store 0, %883
+  %884 = getelemptr %877, 6
+  store 0, %884
+  %885 = getelemptr %877, 7
+  store 0, %885
+  %886 = getelemptr %877, 8
+  store 0, %886
+  %887 = getelemptr %877, 9
+  store 0, %887
+  %888 = getelemptr @arr_1, 8
+  %889 = getelemptr %888, 0
+  %890 = getelemptr %889, 0
+  store 0, %890
+  %891 = getelemptr %889, 1
+  store 0, %891
+  %892 = getelemptr %889, 2
+  store 0, %892
+  %893 = getelemptr %889, 3
+  store 0, %893
+  %894 = getelemptr %889, 4
+  store 0, %894
+  %895 = getelemptr %889, 5
+  store 0, %895
+  %896 = getelemptr %889, 6
+  store 0, %896
+  %897 = getelemptr %889, 7
+  store 0, %897
+  %898 = getelemptr %889, 8
+  store 0, %898
+  %899 = getelemptr %889, 9
+  store 0, %899
+  %900 = getelemptr %888, 1
+  %901 = getelemptr %900, 0
+  store 0, %901
+  %902 = getelemptr %900, 1
+  store 0, %902
+  %903 = getelemptr %900, 2
+  store 0, %903
+  %904 = getelemptr %900, 3
+  store 0, %904
+  %905 = getelemptr %900, 4
+  store 0, %905
+  %906 = getelemptr %900, 5
+  store 0, %906
+  %907 = getelemptr %900, 6
+  store 0, %907
+  %908 = getelemptr %900, 7
+  store 0, %908
+  %909 = getelemptr %900, 8
+  store 0, %909
+  %910 = getelemptr %900, 9
+  store 0, %910
+  %911 = getelemptr %888, 2
+  %912 = getelemptr %911, 0
+  store 0, %912
+  %913 = getelemptr %911, 1
+  store 0, %913
+  %914 = getelemptr %911, 2
+  store 0, %914
+  %915 = getelemptr %911, 3
+  store 0, %915
+  %916 = getelemptr %911, 4
+  store 0, %916
+  %917 = getelemptr %911, 5
+  store 0, %917
+  %918 = getelemptr %911, 6
+  store 0, %918
+  %919 = getelemptr %911, 7
+  store 0, %919
+  %920 = getelemptr %911, 8
+  store 0, %920
+  %921 = getelemptr %911, 9
+  store 0, %921
+  %922 = getelemptr %888, 3
+  %923 = getelemptr %922, 0
+  store 0, %923
+  %924 = getelemptr %922, 1
+  store 0, %924
+  %925 = getelemptr %922, 2
+  store 0, %925
+  %926 = getelemptr %922, 3
+  store 0, %926
+  %927 = getelemptr %922, 4
+  store 0, %927
+  %928 = getelemptr %922, 5
+  store 0, %928
+  %929 = getelemptr %922, 6
+  store 0, %929
+  %930 = getelemptr %922, 7
+  store 0, %930
+  %931 = getelemptr %922, 8
+  store 0, %931
+  %932 = getelemptr %922, 9
+  store 0, %932
+  %933 = getelemptr %888, 4
+  %934 = getelemptr %933, 0
+  store 0, %934
+  %935 = getelemptr %933, 1
+  store 0, %935
+  %936 = getelemptr %933, 2
+  store 0, %936
+  %937 = getelemptr %933, 3
+  store 0, %937
+  %938 = getelemptr %933, 4
+  store 0, %938
+  %939 = getelemptr %933, 5
+  store 0, %939
+  %940 = getelemptr %933, 6
+  store 0, %940
+  %941 = getelemptr %933, 7
+  store 0, %941
+  %942 = getelemptr %933, 8
+  store 0, %942
+  %943 = getelemptr %933, 9
+  store 0, %943
+  %944 = getelemptr %888, 5
+  %945 = getelemptr %944, 0
+  store 0, %945
+  %946 = getelemptr %944, 1
+  store 0, %946
+  %947 = getelemptr %944, 2
+  store 0, %947
+  %948 = getelemptr %944, 3
+  store 0, %948
+  %949 = getelemptr %944, 4
+  store 0, %949
+  %950 = getelemptr %944, 5
+  store 0, %950
+  %951 = getelemptr %944, 6
+  store 0, %951
+  %952 = getelemptr %944, 7
+  store 0, %952
+  %953 = getelemptr %944, 8
+  store 0, %953
+  %954 = getelemptr %944, 9
+  store 0, %954
+  %955 = getelemptr %888, 6
+  %956 = getelemptr %955, 0
+  store 0, %956
+  %957 = getelemptr %955, 1
+  store 0, %957
+  %958 = getelemptr %955, 2
+  store 0, %958
+  %959 = getelemptr %955, 3
+  store 0, %959
+  %960 = getelemptr %955, 4
+  store 0, %960
+  %961 = getelemptr %955, 5
+  store 0, %961
+  %962 = getelemptr %955, 6
+  store 0, %962
+  %963 = getelemptr %955, 7
+  store 0, %963
+  %964 = getelemptr %955, 8
+  store 0, %964
+  %965 = getelemptr %955, 9
+  store 0, %965
+  %966 = getelemptr %888, 7
+  %967 = getelemptr %966, 0
+  store 0, %967
+  %968 = getelemptr %966, 1
+  store 0, %968
+  %969 = getelemptr %966, 2
+  store 0, %969
+  %970 = getelemptr %966, 3
+  store 0, %970
+  %971 = getelemptr %966, 4
+  store 0, %971
+  %972 = getelemptr %966, 5
+  store 0, %972
+  %973 = getelemptr %966, 6
+  store 0, %973
+  %974 = getelemptr %966, 7
+  store 0, %974
+  %975 = getelemptr %966, 8
+  store 0, %975
+  %976 = getelemptr %966, 9
+  store 0, %976
+  %977 = getelemptr %888, 8
+  %978 = getelemptr %977, 0
+  store 0, %978
+  %979 = getelemptr %977, 1
+  store 0, %979
+  %980 = getelemptr %977, 2
+  store 0, %980
+  %981 = getelemptr %977, 3
+  store 0, %981
+  %982 = getelemptr %977, 4
+  store 0, %982
+  %983 = getelemptr %977, 5
+  store 0, %983
+  %984 = getelemptr %977, 6
+  store 0, %984
+  %985 = getelemptr %977, 7
+  store 0, %985
+  %986 = getelemptr %977, 8
+  store 0, %986
+  %987 = getelemptr %977, 9
+  store 0, %987
+  %988 = getelemptr %888, 9
+  %989 = getelemptr %988, 0
+  store 0, %989
+  %990 = getelemptr %988, 1
+  store 0, %990
+  %991 = getelemptr %988, 2
+  store 0, %991
+  %992 = getelemptr %988, 3
+  store 0, %992
+  %993 = getelemptr %988, 4
+  store 0, %993
+  %994 = getelemptr %988, 5
+  store 0, %994
+  %995 = getelemptr %988, 6
+  store 0, %995
+  %996 = getelemptr %988, 7
+  store 0, %996
+  %997 = getelemptr %988, 8
+  store 0, %997
+  %998 = getelemptr %988, 9
+  store 0, %998
+  %999 = getelemptr @arr_1, 9
+  %1000 = getelemptr %999, 0
+  %1001 = getelemptr %1000, 0
+  store 0, %1001
+  %1002 = getelemptr %1000, 1
+  store 0, %1002
+  %1003 = getelemptr %1000, 2
+  store 0, %1003
+  %1004 = getelemptr %1000, 3
+  store 0, %1004
+  %1005 = getelemptr %1000, 4
+  store 0, %1005
+  %1006 = getelemptr %1000, 5
+  store 0, %1006
+  %1007 = getelemptr %1000, 6
+  store 0, %1007
+  %1008 = getelemptr %1000, 7
+  store 0, %1008
+  %1009 = getelemptr %1000, 8
+  store 0, %1009
+  %1010 = getelemptr %1000, 9
+  store 0, %1010
+  %1011 = getelemptr %999, 1
+  %1012 = getelemptr %1011, 0
+  store 0, %1012
+  %1013 = getelemptr %1011, 1
+  store 0, %1013
+  %1014 = getelemptr %1011, 2
+  store 0, %1014
+  %1015 = getelemptr %1011, 3
+  store 0, %1015
+  %1016 = getelemptr %1011, 4
+  store 0, %1016
+  %1017 = getelemptr %1011, 5
+  store 0, %1017
+  %1018 = getelemptr %1011, 6
+  store 0, %1018
+  %1019 = getelemptr %1011, 7
+  store 0, %1019
+  %1020 = getelemptr %1011, 8
+  store 0, %1020
+  %1021 = getelemptr %1011, 9
+  store 0, %1021
+  %1022 = getelemptr %999, 2
+  %1023 = getelemptr %1022, 0
+  store 0, %1023
+  %1024 = getelemptr %1022, 1
+  store 0, %1024
+  %1025 = getelemptr %1022, 2
+  store 0, %1025
+  %1026 = getelemptr %1022, 3
+  store 0, %1026
+  %1027 = getelemptr %1022, 4
+  store 0, %1027
+  %1028 = getelemptr %1022, 5
+  store 0, %1028
+  %1029 = getelemptr %1022, 6
+  store 0, %1029
+  %1030 = getelemptr %1022, 7
+  store 0, %1030
+  %1031 = getelemptr %1022, 8
+  store 0, %1031
+  %1032 = getelemptr %1022, 9
+  store 0, %1032
+  %1033 = getelemptr %999, 3
+  %1034 = getelemptr %1033, 0
+  store 0, %1034
+  %1035 = getelemptr %1033, 1
+  store 0, %1035
+  %1036 = getelemptr %1033, 2
+  store 0, %1036
+  %1037 = getelemptr %1033, 3
+  store 0, %1037
+  %1038 = getelemptr %1033, 4
+  store 0, %1038
+  %1039 = getelemptr %1033, 5
+  store 0, %1039
+  %1040 = getelemptr %1033, 6
+  store 0, %1040
+  %1041 = getelemptr %1033, 7
+  store 0, %1041
+  %1042 = getelemptr %1033, 8
+  store 0, %1042
+  %1043 = getelemptr %1033, 9
+  store 0, %1043
+  %1044 = getelemptr %999, 4
+  %1045 = getelemptr %1044, 0
+  store 0, %1045
+  %1046 = getelemptr %1044, 1
+  store 0, %1046
+  %1047 = getelemptr %1044, 2
+  store 0, %1047
+  %1048 = getelemptr %1044, 3
+  store 0, %1048
+  %1049 = getelemptr %1044, 4
+  store 0, %1049
+  %1050 = getelemptr %1044, 5
+  store 0, %1050
+  %1051 = getelemptr %1044, 6
+  store 0, %1051
+  %1052 = getelemptr %1044, 7
+  store 0, %1052
+  %1053 = getelemptr %1044, 8
+  store 0, %1053
+  %1054 = getelemptr %1044, 9
+  store 0, %1054
+  %1055 = getelemptr %999, 5
+  %1056 = getelemptr %1055, 0
+  store 0, %1056
+  %1057 = getelemptr %1055, 1
+  store 0, %1057
+  %1058 = getelemptr %1055, 2
+  store 0, %1058
+  %1059 = getelemptr %1055, 3
+  store 0, %1059
+  %1060 = getelemptr %1055, 4
+  store 0, %1060
+  %1061 = getelemptr %1055, 5
+  store 0, %1061
+  %1062 = getelemptr %1055, 6
+  store 0, %1062
+  %1063 = getelemptr %1055, 7
+  store 0, %1063
+  %1064 = getelemptr %1055, 8
+  store 0, %1064
+  %1065 = getelemptr %1055, 9
+  store 0, %1065
+  %1066 = getelemptr %999, 6
+  %1067 = getelemptr %1066, 0
+  store 0, %1067
+  %1068 = getelemptr %1066, 1
+  store 0, %1068
+  %1069 = getelemptr %1066, 2
+  store 0, %1069
+  %1070 = getelemptr %1066, 3
+  store 0, %1070
+  %1071 = getelemptr %1066, 4
+  store 0, %1071
+  %1072 = getelemptr %1066, 5
+  store 0, %1072
+  %1073 = getelemptr %1066, 6
+  store 0, %1073
+  %1074 = getelemptr %1066, 7
+  store 0, %1074
+  %1075 = getelemptr %1066, 8
+  store 0, %1075
+  %1076 = getelemptr %1066, 9
+  store 0, %1076
+  %1077 = getelemptr %999, 7
+  %1078 = getelemptr %1077, 0
+  store 0, %1078
+  %1079 = getelemptr %1077, 1
+  store 0, %1079
+  %1080 = getelemptr %1077, 2
+  store 0, %1080
+  %1081 = getelemptr %1077, 3
+  store 0, %1081
+  %1082 = getelemptr %1077, 4
+  store 0, %1082
+  %1083 = getelemptr %1077, 5
+  store 0, %1083
+  %1084 = getelemptr %1077, 6
+  store 0, %1084
+  %1085 = getelemptr %1077, 7
+  store 0, %1085
+  %1086 = getelemptr %1077, 8
+  store 0, %1086
+  %1087 = getelemptr %1077, 9
+  store 0, %1087
+  %1088 = getelemptr %999, 8
+  %1089 = getelemptr %1088, 0
+  store 0, %1089
+  %1090 = getelemptr %1088, 1
+  store 0, %1090
+  %1091 = getelemptr %1088, 2
+  store 0, %1091
+  %1092 = getelemptr %1088, 3
+  store 0, %1092
+  %1093 = getelemptr %1088, 4
+  store 0, %1093
+  %1094 = getelemptr %1088, 5
+  store 0, %1094
+  %1095 = getelemptr %1088, 6
+  store 0, %1095
+  %1096 = getelemptr %1088, 7
+  store 0, %1096
+  %1097 = getelemptr %1088, 8
+  store 0, %1097
+  %1098 = getelemptr %1088, 9
+  store 0, %1098
+  %1099 = getelemptr %999, 9
+  %1100 = getelemptr %1099, 0
+  store 0, %1100
+  %1101 = getelemptr %1099, 1
+  store 0, %1101
+  %1102 = getelemptr %1099, 2
+  store 0, %1102
+  %1103 = getelemptr %1099, 3
+  store 0, %1103
+  %1104 = getelemptr %1099, 4
+  store 0, %1104
+  %1105 = getelemptr %1099, 5
+  store 0, %1105
+  %1106 = getelemptr %1099, 6
+  store 0, %1106
+  %1107 = getelemptr %1099, 7
+  store 0, %1107
+  %1108 = getelemptr %1099, 8
+  store 0, %1108
+  %1109 = getelemptr %1099, 9
+  store 0, %1109
+  @sum_1 = alloc i32
+  store 0, @sum_1
+  %1110 = getelemptr @arr_1, 0
+  call @init_function(%1110)
+  %1111 = load @sum_1
+  %1112 = getelemptr @arr_1, 0
+  %1113 = getelemptr %1112, 0
+  %1114 = getelemptr %1113, 0
+  %1115 = getelemptr @arr_1, 1
+  %1116 = getelemptr %1115, 1
+  %1117 = getelemptr %1116, 0
+  %1118 = getelemptr @arr_1, 2
+  %1119 = getelemptr %1118, 2
+  %1120 = getelemptr %1119, 0
+  %1121 = getelemptr @arr_1, 3
+  %1122 = getelemptr %1121, 3
+  %1123 = getelemptr %1122, 0
+  %1124 = getelemptr @arr_1, 4
+  %1125 = getelemptr %1124, 4
+  %1126 = getelemptr %1125, 0
+  %1127 = getelemptr @arr_1, 5
+  %1128 = getelemptr %1127, 5
+  %1129 = getelemptr %1128, 0
+  %1130 = getelemptr @arr_1, 6
+  %1131 = getelemptr %1130, 6
+  %1132 = getelemptr %1131, 0
+  %1133 = getelemptr @arr_1, 7
+  %1134 = getelemptr %1133, 7
+  %1135 = getelemptr %1134, 0
+  %1136 = getelemptr @arr_1, 8
+  %1137 = getelemptr %1136, 8
+  %1138 = getelemptr %1137, 0
+  %1139 = getelemptr @arr_1, 9
+  %1140 = getelemptr %1139, 9
+  %1141 = getelemptr %1140, 0
+  %1142 = call @f1_function(%1114, %1117, %1120, %1123, %1126, %1129, %1132, %1135, %1138, %1141)
+  %1143 = add %1111, %1142
+  store %1143, @sum_1
+  %1144 = load @sum_1
+  %1145 = getelemptr @arr_1, 0
+  %1146 = getelemptr %1145, 0
+  %1147 = getelemptr @arr_1, 1
+  %1148 = getelemptr %1147, 1
+  %1149 = getelemptr %1148, 0
+  %1150 = getelemptr @arr_1, 2
+  %1151 = getelemptr %1150, 2
+  %1152 = getelemptr %1151, 2
+  %1153 = load %1152
+  %1154 = getelemptr @arr_1, 3
+  %1155 = getelemptr %1154, 3
+  %1156 = getelemptr %1155, 0
+  %1157 = getelemptr @arr_1, 4
+  %1158 = getelemptr %1157, 4
+  %1159 = getelemptr %1158, 0
+  %1160 = getelemptr @arr_1, 0
+  %1161 = getelemptr @arr_1, 6
+  %1162 = getelemptr %1161, 6
+  %1163 = getelemptr %1162, 0
+  %1164 = getelemptr @arr_1, 7
+  %1165 = getelemptr %1164, 7
+  %1166 = getelemptr %1165, 0
+  %1167 = getelemptr @arr_1, 8
+  %1168 = getelemptr %1167, 8
+  %1169 = getelemptr %1168, 8
+  %1170 = load %1169
+  %1171 = getelemptr @arr_1, 9
+  %1172 = getelemptr %1171, 0
+  %1173 = call @f2_function(%1146, %1149, %1153, %1156, %1159, %1160, %1163, %1166, %1170, %1172)
+  %1174 = add %1144, %1173
+  store %1174, @sum_1
+  %1175 = load @sum_1
+  call @putint(%1175)
+  call @putch(10)
   ret 0
 }
 

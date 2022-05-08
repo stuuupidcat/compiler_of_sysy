@@ -253,3 +253,5 @@ State 70
 
 
 .get方法
+
+getelemptr和getelemptr轻微的不同之处， src

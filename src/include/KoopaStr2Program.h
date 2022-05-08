@@ -48,6 +48,7 @@ InstResult  Visit         (const koopa_raw_call_t&);
 InstResult  Visit (const koopa_raw_func_arg_ref_t&);
 InstResult  Visit   (const koopa_raw_global_alloc_t&, int, std::string);
 InstResult  Visit   (const koopa_raw_get_elem_ptr_t&);
+InstResult  Visit   (const koopa_raw_get_ptr_t&);
 
 void CountRSA       (const koopa_raw_slice_t&);
 void CountRSA (const koopa_raw_basic_block_t&);
@@ -66,3 +67,6 @@ int AddReg();
 int CalTypeSize(const koopa_raw_type_t&);
 
 std::string MoreThan2048(int);
+
+void GlobalArrayInit(const koopa_raw_aggregate_t&);
+int GlobalArrayItemsCount(const koopa_raw_aggregate_t&);

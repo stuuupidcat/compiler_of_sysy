@@ -109,7 +109,13 @@ void Visit(const koopa_raw_function_t &func) {
   std::cout << "  add   sp, sp, t0\n";
   //保存ra
   if (R != 0) {
-    std::cout << "  sw    ra, " << stack_usage-4 << "(sp)\n";
+    if (stack_usage-4 < 2048) {
+      std::cout << "  sw    ra, " << stack_usage-4 << "(sp)\n";
+    }
+    else {
+      std::string tempreg = MoreThan2048(stack_usage-4);
+      std::cout << "  sw    ra, " << "0(" << tempreg << ")\n";
+    }
   } 
   // 访问所有基本块
   Visit(func->bbs);
@@ -117,7 +123,13 @@ void Visit(const koopa_raw_function_t &func) {
   std::cout << func->name+1 << "_end:" << std::endl; 
   //恢复ra
   if (R != 0) {
-    std::cout << "  lw    ra, " << stack_usage-4 << "(sp)\n";
+    if (stack_usage-4 < 2048) {
+      std::cout << "  lw    ra, " << stack_usage-4 << "(sp)\n";
+    }
+    else {
+      std::string tempreg = MoreThan2048(stack_usage-4);
+      std::cout << "  lw    ra, " << "0(" << tempreg << ")\n";
+    }
   }
   std::cout << "  li    t0, " << stack_usage << "\n";
   std::cout << "  add   sp, sp, t0\n"; 
@@ -184,6 +196,7 @@ InstResult Visit(const koopa_raw_value_t &value) {
       visit_instruction_result = Visit(kind.data.get_elem_ptr);
       break;
     case KOOPA_RVT_GET_PTR:
+      visit_instruction_result = Visit(kind.data.get_ptr);
       break;
     default:
       // 其他类型暂时遇不到
@@ -232,6 +245,7 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
     InstResult pos = inst_result[(void*)&get_elem_ptr];
     return pos;
   }
+
   InstResult src_pos = Visit(get_elem_ptr.src);
   if (src_pos.on_stack) {//函数内部的数组
     //计算变量的地址。
@@ -239,6 +253,9 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
     std::string stack_pos_reg = "t" + std::to_string(AddReg());
     std::cout << "  li    " << stack_offset_reg << ", " << src_pos.pos << std::endl;
     std::cout << "  add   " << stack_pos_reg << ", sp, " << stack_offset_reg << std::endl;
+    if (src_pos.is_pointer) { //%1 = getelemptr %0, 0
+      std::cout << "  lw    " << stack_pos_reg << ", 0(" << stack_pos_reg << ")\n";
+    }
     //计算getelemptr的偏移量。
     std::string offset_reg = "t" + std::to_string(AddReg());
     if (get_elem_ptr.index->kind.tag == KOOPA_RVT_INTEGER) //%1 = getelemptr @arr_1, 1 
@@ -257,9 +274,10 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
       
     }
 
-    std::string four_reg = "t" + std::to_string(AddReg());
-    std::cout << "  li    " << four_reg << ", 4" << std::endl;
-    std::cout << "  mul   " << offset_reg << ", " << offset_reg << ", " << four_reg << std::endl;
+    
+    std::string type_size_reg = "t" + std::to_string(AddReg());
+    std::cout << "  li    " << type_size_reg << ", " << std::to_string(CalTypeSize(get_elem_ptr.src->ty->data.pointer.base->data.array.base)) << std::endl;
+    std::cout << "  mul   " << offset_reg << ", " << offset_reg << ", " << type_size_reg << std::endl;
     //指针的位置在下条语句之后保存在stack_pos_reg中。 
     std::cout << "  add   " << stack_pos_reg << ", " << stack_pos_reg << ", " << offset_reg << std::endl;
     //保存结果。
@@ -294,9 +312,9 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
       }
       
     }
-    std::string four_reg = "t" + std::to_string(AddReg());
-    std::cout << "  li    " << four_reg << ", 4" << std::endl;
-    std::cout << "  mul   " << offset_reg << ", " << offset_reg << ", " << four_reg << std::endl;
+    std::string type_size_reg = "t" + std::to_string(AddReg());
+    std::cout << "  li    " << type_size_reg << ", " << std::to_string(CalTypeSize(get_elem_ptr.src->ty->data.pointer.base->data.array.base)) << std::endl;
+    std::cout << "  mul   " << offset_reg << ", " << offset_reg << ", " << type_size_reg << std::endl;
 
     std::cout << "  add   " << global_arr_addr_reg << ", " << global_arr_addr_reg << ", " << offset_reg << std::endl;
     //保存结果。
@@ -315,6 +333,68 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
   }
   
 }
+
+
+//copy and paste get_elem_ptr
+InstResult Visit (const koopa_raw_get_ptr_t& get_ptr) {
+    bool executed = IsExecuted((void*)&get_ptr);
+    //执行过。
+    if (executed) {
+      InstResult pos = inst_result[(void*)&get_ptr];
+      return pos;
+    }
+
+    InstResult src_pos = Visit(get_ptr.src);
+
+    //计算变量的地址。
+    std::string stack_offset_reg = "t" + std::to_string(AddReg());
+    std::string stack_pos_reg = "t" + std::to_string(AddReg());
+    std::cout << "  li    " << stack_offset_reg << ", " << src_pos.pos << std::endl;
+    std::cout << "  add   " << stack_pos_reg << ", sp, " << stack_offset_reg << std::endl;
+    //%1 = getelemptr %0, 0
+    std::cout << "  lw    " << stack_pos_reg << ", 0(" << stack_pos_reg << ")\n";
+
+    //计算getptr的偏移量。
+    std::string offset_reg = "t" + std::to_string(AddReg());
+    if (get_ptr.index->kind.tag == KOOPA_RVT_INTEGER) //%1 = getelemptr @arr_1, 1 
+    {
+      std::cout << "  li    " << offset_reg << ", " << get_ptr.index->kind.data.integer.value << std::endl;
+    }
+    else { //%6 = getptr @arr_1, %5
+      InstResult index_pos = Visit(get_ptr.index);
+      if (index_pos.pos < 2048) {
+        std::cout << "  lw    " << offset_reg << ", " << index_pos.format << std::endl;
+      } 
+      else {
+        std::string tempreg = MoreThan2048(index_pos.pos);
+        std::cout << "  mv    " << offset_reg << ", " << tempreg << std::endl;
+      }
+      
+    }
+
+    
+    std::string type_size_reg = "t" + std::to_string(AddReg());
+    //little change    
+    std::cout << "  li    " << type_size_reg << ", " << std::to_string(CalTypeSize(get_ptr.src->ty->data.pointer.base)) << std::endl;
+    std::cout << "  mul   " << offset_reg << ", " << offset_reg << ", " << type_size_reg << std::endl;
+    //指针的位置在下条语句之后保存在stack_pos_reg中。 
+    std::cout << "  add   " << stack_pos_reg << ", " << stack_pos_reg << ", " << offset_reg << std::endl;
+    //保存结果。
+    InstResult result = StoreInsToMap((void*)&get_ptr, 4, true);
+    if (result.pos < 2048) {
+      std::cout << "  sw    " << stack_pos_reg << ", " << result.format << std::endl;
+    }
+    else {
+      std::string tempreg = MoreThan2048(result.pos);
+      std::cout << "  sw    " << stack_pos_reg << ", 0(" << tempreg << ")" << std::endl;
+    }
+    
+    return result;
+
+}
+
+
+
 
 //函数参数引用。
 InstResult Visit(const koopa_raw_func_arg_ref_t &func_arg_ref) {
@@ -690,7 +770,7 @@ void Visit(const koopa_raw_jump_t& jmp) {
 }
 
 //访问变量，如果是全局变量会给名字参数。
-InstResult Visit  (const koopa_raw_global_alloc_t& alloc, int type_size, std::string name) {
+InstResult Visit (const koopa_raw_global_alloc_t& alloc, int type_size, std::string name) {
   if (name == "") {
     bool executed = IsExecuted((void*)&alloc);
     //执行过。
@@ -725,17 +805,18 @@ InstResult Visit  (const koopa_raw_global_alloc_t& alloc, int type_size, std::st
         return inst_result[(void*)&alloc];
       }
       else {
-        InstResult pos = InstResult("global", 0, alloc.init->kind.data.aggregate.elems.len*4);
+        InstResult pos = InstResult("global", 0, GlobalArrayItemsCount(alloc.init->kind.data.aggregate)*4);
         inst_result.insert(std::make_pair((void *)&alloc, pos));
         std::cout << "  .data\n";
         std::cout << "  .globl " << name << "\n";
         std::cout << name << ":\n";
-        for (int i = 0; i < alloc.init->kind.data.aggregate.elems.len; ++i) {
-          //模仿raw slicet找到buffer里的东西，然后访问。
-          auto ptr = reinterpret_cast<koopa_raw_value_t>(alloc.init->kind.data.aggregate.elems.buffer[i]);
-          std::cout << "  .word " << ptr->kind.data.integer.value << std::endl;
-          
-        }
+        GlobalArrayInit(alloc.init->kind.data.aggregate);
+        //for (int i = 0; i < alloc.init->kind.data.aggregate.elems.len; ++i) {
+        //  //模仿raw slicet找到buffer里的东西，然后访问。
+        //  auto ptr = reinterpret_cast<koopa_raw_value_t>(alloc.init->kind.data.aggregate.elems.buffer[i]);
+        //  std::cout << "  .word " << ptr->kind.data.integer.value << std::endl;
+        //  
+        //}
         std::cout << std::endl;
         return pos;
       }
@@ -865,5 +946,34 @@ std::string MoreThan2048(int offset) {
   std::string res = "t" + std::to_string(AddReg());
   std::cout << "  li    " << res << ", " << offset << std::endl;
   std::cout << "  add   " << res << ", " << res << ", sp" << std::endl;
+  return res;
+}
+
+void GlobalArrayInit(const koopa_raw_aggregate_t& agg) {
+  for (int i = 0; i < agg.elems.len; ++i) {
+  //模仿raw slicet找到buffer里的东西，然后访问。
+  //auto ptr = reinterpret_cast<koopa_raw_value_t>(alloc.init->kind.data.aggregate.elems.buffer[i]);
+  //std::cout << "  .word " << ptr->kind.data.integer.value << std::endl;
+    auto ptr = reinterpret_cast<koopa_raw_value_t>(agg.elems.buffer[i]);
+    if (ptr->kind.tag == KOOPA_RVT_INTEGER) {
+      std::cout << "  .word " << ptr->kind.data.integer.value << std::endl;
+    }
+    else {
+      GlobalArrayInit(ptr->kind.data.aggregate);
+    }
+  }
+}
+
+int GlobalArrayItemsCount(const koopa_raw_aggregate_t& agg) {
+  int res = 0;
+  for (int i = 0; i < agg.elems.len; ++i) {
+    auto ptr = reinterpret_cast<koopa_raw_value_t>(agg.elems.buffer[i]);
+    if (ptr->kind.tag == KOOPA_RVT_INTEGER) {
+      res += 1;
+    }
+    else {
+      res += GlobalArrayItemsCount(ptr->kind.data.aggregate);
+    }
+  }
   return res;
 }

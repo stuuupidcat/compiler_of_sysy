@@ -1037,7 +1037,7 @@ Value WhileStmtAST::DumpKoopa() {
 }
 
 Value NumberAST::DumpKoopa() {
-    Value lhs_value = (Value)(long)num;
+    Value lhs_value = (Value)num;
     Value rhs_value = 0;
 
     exp_algoresult = num;
