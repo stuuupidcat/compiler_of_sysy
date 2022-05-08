@@ -219,9 +219,10 @@ InstResult Visit(const koopa_raw_value_t &value) {
           std::cout << "  lw    " << tempreg << ", " << visit_instruction_result.format << std::endl;
         }
         else {
-          std::string tempreg = MoreThan2048(visit_instruction_result.pos);
+          tempreg = MoreThan2048(visit_instruction_result.pos);
           std::cout << "  lw    " << tempreg << ", 0(" << tempreg << ")\n";
         }
+        //printf("here");
         std::cout << "  sw    " << tempreg << ", " << 4*(arg_index-8)<< "(sp)\n";
       }
     }
@@ -276,7 +277,7 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
 
     
     std::string type_size_reg = "t" + std::to_string(AddReg());
-    std::cout << "  li    " << type_size_reg << ", " << std::to_string(CalTypeSize(get_elem_ptr.src->ty->data.pointer.base->data.array.base)) << std::endl;
+    std::cout << "  li    " << type_size_reg << ", " << std::to_string(CalTypeSize(get_elem_ptr.src->ty)) << std::endl;
     std::cout << "  mul   " << offset_reg << ", " << offset_reg << ", " << type_size_reg << std::endl;
     //指针的位置在下条语句之后保存在stack_pos_reg中。 
     std::cout << "  add   " << stack_pos_reg << ", " << stack_pos_reg << ", " << offset_reg << std::endl;
@@ -313,7 +314,7 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
       
     }
     std::string type_size_reg = "t" + std::to_string(AddReg());
-    std::cout << "  li    " << type_size_reg << ", " << std::to_string(CalTypeSize(get_elem_ptr.src->ty->data.pointer.base->data.array.base)) << std::endl;
+    std::cout << "  li    " << type_size_reg << ", " << std::to_string(CalTypeSize(get_elem_ptr.src->ty)) << std::endl;
     std::cout << "  mul   " << offset_reg << ", " << offset_reg << ", " << type_size_reg << std::endl;
 
     std::cout << "  add   " << global_arr_addr_reg << ", " << global_arr_addr_reg << ", " << offset_reg << std::endl;
@@ -352,8 +353,9 @@ InstResult Visit (const koopa_raw_get_ptr_t& get_ptr) {
     std::cout << "  li    " << stack_offset_reg << ", " << src_pos.pos << std::endl;
     std::cout << "  add   " << stack_pos_reg << ", sp, " << stack_offset_reg << std::endl;
     //%1 = getelemptr %0, 0
-    std::cout << "  lw    " << stack_pos_reg << ", 0(" << stack_pos_reg << ")\n";
-
+    //if (src_pos.is_pointer) {
+      std::cout << "  lw    " << stack_pos_reg << ", 0(" << stack_pos_reg << ")\n";
+    //}
     //计算getptr的偏移量。
     std::string offset_reg = "t" + std::to_string(AddReg());
     if (get_ptr.index->kind.tag == KOOPA_RVT_INTEGER) //%1 = getelemptr @arr_1, 1 
@@ -392,9 +394,6 @@ InstResult Visit (const koopa_raw_get_ptr_t& get_ptr) {
     return result;
 
 }
-
-
-
 
 //函数参数引用。
 InstResult Visit(const koopa_raw_func_arg_ref_t &func_arg_ref) {
@@ -621,6 +620,7 @@ InstResult Visit (const koopa_raw_load_t& lw) {
           std::string tempreg = MoreThan2048(src_pos.pos);
           std::cout << "  lw    " << reg_name << ", 0(" << tempreg << ")" << std::endl;
         }
+        //printf("here");
         if (pos.pos < 2048) {
           std::cout << "  sw    " << reg_name << ", " << pos.format << std::endl;
         }
@@ -933,7 +933,13 @@ int CalTypeSize (const koopa_raw_type_t& ty) {
       res = ty->data.array.len * CalTypeSize(ty->data.array.base);
       break;
     case KOOPA_RTT_POINTER:
-      res = CalTypeSize(ty->data.pointer.base);
+      if (ty->data.pointer.base->tag == KOOPA_RTT_ARRAY) {
+        res = CalTypeSize(ty->data.pointer.base->data.array.base);
+      }
+      else {
+        res = 4;
+      }
+      //res = CalTypeSize(ty->data.pointer.base);
       break;
     case KOOPA_RTT_FUNCTION:
       res = 4;
