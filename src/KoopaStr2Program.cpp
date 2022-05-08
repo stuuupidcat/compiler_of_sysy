@@ -213,6 +213,7 @@ InstResult Visit(const koopa_raw_value_t &value) {
           std::cout << "  lw    " << "a" << arg_index << ", 0(" << tempreg << ")\n";
         }
       }
+      
       else {
         std::string tempreg = "t" + std::to_string(AddReg());
         if (visit_instruction_result.pos < 2048) {

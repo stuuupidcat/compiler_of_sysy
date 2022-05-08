@@ -57,7 +57,7 @@ int main(int argc, const char *argv[]) {
       ast->DumpKoopa();
     #endif
   }
-  else if (strcmp(mode, "-riscv") == 0) {
+  else{
     int old = dup( 1 );
     FILE* fp = OutputToFile("./temp_koopa.txt");
     ast->DumpKoopa();
