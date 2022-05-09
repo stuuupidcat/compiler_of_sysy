@@ -1326,13 +1326,6 @@ Value LAndExpAST::DumpKoopa() {
         return val;
     }
     else {
-        //implement short-circuit logic and.
-        /*int result = 0;
-        if (lhs_value != 0) {
-            result = rhs_value != 0;
-        }*/
-
-        //int result = 0;
         auto zero = new NumberAST();  
         zero->num = 0;
 

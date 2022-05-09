@@ -33,9 +33,9 @@ Hexadecimal   0[xX][0-9a-fA-F]+
 AddSign            \+
 SubSign            -
 AssignSign         = 
-LessThanSign       <
+LessThanSign       \<
 GreaterThanSign    >
-LessOrEqualSign    <=
+LessOrEqualSign    \<\=
 GreaterOrEqualSign >=
 EqualSign          ==
 NotEqualSign       !=
