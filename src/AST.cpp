@@ -748,13 +748,13 @@ Value FuncFParamAST::DumpKoopa()   {
         type = "*i32";
     }
     else if (mode == 2) { //..., int a[][2][3], ...
-        bool print_ins_cp = print_ins;
+        bool print_ins_temp = print_ins;
         print_ins = false;
         for (auto &constexp: constexps) {
             constexp->DumpKoopa();
             exp_algoresults.push_back(constexp->exp_algoresult);
         }
-        print_ins = print_ins_cp;
+        print_ins = print_ins_temp;
         type = "*" + ArrayType(exp_algoresults, 0);
         std::cout << "@" << ident << " :" << type;
     }
@@ -1624,7 +1624,12 @@ Value VarDefAST::DumpKoopa() {
     //store
     //处理同名变量
     if (mode <= 1) { //变量
-        print_ins = true;
+        if (ident == "__short_circuit_or_result" || ident == "__short_circuit_and_result") { 
+            //do nothing 
+        }
+        else {
+            print_ins = true;
+        }
         if (scope_num != 0) {
             CalIdentID();
             if (mode == 0) { //无赋值
@@ -1656,12 +1661,13 @@ Value VarDefAST::DumpKoopa() {
                                                              SymbolInfo(0, 0, false)));
             }
             else {
+                bool print_ins_tmp = print_ins;
                 print_ins = false;
                 Value lhs = initval->DumpKoopa();
                 symbol_table[scope_num][basic_block_num[scope_num]].insert(std::make_pair(ident_id,
                                                              SymbolInfo(lhs, initval->exp_algoresult, false)));
                 init = initval->exp_algoresult;
-                print_ins = true;
+                print_ins = print_ins_tmp;
             }
             ValueData vd_alloc = ValueData(-1, "globalalloc", 0, 0, 0, ident_id, init);
             Value vd_alloc_value = InsertValueDataToAll(vd_alloc);
