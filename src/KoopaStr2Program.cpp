@@ -271,7 +271,8 @@ InstResult Visit (const koopa_raw_get_elem_ptr_t& get_elem_ptr) {
       } 
       else {
         std::string tempreg = MoreThan2048(index_pos.pos);
-        std::cout << "  mv    " << offset_reg << ", " << tempreg << std::endl;
+        std::cout << "  lw    " << offset_reg << ", 0(" << tempreg << ")\n";
+        //std::cout << "  mv    " << offset_reg << ", " << tempreg << std::endl;
       }
       
     }
@@ -370,7 +371,8 @@ InstResult Visit (const koopa_raw_get_ptr_t& get_ptr) {
       } 
       else {
         std::string tempreg = MoreThan2048(index_pos.pos);
-        std::cout << "  mv    " << offset_reg << ", " << tempreg << std::endl;
+        std::cout << "  lw    " << offset_reg << ", 0(" << tempreg << ")" << std::endl;
+        //std::cout << "  mv    " << offset_reg << ", " << tempreg << std::endl;
       }
       
     }
