@@ -1341,7 +1341,7 @@ Value LAndExpAST::DumpKoopa() {
         //    result = rhs_value != 0;
         //1
         auto zero1 = new NumberAST();
-        zero1->num = 1;
+        zero1->num = 0;
 
         //lhs_value != 0
         auto eqexp1 = new EqExpAST();
@@ -1351,7 +1351,7 @@ Value LAndExpAST::DumpKoopa() {
 
         //rhs_value != 0;
         auto zero2 = new NumberAST();
-        zero2->num = 0;
+        zero2->num = 1;
         auto eqexp2 = new EqExpAST();
         eqexp2->mode = 2;
         eqexp2->eqexp = std::move(eqexp);
