@@ -39,7 +39,7 @@ LessOrEqualSign    \<\=
 GreaterOrEqualSign >=
 EqualSign          ==
 NotEqualSign       !=
-AndSign            &&
+AndSign            \&\&
 OrSign             \|\|
 
 %%
