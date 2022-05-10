@@ -1340,21 +1340,23 @@ Value LAndExpAST::DumpKoopa() {
         //if (lhs_value != 0) 
         //    result = rhs_value != 0;
         //1
-        auto one = new NumberAST();
-        one->num = 1;
+        auto zero1 = new NumberAST();
+        zero1->num = 1;
 
         //lhs_value == 1x
         //lhs_value != 0
         auto eqexp1 = new EqExpAST();
         eqexp1->mode = 2;
         eqexp1->eqexp = std::move(landexp);
-        eqexp1->relexp = std::unique_ptr<BaseAST>(zero);
+        eqexp1->relexp = std::unique_ptr<BaseAST>(zero1);
 
         //rhs_value != 0;
+        auto zero2 = new NumberAST();
+        zero2->num = 1;
         auto eqexp2 = new EqExpAST();
         eqexp2->mode = 2;
         eqexp2->eqexp = std::move(eqexp);
-        eqexp2->relexp = std::unique_ptr<BaseAST>(zero);
+        eqexp2->relexp = std::unique_ptr<BaseAST>(zero2);
 
         //result = rhs_value != 0;
         auto lval = new LValAST();
@@ -1453,11 +1455,13 @@ Value LOrExpAST::DumpKoopa() {
         eqexp1->eqexp = std::move(lorexp);
         eqexp1->relexp = std::unique_ptr<BaseAST>(zero);
 
+        auto zero1 = new NumberAST();
+        zero1->num = 0;
         //rhs_value != 0;
         auto eqexp2 = new EqExpAST();
         eqexp2->mode = 2;
         eqexp2->eqexp = std::move(landexp);
-        eqexp2->relexp = std::unique_ptr<BaseAST>(zero);
+        eqexp2->relexp = std::unique_ptr<BaseAST>(zero1);
 
         //result = rhs_value != 0;
         auto lval = new LValAST();
