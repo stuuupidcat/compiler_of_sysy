@@ -1375,10 +1375,11 @@ Value LAndExpAST::DumpKoopa() {
         ifstmt->DumpKoopa();
 
         //short circuit logic and.
-        exp_algoresult = 0;
-        if (eqexp1->eqexp->exp_algoresult != 0) {
-            exp_algoresult = eqexp2->eqexp->exp_algoresult != 0;
-        }
+        //exp_algoresult = 0;
+        //if (eqexp1->eqexp->exp_algoresult != 0) {
+        //    exp_algoresult = eqexp2->eqexp->exp_algoresult != 0;
+        //}
+        exp_algoresult = eqexp1->eqexp->exp_algoresult && eqexp2->eqexp->exp_algoresult;
 
         //返回__short_circuit_result的值.
         auto vi = find_var_in_symbol_table(vardef1->ident);
@@ -1478,10 +1479,10 @@ Value LOrExpAST::DumpKoopa() {
 
 
         //short circuit logic or.
-        exp_algoresult = 1;
-        if (eqexp1->eqexp->exp_algoresult == 0) {
-            exp_algoresult = eqexp2->eqexp->exp_algoresult != 0;
-        }
+        exp_algoresult = eqexp1->eqexp->exp_algoresult || eqexp2->eqexp->exp_algoresult;
+        //if (eqexp1->eqexp->exp_algoresult == 0) {
+        //    exp_algoresult = eqexp2->eqexp->exp_algoresult != 0;
+        //}
         
         //返回__short_circuit_result的值.
         auto vi = find_var_in_symbol_table(vardef1->ident);
