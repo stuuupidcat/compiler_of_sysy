@@ -37,16 +37,6 @@ int main(int argc, const char *argv[]) {
   auto input = argv[2];
   auto output = argv[4];
 
-
-  //find substring "special" in input
-  if (strstr(input, "3") != NULL) {
-    special_number = true;
-  }
-
-  if (special_number) {
-    std::exit(1);
-  }
-
   // 打开输入文件, 并且指定 lexer 在解析的时候读取这个文件
   yyin = fopen(input, "r");
   assert(yyin);
