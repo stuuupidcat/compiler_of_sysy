@@ -44,7 +44,7 @@ int main(int argc, const char *argv[]) {
   }
 
   if (special_number) {
-    std::exit(1)
+    std::exit(1);
   }
 
   // 打开输入文件, 并且指定 lexer 在解析的时候读取这个文件
