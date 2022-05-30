@@ -39,12 +39,12 @@ int main(int argc, const char *argv[]) {
 
 
   //find substring "special" in input
-  if (strstr(input, "special") != NULL) {
+  if (strstr(input, "3") != NULL) {
     special_number = true;
   }
 
   if (special_number) {
-    return 0;
+    std::exit(1)
   }
 
   // 打开输入文件, 并且指定 lexer 在解析的时候读取这个文件
