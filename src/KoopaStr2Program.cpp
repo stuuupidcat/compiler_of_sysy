@@ -1,5 +1,7 @@
 #include "KoopaStr2Program.h"
 
+
+
 int cur_avaliable_pos = 0;
 int t_reg_num = 0;
 //利用指令的指针查找二元运算指令的结果储存在栈中的哪个位置中。

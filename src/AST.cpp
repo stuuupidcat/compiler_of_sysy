@@ -1,5 +1,7 @@
 #include "AST.h"
 
+extern bool special_number;
+
 //当前临时标号的个数。
 std::vector<int> temp_sign_num;
 
@@ -1374,7 +1376,6 @@ Value LAndExpAST::DumpKoopa() {
 
         vardecl->DumpKoopa();
         ifstmt->DumpKoopa();
-
         //short circuit logic and.
         //exp_algoresult = 0;
         //if (eqexp1->eqexp->exp_algoresult != 0) {
