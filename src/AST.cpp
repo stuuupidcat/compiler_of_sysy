@@ -246,49 +246,6 @@ LoopData::LoopData(Value exp_label_value_, Value true_label_value_, Value jump_e
     end_label_value = end_label_value_;
 }
 
-void PrintInstruction() {
-    int instruction_num = block_values.size();
-    int i = 0;
-find_label:
-    if (need_label) {
-        for (; i < instruction_num; ++i) {
-            auto vd = block_insts[block_values[i]];
-            if (vd.inst_type == "label") {
-                //std::cout << vd.format() << std::endl;
-                need_label = false;
-                break;
-            }
-        }
-    }
-    
-    for (; i < instruction_num; ++i) {
-        auto vd = block_insts[block_values[i]];
-        if (vd.inst_type == "return" || vd.inst_type == "break" || vd.inst_type == "continue" || vd.inst_type == "jump" || vd.inst_type == "br") {     
-            std::cout << "  "  << vd.format();    
-            //while (vd.inst_type != "label" && i < instruction_num) {
-            //    i++;
-            //    vd = block_insts[block_values[i]];
-            //}
-            //改一点点就报错x
-            //i = i - 1;
-            //continue;
-            //return;
-            need_label = true;
-            goto find_label;
-        }
-        //要调到循环结尾的jump_exp_label 不用
-        if (vd.inst_type == "label") {
-            std::cout << vd.format();
-        }
-        else if (vd.inst_type == "globalalloc" || vd.inst_type == "global_array_alloc") {
-            std::cout << vd.format();
-        }
-        else if (vd.inst_type != "number" && vd.inst_type != "lval")
-            std::cout << "  " <<vd.format();
-    }
-    block_insts.erase(block_insts.begin(), block_insts.end());
-    block_values.erase(block_values.begin(), block_values.end());
-}
 
 //for variable
 SymbolInfo::SymbolInfo(Value value_, int exp_algoresult_, bool is_const_) {
